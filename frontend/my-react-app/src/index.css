@@ -1,0 +1,369 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  @apply h-full bg-gray-50 text-brandDark font-urbanist;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* === Hero text fade-in from left === */
+@keyframes fadeInLeftFast {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInLeftSlow {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  40% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in-left {
+  opacity: 0;
+  animation: fadeInLeftFast 0.7s ease-out forwards;
+}
+
+.fade-in-left-slow {
+  opacity: 0;
+  animation: fadeInLeftSlow 1s ease-out forwards;
+  animation-delay: 0.25s;
+}
+
+.fade-in-left-ctas {
+  opacity: 0;
+  animation: fadeInLeftSlow 1.1s ease-out forwards;
+  animation-delay: 0.45s;
+}
+
+/* === Login / Get started button animation === */
+/* start: black bg + white text, end: white bg + black text */
+@keyframes ctaSwapOnce {
+  0% {
+    background-color: #000;
+    color: #fff;
+  }
+  55% {
+    background-color: #000;
+    color: #fff;
+  }
+  100% {
+    background-color: #ffffff;
+    color: #111827; /* gray-900 style */
+  }
+}
+
+.cta-animate {
+  background-color: #000;
+  color: #fff;
+  animation: ctaSwapOnce 1.2s ease-out forwards;
+}
+
+/* keep hover states nice after animation */
+.cta-animate:hover {
+  background-color: #000;
+  color: #ffffff;
+}
+
+/* === Years card: subtle fade-in === */
+.years-card {
+  opacity: 0;
+  animation: fadeInLeftSlow 1.2s ease-out forwards;
+  animation-delay: 0.6s;
+}
+
+/* === Hero image fade in/out loop === */
+@keyframes heroImageFadeCycle {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+.hero-image-fade {
+  opacity: 0;
+  animation: heroImageFadeCycle 6s ease-in-out forwards;
+}
+/* ===============================
+   WORKBOARD – ADMIN / BM / PM
+   Clean • Corporate • Excel-like
+================================ */
+
+.workboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- TABLE CONTAINER ---------- */
+.workboard-view {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+
+/* ---------- TABLE ---------- */
+.workboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1200px;
+}
+
+.workboard-table th,
+.workboard-table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workboard-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.workboard-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.workboard-table tbody tr:hover {
+  background: #eef2ff;
+}
+
+/* ---------- STATUS COLORS (ADMIN MONITORING) ---------- */
+/* ===== ROW BACKGROUNDS (very mild, readable) ===== */
+
+.status-open {
+  background: #eef4ff; /* calm blue → new item */
+}
+
+.status-inprogress {
+  background: #fff6ed; /* soft amber → active work */
+}
+
+.status-onhold {
+  background: #fffbe6; /* pause / waiting */
+}
+
+.status-resolved {
+  background: #f1fdfa; /* work done, not yet approved */
+}
+
+.status-approved {
+  background: #f2f4f8; /* FINAL – archived, executive */
+}
+
+.status-cancelled {
+  background: #fef2f2; /* stopped */
+}
+
+
+/* ===== STATUS DOT BASE ===== */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.04); /* subtle presence */
+}
+
+
+/* ===== STATUS DOT COLORS (meaning-driven) ===== */
+
+.dot-open {
+  background: #2563eb; /* confident blue */
+}
+
+.dot-inprogress {
+  background: #d97706; /* focused amber */
+}
+
+.dot-onhold {
+  background: #ca8a04; /* caution */
+}
+
+.dot-resolved {
+  background: #0f766e; /* calm teal – done */
+}
+
+.dot-approved {
+  background: #1f2937; /* FINAL authority (dark slate) */
+}
+
+.dot-cancelled {
+  background: #dc2626; /* terminated */
+}
+
+/* ===== Monitoring Table Header ===== */
+
+.monitoring-table-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.monitoring-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Status legend */
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  font-size: 13px;
+  color: #374151;
+}
+
+.status-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.monitoring-title {
+  font-family: inherit;              /* ← key line */
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: #111827;
+}
+/* ===============================
+   Monitoring Tables – Column Grid
+   Excel-style, clean & readable
+================================ */
+/* ===============================
+   Monitoring Tables – Excel Grid
+   Clear column separation
+================================ */
+
+.monitoring-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* HEADER CELLS */
+.monitoring-table thead th {
+  border-right: 1px solid #d1d5db;   /* stronger than body */
+  border-bottom: 1.5px solid #cbd5e1;
+  background: #f9fafb;
+}
+
+/* BODY CELLS */
+.monitoring-table tbody td {
+  border-right: 1px solid #e2e8f0;   /* visible but soft */
+}
+
+/* REMOVE LAST COLUMN BORDER */
+.monitoring-table th:last-child,
+.monitoring-table td:last-child {
+  border-right: none;
+}
+
+/* OPTIONAL: row separator refinement */
+.monitoring-table tbody tr {
+  box-shadow: inset 0 -1px 0 #e5e7eb;
+}
+/* --- MOBILE NAVBAR CLEANUP --- */
+@media (max-width: 640px) {
+  header > div:first-child {
+    padding-top: .25rem !important;
+    padding-bottom: .25rem !important;
+  }
+
+  /* logo & title inline */
+  header img[alt="Arche logo"] {
+    height: 30px !important;
+    margin-right: 6px;
+  }
+
+  /* title spacing */
+  header .font-marcellus {
+    font-size: 1rem !important;
+    margin-top: -2px;
+  }
+
+  /* delivery monitoring tiny + closer */
+  header .text-brandMuted {
+    font-size: 9px !important;
+    margin-top: -4px;
+  }
+
+  /* notification bell icon tighter */
+  header button[onClick*="goNotifications"] {
+    height: 30px !important;
+    width: 30px !important;
+    border-radius: 8px !important;
+    border-color: #d1d5db !important;
+  }
+
+  /* view/edit toggle centered & slimmer pills */
+  header .inline-flex {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  header .inline-flex button {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* hamburger spacing */
+  header button:has(> :not(img)):first-child {
+    margin-right: 6px !important;
+  }
+}

@@ -1,0 +1,152 @@
+@import url("https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600&family=Marcellus&display=swap");
+
+:root {
+  --primary: #2e3844;
+  --secondary: #7e8287;
+  --bg: #f5f6fa;
+  --card-bg: #ffffff;
+  --border: #e0e3e8;
+  --text-main: #2e3844;
+  --text-muted: #7e8287;
+  --font-header: "Urbanist", sans-serif;
+  --font-title: "Marcellus", serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-header);
+  background-color: var(--bg);
+  color: var(--text-main);
+}
+
+@import "./layout.css";
+@import "./dashboard.css";
+@import "./modules.css";
+@import "./table.css";
+@import "./forms.css";
+@import "./filters.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  @apply h-full bg-gray-50 text-brandDark font-urbanist;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* === Hero text fade-in from left === */
+@keyframes fadeInLeftFast {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInLeftSlow {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  40% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in-left {
+  opacity: 0;
+  animation: fadeInLeftFast 0.7s ease-out forwards;
+}
+
+.fade-in-left-slow {
+  opacity: 0;
+  animation: fadeInLeftSlow 1s ease-out forwards;
+  animation-delay: 0.25s;
+}
+
+.fade-in-left-ctas {
+  opacity: 0;
+  animation: fadeInLeftSlow 1.1s ease-out forwards;
+  animation-delay: 0.45s;
+}
+
+/* === Login / Get started button animation === */
+/* start: black bg + white text, end: white bg + black text */
+@keyframes ctaSwapOnce {
+  0% {
+    background-color: #000;
+    color: #fff;
+  }
+  55% {
+    background-color: #000;
+    color: #fff;
+  }
+  100% {
+    background-color: #ffffff;
+    color: #111827; /* gray-900 style */
+  }
+}
+
+.cta-animate {
+  background-color: #000;
+  color: #fff;
+  animation: ctaSwapOnce 1.2s ease-out forwards;
+}
+
+/* keep hover states nice after animation */
+.cta-animate:hover {
+  background-color: #000;
+  color: #ffffff;
+}
+
+/* === Years card: subtle fade-in === */
+.years-card {
+  opacity: 0;
+  animation: fadeInLeftSlow 1.2s ease-out forwards;
+  animation-delay: 0.6s;
+}
+
+/* === Hero image fade in/out loop === */
+@keyframes heroImageFadeCycle {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+.hero-image-fade {
+  opacity: 0;
+  animation: heroImageFadeCycle 6s ease-in-out forwards;
+}

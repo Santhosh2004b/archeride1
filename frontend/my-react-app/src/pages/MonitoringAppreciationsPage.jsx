@@ -1,0 +1,296 @@
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { fetchAppreciations } from "../api/appreciationsApi";
+import useMonitoringExport from "../hooks/useMonitoringExport";
+
+const MonitoringAppreciationsPage = () => {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [allRows, setAllRows] = useState([]); // Store unfiltered data
+
+  // MASTER FILTER SET
+  const [filters, setFilters] = useState({
+    appreciation_type: "",
+    shared_with: "",
+    project_name: "",
+    search: "",
+  });
+
+  // second row global search
+  const [globalSearch, setGlobalSearch] = useState("");
+
+  useMonitoringExport("appreciations", rows);
+
+  /* cleanup empty params */
+  const cleanParams = (obj) =>
+    Object.fromEntries(
+      Object.entries(obj).filter(([_, v]) => v !== "" && v !== null)
+    );
+
+  /* ======================================================
+     APPLY FILTERS + LIVE SEARCH (matches to top)
+  ====================================================== */
+  const applyFiltersAndSearch = (data) => {
+    let filtered = data;
+
+    // Apply select filters (not project_name or search)
+    const selectFilters = { ...filters };
+    delete selectFilters.project_name;
+    delete selectFilters.search;
+    
+    Object.entries(selectFilters).forEach(([key, value]) => {
+      if (value) {
+        filtered = filtered.filter((row) =>
+          String(row[key] ?? "").toLowerCase() === String(value).toLowerCase()
+        );
+      }
+    });
+
+    // Split by project name (live search)
+    let projectMatches = [];
+    let projectNonMatches = filtered;
+
+    if (filters.project_name.trim()) {
+      const q = filters.project_name.toLowerCase();
+      projectMatches = filtered.filter((row) =>
+        String(row.project_name ?? "").toLowerCase().includes(q)
+      );
+      projectNonMatches = filtered.filter((row) =>
+        !String(row.project_name ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    // Apply global search (matches to top)
+    let globalMatches = [];
+
+    if (globalSearch.trim()) {
+      const term = globalSearch.toLowerCase();
+      const searchableData = [...projectMatches, ...projectNonMatches];
+      globalMatches = searchableData.filter((row) =>
+        Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(term))
+      );
+    } else {
+      globalMatches = [...projectMatches, ...projectNonMatches];
+    }
+
+    // Sort by latest updated
+    globalMatches.sort((a, b) => new Date(b.last_updated || b.updated_at || 0) - new Date(a.last_updated || a.updated_at || 0));
+
+    setRows(globalMatches);
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const src = filters;
+      const q = cleanParams(src);
+      q.search = ""; // Don't send search to backend
+
+      // 🔥 backend expects `shared_with_team` — remap it
+      if (q.shared_with) {
+        q.shared_with_team = q.shared_with;
+        delete q.shared_with;
+      }
+
+      let res = await fetchAppreciations(q);
+      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+
+      setAllRows(list);
+      applyFiltersAndSearch(list);
+    } catch (err) {
+      console.error("Failed to load appreciations", err);
+      alert("Failed to load appreciations");
+      setAllRows([]);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    return () => {};
+  }, []);
+
+  // Re-filter when filters or search change (live)
+  useEffect(() => {
+    if (allRows.length > 0) {
+      applyFiltersAndSearch(allRows);
+    }
+  }, [filters, globalSearch]);
+
+  const handleFilterChange = (e) =>
+    setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleApply = () => loadData();
+
+  const handleClear = () => {
+    const cleared = {
+      appreciation_type: "",
+      shared_with: "",
+      project_name: "",
+      search: "",
+    };
+    setFilters(cleared);
+  };
+
+  const clearGlobal = () => {
+    setGlobalSearch("");
+  };
+
+  const columns = rows[0] ? Object.keys(rows[0]) : [];
+
+  const appreciationTypes = ["Email", "Call", "Meeting", "Formal Letter", "Survey Feedback", "Verbal"];
+  const sharedWithOpts = ["Yes", "No"];
+
+  return (
+    <motion.div 
+      className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+      {/* Animated Header */}
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <div>
+          <h1 className="font-marcellus text-2xl sm:text-3xl font-bold text-gray-900">Appreciations</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Table — Latest Updates</p>
+          <p className="text-xs text-gray-400 mt-1">View and manage appreciation records shared across projects and teams.</p>
+        </div>
+      </motion.div>
+
+      {/* -------- FILTERS -------- */}
+      <motion.div 
+        className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-4 py-4 flex flex-col lg:flex-row gap-3 lg:items-end"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+        <div className="bg-white border rounded-xl shadow-sm px-4 py-4 flex flex-col gap-3">
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          
+          <select
+            name="appreciation_type"
+            value={filters.appreciation_type}
+            onChange={handleFilterChange}
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+          >
+            <option value="">Appreciation Type (All)</option>
+            {appreciationTypes.map(t => <option key={t}>{t}</option>)}
+          </select>
+
+          <select
+            name="shared_with"
+            value={filters.shared_with}
+            onChange={handleFilterChange}
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+          >
+            <option value="">Shared With (All)</option>
+            {sharedWithOpts.map(s => <option key={s}>{s}</option>)}
+          </select>
+
+          <input
+            type="text"
+            name="project_name"
+            placeholder="Project Name"
+            value={filters.project_name}
+            onChange={handleFilterChange}
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+          />
+
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <button onClick={handleApply}
+            className="rounded-full bg-brandDark text-white px-4 py-2 text-xs sm:text-sm">
+            Apply
+          </button>
+          <button onClick={handleClear}
+            className="rounded-full border px-4 py-2 text-xs sm:text-sm">
+            Clear
+          </button>
+        </div>
+        </div>
+
+        {/* -------- GLOBAL SEARCH -------- */}
+        <motion.div 
+          className="bg-white border rounded-xl shadow-sm px-4 py-3 flex items-center gap-3"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <label className="text-xs sm:text-sm font-semibold w-32">Global Search</label>
+
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              placeholder="Search name / subject / details"
+              className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm pr-10"
+            />
+            {globalSearch && (
+              <span onClick={clearGlobal}
+                className="absolute right-3 top-2.5 text-gray-500 cursor-pointer">✕</span>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+
+
+      {/* -------- TABLE -------- */}
+      <motion.div 
+        className="flex-1 bg-white border rounded-xl shadow-sm overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.4 }}
+      >
+        {loading ? (
+          <div className="p-6 text-sm">Loading...</div>
+        ) : (
+          <div className="overflow-auto">
+            <table className="monitoring-table min-w-full text-left text-xs sm:text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-2.5 font-semibold uppercase w-12">S.No</th>
+                  {columns.map(c => (
+                    <th key={c} className="px-4 py-2.5 font-semibold uppercase">{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={row.id} className="border-b">
+                    <td className="px-4 py-2 whitespace-nowrap font-semibold w-12">{idx + 1}</td>
+                    {columns.map(c => (
+                      <td key={c} className="px-4 py-2 whitespace-nowrap">
+                        {String(row[c] ?? "")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={columns.length + 1} className="text-center py-4">
+                      No appreciations found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default MonitoringAppreciationsPage;

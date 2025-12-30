@@ -1,0 +1,161 @@
+/* VIDEO FADE + QUALITY */
+
+@keyframes loginVideoFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.0);
+  }
+}
+
+/* container that forces proper 16:9, no white side bars */
+.login-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 1.00rem;
+  overflow: hidden;
+  background: #00000083; /* avoids white edges behind */
+}
+
+.login-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.00) saturate(1.28);
+}
+
+.login-video-fade {
+  opacity: 0;
+  animation: loginVideoFadeIn 2.8s ease-out forwards;
+}
+
+/* LEFT MEDIA CARD – slower entrance, no jump */
+
+@keyframes loginCardRise {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-media-card {
+  box-shadow:
+    rgb(0, 0, 0) 0px 24px 40px,
+    rgba(0, 0, 0, 0.12) 0px 0px 10px;
+  opacity: 0;
+  animation: loginCardRise 2.4s ease-out forwards;
+  animation-delay: 0.5s;
+}
+
+/* RIGHT SIDE FADE STAGING */
+
+@keyframes loginFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-heading-fade {
+  opacity: 0;
+  animation: loginFadeUp 0.4s ease-out forwards;
+  animation-delay: 0.1s;
+}
+
+.login-subtext-fade {
+  opacity: 0;
+  animation: loginFadeUp 0.6s ease-out forwards;
+  animation-delay: 0.25s;
+}
+
+.login-error-fade {
+  opacity: 0;
+  animation: loginFadeUp 0.8s ease-out forwards;
+  animation-delay: 0.35s;
+}
+
+.login-fields-fade {
+  opacity: 0;
+  animation: loginFadeUp 1s ease-out forwards;
+  animation-delay: 0.4s;
+}
+
+.login-footer-fade {
+  opacity: 0;
+  animation: loginFadeUp 1s ease-out forwards;
+  animation-delay: 0.9s;
+}
+
+/* LOGIN BUTTON – black → white transition */
+
+@keyframes loginBtnSwap {
+  0% {
+    background-color: #000000;
+    color: #ffffff;
+  }
+  50% {
+    background-color: #000000;
+    color: #ffffff;
+  }
+  100% {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}
+
+.login-button-animate {
+  background-color: #0000005f;
+  color: #ffffff;
+  animation: loginBtnSwap 2.2s ease-out forwards;
+}
+
+.login-button-animate:hover {
+  background-color: #111111;
+  color: #ffffff;
+}
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-down {
+  animation: fadeDown 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-slide-up {
+  animation: slideUp 0.6s ease-out;
+}

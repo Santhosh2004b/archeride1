@@ -1,0 +1,186 @@
+// backend/models/dependencies.model.js
+import pool from "../db.js";
+import { createResolutionNotification } from "../models/notifications.model.js";
+
+
+/* =======================================================
+   DEPENDENCIES MODEL — PROJECT_NAME DIRECT STORAGE VERSION
+   ======================================================= */
+
+/* ============================
+   LIST DEPENDENCIES
+   ============================ */
+export async function findDependencies({ whereSql = "", params = [] } = {}) {
+  const sql = `
+    SELECT
+      d.id,
+      d.dependency_id,
+      d.project_name,
+      d.reported_date,
+      d.reported_by,
+      d.status,
+      d.priority,
+      d.type,
+      d.dependency_title,
+      d.description,
+      d.dependent_on,
+      d.impact_if_not_resolved,
+      d.required_by_date,
+      d.current_status,
+      d.follow_up_date,
+      d.contact_person,
+      d.contact_details,
+      d.last_updated,
+      d.comments,
+      d.created_at,
+      d.updated_at
+    FROM dependencies d
+    ${whereSql}
+    ORDER BY d.reported_date DESC, d.created_at DESC
+  `;
+  const { rows } = await pool.query(sql, params);
+  return rows;
+}
+
+/* ============================
+   GET DEPENDENCY BY ID
+   ============================ */
+export async function findDependencyById(id) {
+  const sql = `
+    SELECT d.*
+    FROM dependencies d
+    WHERE d.id = $1
+  `;
+  const { rows } = await pool.query(sql, [id]);
+  return rows[0];
+}
+
+/* ============================
+   CREATE DEPENDENCY
+   ============================ */
+export async function createDependency(data) {
+  const sql = `
+    INSERT INTO dependencies (
+      dependency_id,
+      project_name,
+      reported_date,
+      reported_by,
+      status,
+      priority,
+      type,
+      dependency_title,
+      description,
+      dependent_on,
+      impact_if_not_resolved,
+      required_by_date,
+      current_status,
+      follow_up_date,
+      contact_person,
+      contact_details,
+      last_updated,
+      comments
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+      $11,$12,$13,$14,$15,$16,now(),$17
+    )
+    RETURNING *;
+  `;
+
+  const params = [
+    data.dependency_id,
+    data.project_name,
+    data.reported_date,
+    data.reported_by,
+    data.status,
+    data.priority,
+    data.type,
+    data.dependency_title,
+    data.description,
+    data.dependent_on,
+    data.impact_if_not_resolved || null,
+    data.required_by_date,
+    data.current_status || null,
+    data.follow_up_date || null,
+    data.contact_person || null,
+    data.contact_details || null,
+    data.comments || null
+  ];
+
+  const { rows } = await pool.query(sql, params);
+  return rows[0];
+}
+
+/* ============================
+   UPDATE DEPENDENCY
+   ============================ */
+export async function updateDependency(id, data) {
+  const sql = `
+    UPDATE dependencies SET
+      dependency_id = $1,
+      project_name = $2,
+      reported_date = $3,
+      reported_by = $4,
+      status = $5,
+      priority = $6,
+      type = $7,
+      dependency_title = $8,
+      description = $9,
+      dependent_on = $10,
+      impact_if_not_resolved = $11,
+      required_by_date = $12,
+      current_status = $13,
+      follow_up_date = $14,
+      contact_person = $15,
+      contact_details = $16,
+      last_updated = now(),
+      comments = $17,
+      updated_at = now()
+    WHERE id = $18
+    RETURNING *;
+  `;
+
+  const params = [
+    data.dependency_id,
+    data.project_name,
+    data.reported_date,
+    data.reported_by,
+    data.status,
+    data.priority,
+    data.type,
+    data.dependency_title,
+    data.description,
+    data.dependent_on,
+    data.impact_if_not_resolved || null,
+    data.required_by_date,
+    data.current_status || null,
+    data.follow_up_date || null,
+    data.contact_person || null,
+    data.contact_details || null,
+    data.comments || null,
+    id
+  ];
+
+  const { rows } = await pool.query(sql, params);
+  const updated = rows[0];
+
+  if (updated && String(updated.status).toLowerCase() === "resolved") {
+    await createResolutionNotification({
+      module: "dependency",
+      itemId: updated.id,
+      itemCode: updated.dependency_id,
+      statusBefore: data.previous_status || null,
+      statusAfter: "Resolved",
+      payload: updated,
+      bmUser: updated.reported_by,
+    });
+  }
+
+  return updated;
+}
+/* ============================
+   KPI HELPERS
+   ============================ */
+export async function countAll() {
+  const result = await pool.query("SELECT COUNT(*) AS c FROM dependencies");
+  return Number(result.rows[0].c);
+}
