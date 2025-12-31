@@ -1,116 +1,254 @@
-// src/pages/CeremonyLaunchPage.jsx
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import CanvasFireworks from '../components/ceremony/CanvasFireworks';
+import ParticleCracker from '../components/ceremony/ParticleCracker';
+import RibbonCutting from '../components/ceremony/RibbonCutting';
+import styles from './Ceremony.module.css';
+import arcLogo from '../assets/arche-logo.png'; // Importing directly from src/assets
 
-const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod, nisi eu consectetur consectetur, nisl nisi consectetur nisi, euismod euismod nisi nisi euismod nisi.`;
-
-export default function CeremonyLaunchPage() {
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [ribbonCut, setRibbonCut] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
-  const [showLaunch, setShowLaunch] = useState(false);
+const CeremonyLaunchPage = () => {
   const navigate = useNavigate();
+  const [phase, setPhase] = useState('LANDING');
+  // Phases: 'LANDING', 'INTRO', 'RIBBON', 'POST_RIBBON_WELCOME', 'POST_RIBBON_CONTENT', 'FINAL_CTA', 'VIDEO'
 
+  // Audio
+  const audioRef = useRef(new Audio('/assets/Awards_Ceremony_Grand_Opening.mp3'));
+
+  // State for sequencing
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [showProfiles, setShowProfiles] = useState(false);
+  const [profileStep, setProfileStep] = useState(0);
+
+  // Handle initial mount audio cleanup
   useEffect(() => {
-    const t1 = setTimeout(() => setShowPrompt(true), 3000);
-    return () => clearTimeout(t1);
+    const audio = audioRef.current;
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
   }, []);
 
+  // 1. LANDING -> INTRO
+  const handleGetStarted = () => {
+    // Play Audio
+    audioRef.current.play().catch(e => console.log('Audio autoplay blocked', e));
+    setPhase('INTRO');
+  };
+
+  // 2. INTRO -> RIBBON
+  const handleLaunchClick = () => {
+    // Transit to Ribbon
+    // "remove background music here"
+    audioRef.current.pause();
+    setPhase('RIBBON');
+  };
+
+  // 3. RIBBON -> POST_RIBBON
   const handleRibbonCut = () => {
-    setRibbonCut(true);
-    setTimeout(() => setShowWelcome(true), 1200);
+    // Fireworks burst for 3s
+    // We can use a temp state or just timeout
+    // Show fireworks/confetti (handled by Ribbon component or overlay)
+
+    // After 3s, move to welcome
     setTimeout(() => {
-      setShowWelcome(false);
-      setShowAbout(true);
-      setTimeout(() => setShowLaunch(true), 3000);
-    }, 3200);
+      setPhase('POST_RIBBON_WELCOME');
+    }, 3000);
+  };
+
+  // 4. POST_RIBBON_WELCOME (Welcome to ArcWrite)
+  useEffect(() => {
+    if (phase === 'POST_RIBBON_WELCOME') {
+      setShowWelcome(true);
+      // Fade out fully after animation (e.g. 4s)
+      setTimeout(() => {
+        setShowWelcome(false);
+        setPhase('POST_RIBBON_CONTENT');
+      }, 4000);
+    }
+  }, [phase]);
+
+  // 5. POST_RIBBON_CONTENT (Story -> Bullets -> Paragraph -> Profiles)
+  useEffect(() => {
+    if (phase === 'POST_RIBBON_CONTENT') {
+      setShowContent(true);
+
+      // Sequence:
+      // Text Anims happen via CSS delays.
+      // Bullets take ~2s. Paragraph takes ~1s.
+      // Let's give it 4s before showing profiles
+
+      setTimeout(() => {
+        setShowProfiles(true);
+        // Profile Sequence
+        // 1. Satish Fade In
+        setProfileStep(1);
+
+        // 2. Santhosh Fade In (after 2s)
+        setTimeout(() => {
+          setProfileStep(2);
+        }, 2000);
+
+        // 3. Final CTA (after another 2s)
+        setTimeout(() => {
+          setPhase('FINAL_CTA');
+        }, 4000);
+
+      }, 5000); // Wait for text content
+    }
+  }, [phase]);
+
+
+  const handleFinalLaunch = () => {
+    setPhase('VIDEO');
+    // Video plays inline, then redirect
+    const video = document.getElementById('launch-video');
+    if (video) {
+      video.play();
+      video.onended = () => {
+        navigate('/login');
+      };
+      // Fallback if video doesn't play or errors
+      setTimeout(() => navigate('/login'), 8000);
+    } else {
+      setTimeout(() => navigate('/login'), 3000);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-brandBg relative overflow-hidden p-3 sm:p-5">
-      {/* Animated Header */}
-      <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-brandDark text-center mb-4 animate-fade-in-up tracking-tight">Arche RI-DE Ceremony Launch</h1>
-      <p className="max-w-xl text-center font-urbanist text-brandMuted mb-6 animate-fade-in-up delay-200">{lorem.repeat(2)}</p>
-      {/* Ribbon Animation */}
-      <div className="my-8 flex flex-col items-center">
-        <div className={`ribbon ${ribbonCut ? "ribbon-cut" : ""}`}></div>
-        {showPrompt && !ribbonCut && (
-          <button onClick={handleRibbonCut} className="mt-6 px-6 py-2 bg-pink-500 text-white rounded-full shadow-lg text-lg font-bold animate-bounce">Click to cut the ribbon 🎀</button>
-        )}
+    <div className={styles.container}>
+
+      {/* BACKGROUND ANIMATION - Always On */}
+      <div className={styles.globalCrackers}>
+        <ParticleCracker />
+        <CanvasFireworks />
       </div>
-      {/* Ceremony Effects */}
-      {ribbonCut && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-          <div className="text-4xl animate-pop">🎉 🍫 🎆</div>
+
+      {/* PHASE 0: LANDING */}
+      {phase === 'LANDING' && (
+        <div className={styles.landingContainer}>
+          <button className={styles.getStartedBtn} onClick={handleGetStarted}>
+            Get Started
+          </button>
         </div>
       )}
-      {/* Welcome Overlay */}
-      {showWelcome && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-30 animate-fade-in">
-          <span className="text-2xl sm:text-3xl font-bold font-marcellus text-pink-600">🎉 Welcome to Arche RI-DE Tracker</span>
+
+      {/* PHASE 1: INTRO (Logo Right, Button Bottom Right) */}
+      {phase === 'INTRO' && (
+        <div className={styles.introContainer}>
+          {/* Left: Headers? User didn't specify text here, usually it's "ArcWrite..." */}
+          {/* Assuming we keep the intro text or just the logo? 
+                        User: "keep the layout you already made... Green circle on the right"
+                    */}
+          <div className={styles.leftContent}>
+            <h1 className={styles.introTitleMain}>ArcWrite</h1>
+            <h2 className={styles.introTitleSub}>Powered by Engineering Vision</h2>
+          </div>
+
+          <div className={styles.rightContent}>
+            <div className={styles.logoCircle}>
+              <img src={arcLogo} alt="ArcWrite Logo" className={styles.logoImage} />
+            </div>
+
+            <div className={styles.buzzerButtonContainer}>
+              <button className={styles.launchCircleBtn} onClick={handleLaunchClick}>
+                <div>Launch ➜</div>
+              </button>
+            </div>
+          </div>
         </div>
       )}
-      {/* About Section */}
-      {showAbout && (
-        <div className="mt-10 text-center animate-fade-in">
-          <p className="font-urbanist font-semibold text-brandDark">Created by Santhosh — Full Stack Developer</p>
-          <p className="font-urbanist text-brandMuted">Organised by Sathish Balaji — Senior Vice President &amp; Head of Delivery</p>
+
+      {/* PHASE 2: RIBBON */}
+      {phase === 'RIBBON' && (
+        <div className={styles.ribbonLayer}>
+          <RibbonCutting onCut={handleRibbonCut} />
+          <div className={styles.cautionText}>
+            Place your mouse at the center of the ribbon and click to cut.
+          </div>
         </div>
       )}
-      {/* Launch Button */}
-      {showLaunch && (
-        <button
-          className="mt-10 px-8 py-3 bg-brandDark text-white rounded-full text-lg font-bold font-urbanist shadow-lg animate-fade-in-up hover:bg-black transition"
-          onClick={() => navigate("/login")}
-        >
-          Launch → Continue to Platform
-        </button>
+
+      {/* PHASE 3: WELCOME (Text Only) */}
+      {phase === 'POST_RIBBON_WELCOME' && showWelcome && (
+        <div className={styles.welcomeContainer}>
+          <div className={styles.welcomeRegular}>Welcome to</div>
+          <div className={styles.welcomeBold}>ArcWrite</div>
+        </div>
       )}
-      {/* Optional: Add tasteful background/ribbon/firework animations with CSS */}
-      <style>{`
-        .ribbon {
-          width: 320px;
-          height: 18px;
-          background: repeating-linear-gradient(90deg, #e11d48 0 20px, #fbbf24 20px 40px);
-          border-radius: 9px;
-          position: relative;
-          transition: all 0.7s cubic-bezier(.4,2,.6,1);
-        }
-        .ribbon-cut {
-          width: 0;
-          opacity: 0.2;
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.8s both;
-        }
-        .animate-fade-in {
-          animation: fadeIn 1s both;
-        }
-        .animate-pop {
-          animation: pop 1s both;
-        }
-        .animate-bounce {
-          animation: bounce 1.2s infinite;
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes pop {
-          0% { transform: scale(0.5); opacity: 0; }
-          60% { transform: scale(1.2); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-      `}</style>
+
+      {/* PHASE 4: CONTENT + PROFILES */}
+      {(phase === 'POST_RIBBON_CONTENT' || phase === 'FINAL_CTA') && (
+        <div className={styles.mainContentContainer}>
+          {/* LEFT: PROFILES */}
+          <div className={styles.profilesLeftSection}>
+            {showProfiles && (
+              <>
+                {/* Profile 1: Satish */}
+                <div className={styles.profileRow} style={{ opacity: profileStep >= 1 ? 1 : 0 }}>
+                  <div className={styles.profileImgWrap}>
+                    <img src="/assets/satish.jpg" alt="Satish Balaji" className={styles.profileImg} />
+                  </div>
+                  <div className={styles.profileInfo}>
+                    <div className={styles.profileName}>Satish Balaji</div>
+                    <div className={styles.profileRole}>Senior Vice President</div>
+                  </div>
+                </div>
+
+                {/* Profile 2: Santhosh */}
+                <div className={styles.profileRow} style={{ opacity: profileStep >= 2 ? 1 : 0, transitionDelay: '0.5s' }}>
+                  <div className={styles.profileImgWrap}>
+                    <img src="/assets/santhosh.png" alt="Santhosh B" className={styles.profileImg} />
+                  </div>
+                  <div className={styles.profileInfo}>
+                    <div className={styles.profileName}>Santhosh B</div>
+                    <div className={styles.profileRole}>Full Stack Developer</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* RIGHT: TEXT CONTENT */}
+          <div className={styles.contentRightSection} style={{ opacity: showContent ? 1 : 0 }}>
+            <h1 className={styles.storyHeader}>Our Success Story Begins</h1>
+            <ul className={styles.bulletList}>
+              <li style={{ animationDelay: '0.5s' }}>Seamless Integration</li>
+              <li style={{ animationDelay: '1.0s' }}>Precision-First Automation</li>
+              <li style={{ animationDelay: '1.5s' }}>Human-Centered Design</li>
+              <li style={{ animationDelay: '2.0s' }}>Future-Ready Scalability</li>
+            </ul>
+            <p className={styles.storyPara} style={{ animationDelay: '2.5s' }}>
+              We are redefining how engineering teams document, collaborate, and deliver.<br />
+              ArcWrite isn’t just a platform — it's a commitment to clarity, speed, and scale.<br />
+              Together, we move smarter, faster, and further.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 5: FINAL CTA */}
+      {phase === 'FINAL_CTA' && (
+        <div className={styles.finalCtaOverlay}>
+          <button className={styles.launchPlatformBtn} onClick={handleFinalLaunch}>
+            Launch Platform
+          </button>
+        </div>
+      )}
+
+      {/* VIDEO */}
+      {phase === 'VIDEO' && (
+        <div className={styles.videoContainer}>
+          {/* Placeholder for video, assuming simple video tag or embed */}
+          <video id="launch-video" width="100%" height="100%" controls autoPlay style={{ objectFit: 'cover' }}>
+            <source src="/assets/login-hero.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )}
+
     </div>
   );
-}
+};
+
+export default CeremonyLaunchPage;
