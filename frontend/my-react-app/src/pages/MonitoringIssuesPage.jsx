@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import MonitoringFilters from "../components/MonitoringFilters";
 import { fetchIssues } from "../api/issuesApi";
 import { filterConfig } from "../config/filterConfig";
-import { FiFilter, FiRotateCcw, FiSearch } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiFilter, FiRotateCcw, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
 
 /* OPTION ARRAYS */
@@ -48,6 +49,7 @@ const getStatusMeta = (row) => {
 };
 
 const MonitoringIssuesPage = () => {
+  const navigate = useNavigate();
   // Re-applies filters and search to the current data when global search Apply is clicked
   const handleGlobalApply = () => {
     applyFiltersAndSearch(allRows);
@@ -81,43 +83,35 @@ const MonitoringIssuesPage = () => {
      APPLY FILTERS + LIVE SEARCH (matches to top)
   ====================================================== */
   const applyFiltersAndSearch = (data) => {
-    let filtered = data;
+    let filtered = [...data];
 
-    // Apply all filters
+    // 1. Apply all filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value && value.trim()) {
+        const q = value.toLowerCase();
         if (key === "project_name") {
-          // Project name as live search (partial match)
-          const q = value.toLowerCase();
           filtered = filtered.filter((row) =>
             String(row.project_name ?? "").toLowerCase().includes(q)
           );
         } else {
-          // Other filters as exact match
           filtered = filtered.filter((row) =>
-            String(row[key] ?? "").toLowerCase() === String(value).toLowerCase()
+            String(row[key] ?? "").toLowerCase() === q
           );
         }
       }
     });
 
-    // Apply global search on filtered results (matches to top)
-    let globalMatches = [];
-    let globalNonMatches = [];
-
+    // 2. Apply global search
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
-      globalMatches = filtered.filter((row) =>
-        Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q))
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((v) =>
+          v !== null && v !== undefined && String(v).toLowerCase().includes(q)
+        )
       );
-      globalNonMatches = filtered.filter((row) =>
-        !Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q))
-      );
-    } else {
-      globalMatches = filtered;
     }
 
-    setRows(globalMatches);
+    setRows(filtered);
   };
 
   /* load API (initial load only) */
@@ -155,6 +149,8 @@ const MonitoringIssuesPage = () => {
     loadData();
   };
 
+
+
   const handleClearAll = () => {
     const reset = Object.fromEntries((filterConfig.issues.fields || []).map(f => [f.name, ""]));
     setFilters(reset);
@@ -182,10 +178,10 @@ const MonitoringIssuesPage = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus text-2xl sm:text-3xl font-bold text-gray-900">Issues</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Table — Latest Updates</p>
-          <p className="text-xs text-gray-400 mt-1">Track and manage project issues with real-time status updates.</p>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Issue</h1>
+          <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
+
       </motion.div>
 
       {/* =============================
@@ -252,7 +248,7 @@ const MonitoringIssuesPage = () => {
         transition={{ duration: 0.4, delay: 0.3 }}
       >
 
-        <label className="text-xs font-semibold w-24">Global Search</label>
+        <label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-500 w-28">Global Search</label>
 
         <div className="relative flex-1">
           <input
@@ -299,6 +295,7 @@ const MonitoringIssuesPage = () => {
                   {columns.map(c => (
                     <th key={c} className="px-4 py-2.5 text-xs font-semibold uppercase">{c}</th>
                   ))}
+
                 </tr>
               </thead>
               <tbody>
@@ -316,6 +313,7 @@ const MonitoringIssuesPage = () => {
                             : String(row[c] ?? "")}
                         </td>
                       ))}
+
                     </tr>
                   );
                 })}

@@ -46,12 +46,12 @@ export async function getDashboardMetrics(req, res) {
 
     const inholding = await safeCount(`
       SELECT COUNT(*) FROM (
-        SELECT id FROM risks WHERE status = 'In Progress' OR status = 'Inholding'
-        UNION ALL SELECT id FROM issues WHERE status = 'In Progress' OR status = 'Inholding'
-        UNION ALL SELECT id FROM actions WHERE status = 'In Progress' OR status = 'Inholding'
-        UNION ALL SELECT id FROM dependencies WHERE status = 'In Progress' OR status = 'Inholding'
-        UNION ALL SELECT id FROM escalations WHERE status = 'In Progress' OR status = 'Inholding'
-        UNION ALL SELECT id FROM collections WHERE status = 'In Progress' OR status = 'Inholding'
+        SELECT id FROM risks WHERE status = 'In Progress' OR status = 'on-holding'
+        UNION ALL SELECT id FROM issues WHERE status = 'In Progress' OR status = 'on-holding'
+        UNION ALL SELECT id FROM actions WHERE status = 'In Progress' OR status = 'on-holding'
+        UNION ALL SELECT id FROM dependencies WHERE status = 'In Progress' OR status = 'on-holding'
+        UNION ALL SELECT id FROM escalations WHERE status = 'In Progress' OR status = 'on-holding'
+        UNION ALL SELECT id FROM collections WHERE status = 'In Progress' OR status = 'on-holding'
       ) t
     `);
 
@@ -99,6 +99,10 @@ export async function getDashboardMetrics(req, res) {
     // ---------- MONTHLY TREND: risk trend by month (filtered by selected year) ----------
     const monthly_risk_trend = [];
     try {
+      // Generate array of all 12 months
+      const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      // Get actual data from database
       const res = await pool.query(`
         SELECT TO_CHAR(identified_date, 'Mon') AS month, COUNT(*)::INT AS count
         FROM risks
@@ -107,10 +111,18 @@ export async function getDashboardMetrics(req, res) {
         GROUP BY TO_CHAR(identified_date, 'Mon'), EXTRACT(MONTH FROM identified_date)
         ORDER BY EXTRACT(MONTH FROM identified_date)
       `, [selectedYear]);
+
+      // Create map of existing months
+      const monthMap = {};
       res.rows.forEach(r => {
+        monthMap[r.month] = r.count;
+      });
+
+      // Fill in all 12 months with zero for missing
+      allMonths.forEach(month => {
         monthly_risk_trend.push({
-          month: r.month || 'Unknown',
-          count: r.count
+          month,
+          count: monthMap[month] || 0
         });
       });
     } catch (e) {
@@ -250,7 +262,7 @@ export async function getDashboardMetrics(req, res) {
         const res = await pool.query(`
           SELECT 
             SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT as open_count,
-            SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT as inholding_count,
+            SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT as inholding_count,
             SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT as resolved_count
           FROM actions
           WHERE DATE_TRUNC('week', created_at)::DATE = $1
@@ -292,7 +304,10 @@ export async function getDashboardMetrics(req, res) {
     const latest_issues = [];
     try {
       const res = await pool.query(`
-        SELECT issue_id, issue_title, priority, status
+        SELECT 
+          issue_id, issue_title, priority, status,
+          COALESCE(project_name, '-') as project_name,
+          COALESCE(reported_date::text, '-') as identified_date
         FROM issues
         ORDER BY COALESCE(updated_at, created_at) DESC
       `);
@@ -346,7 +361,7 @@ export async function getDashboardMetrics(req, res) {
         SELECT 
           'Risk' AS module,
           SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT AS open_count,
-          SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT AS inholding_count,
+          SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT AS inholding_count,
           SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT AS resolved_count,
           SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)::INT AS cancelled_count
         FROM risks
@@ -366,7 +381,7 @@ export async function getDashboardMetrics(req, res) {
         SELECT 
           'Issue' AS module,
           SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT AS open_count,
-          SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT AS inholding_count,
+          SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT AS inholding_count,
           SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT AS resolved_count,
           SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)::INT AS cancelled_count
         FROM issues
@@ -386,7 +401,7 @@ export async function getDashboardMetrics(req, res) {
         SELECT 
           'Dependency' AS module,
           SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT AS open_count,
-          SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT AS inholding_count,
+          SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT AS inholding_count,
           SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT AS resolved_count,
           SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)::INT AS cancelled_count
         FROM dependencies
@@ -406,7 +421,7 @@ export async function getDashboardMetrics(req, res) {
         SELECT 
           'Action' AS module,
           SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT AS open_count,
-          SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT AS inholding_count,
+          SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT AS inholding_count,
           SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT AS resolved_count,
           SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)::INT AS cancelled_count
         FROM actions
@@ -426,7 +441,7 @@ export async function getDashboardMetrics(req, res) {
         SELECT 
           'Collection' AS module,
           SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END)::INT AS open_count,
-          SUM(CASE WHEN status IN ('In Progress', 'Inholding') THEN 1 ELSE 0 END)::INT AS inholding_count,
+          SUM(CASE WHEN status IN ('In Progress', 'on-holding') THEN 1 ELSE 0 END)::INT AS inholding_count,
           SUM(CASE WHEN status IN ('Resolved', 'Approved & Closed') THEN 1 ELSE 0 END)::INT AS resolved_count,
           SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END)::INT AS cancelled_count
         FROM collections

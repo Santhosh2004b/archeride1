@@ -4,14 +4,9 @@
 // after — add `export`
 // Shared Engagement options (use the same IDs you have in projects table)
 
-
-
-
-
-
 export const risksFormConfig = {
   fields: [
-    { name: "risk_id", label: "Risk ID", type: "text", required: true },
+    { name: "risk_id", label: "Risk ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
@@ -26,7 +21,7 @@ export const risksFormConfig = {
       required: true,
       options: [
         "Open",
-        "Inholding",
+        "on-holding",
         "Resolved",
         "Cancelled",
       ],
@@ -73,7 +68,7 @@ export const risksFormConfig = {
 
 export const issuesFormConfig = {
   fields: [
-    { name: "issue_id", label: "Issue ID", type: "text", required: true },
+    { name: "issue_id", label: "Issue ID", type: "text", required: false, readOnly: true },
     { name: "project_name", label: "Project Name", type: "text", required: false },
     { name: "identified_date", label: "Identified Date", type: "date", required: true },
     { name: "identified_by", label: "Identified By", type: "text", required: true },
@@ -82,7 +77,7 @@ export const issuesFormConfig = {
       label: "Status",
       type: "select",
       required: true,
-      options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"],
+      options: ["Open", "On Hold", "Resolved", "Cancelled"],
     },
     {
       name: "priority",
@@ -114,11 +109,11 @@ export const issuesFormConfig = {
 
 export const actionsFormConfig = {
   fields: [
-    { name: "action_id", label: "Action ID", type: "text", required: true },
+    { name: "action_id", label: "Action ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
-     
+
 
       type: "text", required: false,
     },
@@ -131,7 +126,7 @@ export const actionsFormConfig = {
       required: true,
       options: [
         "Open",
-        "Inholding",
+        "on-holding",
         "Resolved",
         "Cancelled",
       ],
@@ -172,11 +167,11 @@ export const actionsFormConfig = {
 
 export const dependenciesFormConfig = {
   fields: [
-    { name: "dependency_id", label: "Dependency ID", type: "text", required: true },
+    { name: "dependency_id", label: "Dependency ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
-     
+
 
       type: "text", required: false,
     },
@@ -189,7 +184,7 @@ export const dependenciesFormConfig = {
       required: true,
       options: [
         "Open",
-        "Inholding",
+        "on-holding",
         "Resolved",
         "Cancelled",
       ],
@@ -234,12 +229,12 @@ export const dependenciesFormConfig = {
 
 export const escalationsFormConfig = {
   fields: [
-    { name: "escalation_id", label: "Escalation ID", type: "text", required: true },
+    { name: "escalation_id", label: "Escalation ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
-     
-   
+
+
       type: "text", required: false,
     },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
@@ -251,7 +246,7 @@ export const escalationsFormConfig = {
       required: true,
       options: [
         "Open",
-        "Inholding",
+        "on-holding",
         "Resolved",
         "Cancelled",
       ],
@@ -306,12 +301,12 @@ export const escalationsFormConfig = {
 
 export const appreciationsFormConfig = {
   fields: [
-    { name: "appreciation_id", label: "Appreciation ID", type: "text", required: true },
+    { name: "appreciation_id", label: "Appreciation ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
-     
-     
+
+
       type: "text", required: false,
     },
     { name: "received_date", label: "Received Date", type: "date", required: true },
@@ -348,12 +343,12 @@ export const appreciationsFormConfig = {
 
 export const collectionsFormConfig = {
   fields: [
-    { name: "invoice_id", label: "Invoice ID", type: "text", required: true },
+    { name: "invoice_id", label: "Invoice ID", type: "text", required: false, readOnly: true },
     {
       name: "project_name",
       label: "Project Name",
-     
-      
+
+
       type: "text", required: false,
     },
     { name: "customer_name", label: "Customer Name", type: "text", required: true },

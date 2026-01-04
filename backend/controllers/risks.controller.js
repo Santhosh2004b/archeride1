@@ -70,6 +70,16 @@ export async function getRisk(req, res) {
    ============================ */
 export async function createRiskHandler(req, res) {
   try {
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.risk_id || req.body.risk_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.risk_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "risk"
+      );
+    }
+
     // Format all date fields as YYYY-MM-DD
     const dateFields = [
       "identified_date",

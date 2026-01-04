@@ -53,6 +53,16 @@ export async function getCollectionByIdHandler(req, res) {
    ========================= */
 export async function createCollectionHandler(req, res) {
   try {
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.invoice_id || req.body.invoice_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.invoice_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "collection"
+      );
+    }
+
     const created = await createCollection({
       ...req.body,
       created_by: req.user.email, // 🔥 FORCE OWNERSHIP

@@ -67,6 +67,16 @@ export async function getAppreciation(req, res) {
    ============================ */
 export async function createAppreciationHandler(req, res) {
   try {
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.appreciation_id || req.body.appreciation_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.appreciation_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "appreciation"
+      );
+    }
+
     const created = await createAppreciation({
       ...req.body,
       recorded_by: req.user.email,

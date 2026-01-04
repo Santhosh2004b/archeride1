@@ -7,7 +7,8 @@ import { fetchRisks } from "../api/risksApi";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
-import { FiSearch, FiFilter, FiX, FiRotateCcw } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiSearch, FiFilter, FiX, FiPlus, FiRotateCcw } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
 
 /* ===================================================
@@ -30,6 +31,7 @@ const getStatusMeta = (row) => {
 };
 
 const MonitoringRisksPage = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   useMonitoringExport("risks", rows);
 
@@ -58,7 +60,7 @@ const MonitoringRisksPage = () => {
 
       const res = await fetchRisks(filters);
       const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-      
+
       setAllRows(list);
       applyFiltersAndSearch(list);
     } catch (err) {
@@ -75,12 +77,13 @@ const MonitoringRisksPage = () => {
      APPLY FILTERS + LIVE SEARCH (matches to top)
   ====================================================== */
   const applyFiltersAndSearch = (data) => {
-    let filtered = data;
+    let filtered = [...data];
 
-    // Apply select filters
+    // 1. Apply Select Filters
     const activeFilters = { ...filters };
-    delete activeFilters.project_name; // Handle project separately
-    
+    const pName = activeFilters.project_name?.trim().toLowerCase();
+    delete activeFilters.project_name;
+
     Object.entries(activeFilters).forEach(([key, value]) => {
       if (value) {
         filtered = filtered.filter((row) =>
@@ -89,38 +92,24 @@ const MonitoringRisksPage = () => {
       }
     });
 
-    // Split into matching and non-matching for live project search
-    let projectMatches = [];
-    let projectNonMatches = filtered;
-
-    if (filters.project_name.trim()) {
-      const q = filters.project_name.toLowerCase();
-      projectMatches = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(q)
-      );
-      projectNonMatches = filtered.filter((row) =>
-        !String(row.project_name ?? "").toLowerCase().includes(q)
+    // 2. Apply Project Name Filter
+    if (pName) {
+      filtered = filtered.filter((row) =>
+        String(row.project_name ?? "").toLowerCase().includes(pName)
       );
     }
 
-    // Apply global search on all (matches to top)
-    let globalMatches = [];
-    let globalNonMatches = [];
-
+    // 3. Apply Global Search
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
-      const searchableData = [...projectMatches, ...projectNonMatches];
-      globalMatches = searchableData.filter((row) =>
-        Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q))
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((v) =>
+          v !== null && v !== undefined && String(v).toLowerCase().includes(q)
+        )
       );
-      globalNonMatches = searchableData.filter((row) =>
-        !Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(q))
-      );
-    } else {
-      globalMatches = [...projectMatches, ...projectNonMatches];
     }
 
-    setRows(globalMatches);
+    setRows(filtered);
   };
 
   useEffect(() => {
@@ -160,6 +149,8 @@ const MonitoringRisksPage = () => {
     setFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+
+
   /* ======================================================
      TABLE COLUMNS
   ====================================================== */
@@ -170,29 +161,30 @@ const MonitoringRisksPage = () => {
   const cfg = filterConfig.risks.fields;
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-[calc(100vh-80px)] flex flex-col gap-3 bg-brandBg p-3 sm:p-5"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       {/* Animated Header */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-brandDark tracking-tight mb-1">Risk</h1>
-          <p className="font-urbanist text-xs sm:text-sm text-brandMuted">Table — Latest Updates</p>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Risk</h1>
+          <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
+
       </motion.div>
 
       {/* ======================================================
           ROW 1 — filters + icon buttons
       ====================================================== */}
-      <motion.div 
+      <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-3 py-3 flex flex-col lg:flex-row gap-2 lg:items-end"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -221,7 +213,7 @@ const MonitoringRisksPage = () => {
                 name={f.name}
                 value={filters[f.name]}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border px-3 py-2 text-xs sm:text-sm font-urbanist"
+                className="w-full rounded-lg border px-3 py-2 text-xs sm:text-sm"
               >
                 <option value="">{f.label} (All)</option>
                 {f.options?.map((opt) => (
@@ -234,15 +226,15 @@ const MonitoringRisksPage = () => {
 
         {/* apply + clear */}
         <div className="flex gap-2 justify-end">
-          <button 
-            onClick={handleApply} 
+          <button
+            onClick={handleApply}
             title="Apply filters"
             className="rounded-full bg-brandDark text-white p-2 hover:bg-black transition flex items-center justify-center shadow-sm"
           >
             <FiFilter size={18} />
           </button>
-          <button 
-            onClick={handleClear} 
+          <button
+            onClick={handleClear}
             title="Clear all filters"
             className="rounded-full border border-gray-300 p-2 hover:bg-gray-100 transition flex items-center justify-center shadow-sm"
           >
@@ -254,13 +246,13 @@ const MonitoringRisksPage = () => {
       {/* ======================================================
           ROW 2 — global search
       ====================================================== */}
-      <motion.div 
+      <motion.div
         className="bg-white border border-gray-200 rounded-xl shadow-sm px-3 py-2 flex items-center gap-2"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.25 }}
       >
-        <label className="text-xs sm:text-sm font-semibold w-28 font-urbanist">Global Search</label>
+        <label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-500 w-28">Global Search</label>
         <div className="relative flex-1">
           <input
             type="text"
@@ -282,24 +274,24 @@ const MonitoringRisksPage = () => {
       {/* ======================================================
           TABLE
       ====================================================== */}
-      <motion.div 
+      <motion.div
         className="flex-1 rounded-xl bg-white border border-gray-200 shadow-sm overflow-auto"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <p className="text-xs text-brandMuted p-3 pb-0 font-urbanist">To update this record, click Edit</p>
+
         {loading ? (
           <div className="p-6 text-sm text-brandMuted">Loading...</div>
         ) : (
-          <table className="monitoring-table min-w-full text-left text-xs sm:text-sm font-urbanist">
+          <table className="monitoring-table min-w-full text-left text-xs sm:text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase w-12">S.No</th>
                 {columns.map((c) => (
                   <th key={c} className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase">{c}</th>
                 ))}
-                <th className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase">Actions</th>
+
               </tr>
             </thead>
             <tbody>
@@ -322,14 +314,7 @@ const MonitoringRisksPage = () => {
                         )}
                       </td>
                     ))}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <button
-                        onClick={() => window.location.href = `/module/risks?mode=edit&id=${row.id}`}
-                        className="inline-flex items-center justify-center rounded-full border border-brandDark/20 px-3 py-1 text-xs font-urbanist text-brandDark hover:bg-brandDark hover:text-white transition"
-                      >
-                        Edit
-                      </button>
-                    </td>
+
                   </tr>
                 );
               })}

@@ -51,12 +51,24 @@ function LoginPage() {
     }
   };
 
+  const [theme, setTheme] = useState("light"); // light | dark
+
+  const handleInteraction = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black flex flex-col lg:flex-row">
+    <div
+      onClick={handleInteraction}
+      className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-1000 ${theme === "dark" ? "bg-black text-white" : "bg-white text-gray-900"
+        }`}
+    >
 
       {/* left video only desktop */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center">
-        <div className="w-4/5 max-w-xl rounded-3xl overflow-hidden bg-white flex flex-col">
+        <div className="w-4/5 max-w-xl rounded-3xl overflow-hidden bg-white flex flex-col shadow-2xl">
           <div className="flex items-center px-6 pt-6 pb-3">
             <img src={logo} alt="Arche" className="h-8 object-contain" />
           </div>
@@ -74,7 +86,7 @@ function LoginPage() {
       </div>
 
       {/* login form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-6 sm:px-10 text-white">
+      <div className="flex-1 flex items-center justify-center px-6 py-6 sm:px-10">
         <div className="w-full max-w-sm sm:max-w-md">
 
           {/* mobile logo */}
@@ -82,54 +94,61 @@ function LoginPage() {
             <img src={logo} alt="Arche logo" className="h-7 object-contain" />
           </div>
 
-          <h1 className="font-marcellus text-xl sm:text-3xl mb-2">
-            Welcome to RIDE Tracker
+          <h1 className={`font-marcellus text-xl sm:text-3xl mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+            Welcome to ARCHE.RIDE
           </h1>
 
-          <p className="font-urbanist text-sm text-gray-400 mb-4">
-            Sign in to access your workboard and monitoring views.
+          <p className={`font-urbanist text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            Sign in to access your workspace and manage your projects with precision.
           </p>
 
           {info && (
-            <div className="mb-3 rounded-md bg-yellow-900/20 border border-yellow-500/60 px-3 py-2 text-xs sm:text-sm text-yellow-200">
+            <div className="mb-3 rounded-md bg-yellow-900/20 border border-yellow-500/60 px-3 py-2 text-xs sm:text-sm text-yellow-500">
               {info}
             </div>
           )}
 
           {error && (
-            <div className="mb-3 rounded-md bg-red-900/20 border border-red-500/60 px-3 py-2 text-xs sm:text-sm text-red-200">
+            <div className="mb-3 rounded-md bg-red-900/20 border border-red-500/60 px-3 py-2 text-xs sm:text-sm text-red-500">
               {error}
             </div>
           )}
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 bg-[#050509] rounded-xl shadow-lg border border-gray-800 px-5 py-5"
+            className={`space-y-4 rounded-xl shadow-lg border px-5 py-5 transition-colors duration-700 ${theme === "dark" ? "bg-[#050509] border-gray-800" : "bg-white border-gray-200"
+              }`}
           >
             {/* email */}
             <div className="space-y-1">
-              <label className="block text-xs text-gray-300">Email</label>
+              <label className={`block text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-700 bg-black px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400/40"
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${theme === "dark"
+                  ? "border-gray-700 bg-black text-white placeholder:text-gray-500 focus:ring-gray-400/40"
+                  : "border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-blue-500/40"
+                  }`}
               />
             </div>
 
             {/* password with show/hide */}
             <div className="space-y-1">
-              <label className="block text-xs text-gray-300">Password</label>
+              <label className={`block text-xs ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>Password</label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-700 bg-black px-3 py-2 pr-9 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400/40"
+                  className={`w-full rounded-lg border px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 ${theme === "dark"
+                    ? "border-gray-700 bg-black text-white placeholder:text-gray-500 focus:ring-gray-400/40"
+                    : "border-gray-300 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:ring-blue-500/40"
+                    }`}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-2.5 text-gray-400 text-xs"
+                  className={`absolute right-3 top-2.5 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}
                   onClick={() => setShowPass(!showPass)}
                 >
                   {showPass ? "🙈" : "👁️"}
@@ -141,15 +160,14 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full rounded-full px-4 py-2 text-sm font-semibold transition ${
-                loading ? "opacity-70 animate-pulse" : ""
-              }`}
+              className={`w-full rounded-full px-4 py-2 text-sm font-semibold transition ${loading ? "opacity-70 animate-pulse" : ""
+                } ${theme === "dark" ? "bg-white text-black hover:bg-gray-200" : "bg-black text-white hover:bg-gray-800"}`}
             >
               {loading ? "Signing in..." : "Login"}
             </button>
 
             {/* NEW FORGOT PASSWORD LABEL */}
-            <p className="text-[11px] text-center mt-1 text-gray-500">
+            <p className={`text-[11px] text-center mt-1 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>
               Forgot your password? Contact your admin for approval to reset access.
             </p>
           </form>

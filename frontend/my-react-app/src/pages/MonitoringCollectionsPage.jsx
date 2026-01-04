@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { fetchCollections } from "../api/collectionsApi";
+import { FiPlus } from "react-icons/fi";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
 const MonitoringCollectionsPage = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]); // Store unfiltered data
@@ -22,8 +25,8 @@ const MonitoringCollectionsPage = () => {
   const [globalSearch, setGlobalSearch] = useState("");
 
   const currencyOptions = ["INR", "USD", "EUR", "GBP"];
-  const statusOptions   = ["Pending", "Partially Paid", "Paid", "Overdue", "Disputed", "Written Off"];
-  const paymentOptions  = [
+  const statusOptions = ["Pending", "Partially Paid", "Paid", "Overdue", "Disputed", "Written Off"];
+  const paymentOptions = [
     "PO Received - Payment in Process",
     "Under Review",
     "Approved - Awaiting Payment",
@@ -42,13 +45,14 @@ const MonitoringCollectionsPage = () => {
      APPLY FILTERS + LIVE SEARCH (matches to top)
   ====================================================== */
   const applyFiltersAndSearch = (data) => {
-    let filtered = data;
+    let filtered = [...data];
 
-    // Apply select filters (not project_name or search)
+    // 1. Apply select filters
     const selectFilters = { ...filters };
+    const pName = selectFilters.project_name?.trim().toLowerCase();
     delete selectFilters.project_name;
     delete selectFilters.search;
-    
+
     Object.entries(selectFilters).forEach(([key, value]) => {
       if (value) {
         filtered = filtered.filter((row) =>
@@ -57,37 +61,27 @@ const MonitoringCollectionsPage = () => {
       }
     });
 
-    // Split by project name (live search)
-    let projectMatches = [];
-    let projectNonMatches = filtered;
-
-    if (filters.project_name.trim()) {
-      const q = filters.project_name.toLowerCase();
-      projectMatches = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(q)
-      );
-      projectNonMatches = filtered.filter((row) =>
-        !String(row.project_name ?? "").toLowerCase().includes(q)
+    // 2. Project Name Filter
+    if (pName) {
+      filtered = filtered.filter((row) =>
+        String(row.project_name ?? "").toLowerCase().includes(pName)
       );
     }
 
-    // Apply global search (matches to top)
-    let globalMatches = [];
-
+    // 3. Global Search
     if (globalSearch.trim()) {
       const term = globalSearch.toLowerCase();
-      const searchableData = [...projectMatches, ...projectNonMatches];
-      globalMatches = searchableData.filter((row) =>
-        Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(term))
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((v) =>
+          v !== null && v !== undefined && String(v).toLowerCase().includes(term)
+        )
       );
-    } else {
-      globalMatches = [...projectMatches, ...projectNonMatches];
     }
 
     // Sort by latest updated
-    globalMatches.sort((a, b) => new Date(b.last_updated || b.updated_at || 0) - new Date(a.last_updated || a.updated_at || 0));
+    filtered.sort((a, b) => new Date(b.last_updated || b.updated_at || b.created_at || 0) - new Date(a.last_updated || a.updated_at || a.created_at || 0));
 
-    setRows(globalMatches);
+    setRows(filtered);
   };
 
   /* === LOAD DATA === */
@@ -121,7 +115,7 @@ const MonitoringCollectionsPage = () => {
 
   useEffect(() => {
     loadData();
-    return () => {};
+    return () => { };
   }, []);
 
   // Re-filter when filters or search change (live)
@@ -152,31 +146,33 @@ const MonitoringCollectionsPage = () => {
     setGlobalSearch("");
   };
 
+
+
   const columns = rows[0] ? Object.keys(rows[0]) : [];
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       {/* Animated Header */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus text-2xl sm:text-3xl font-bold text-gray-900">Collections</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Table — Latest Updates</p>
-          <p className="text-xs text-gray-400 mt-1">Monitor financial collections and payment statuses across all projects.</p>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Collection</h1>
+          <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
+
       </motion.div>
 
       {/* FILTERS */}
-      <motion.div 
+      <motion.div
         className="bg-white border rounded-xl shadow-sm px-4 py-4 flex flex-col gap-3"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -237,7 +233,7 @@ const MonitoringCollectionsPage = () => {
       </motion.div>
 
       {/* GLOBAL SEARCH */}
-      <motion.div 
+      <motion.div
         className="bg-white border rounded-xl shadow-sm px-4 py-3 flex items-center gap-3"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -263,7 +259,7 @@ const MonitoringCollectionsPage = () => {
       </motion.div>
 
       {/* TABLE */}
-      <motion.div 
+      <motion.div
         className="flex-1 bg-white border rounded-xl shadow-sm overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -282,6 +278,7 @@ const MonitoringCollectionsPage = () => {
                       {c}
                     </th>
                   ))}
+
                 </tr>
               </thead>
               <tbody>
@@ -293,6 +290,7 @@ const MonitoringCollectionsPage = () => {
                         {String(row[c] ?? "")}
                       </td>
                     ))}
+
                   </tr>
                 ))}
 

@@ -54,7 +54,7 @@ export function buildRiskFilters(query = {}) {
   if (priority) { where.push(`r.priority = $${i++}`); params.push(priority); }
   if (category) { where.push(`r.category = $${i++}`); params.push(category); }
   if (projectName) {
-    where.push(`p.name ILIKE $${i++}`);
+    where.push(`r.project_name ILIKE $${i++}`);
     params.push(`%${projectName}%`);
   }
   if (from) { where.push(`r.identified_date >= $${i++}`); params.push(from); }
@@ -95,7 +95,7 @@ export function buildIssueFilters(query = {}) {
 
   if (status) { where.push(`i.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`i.priority = $${i++}`); params.push(priority); }
-  if (projectName) { where.push(`p.name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (projectName) { where.push(`i.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
   if (from) { where.push(`i.reported_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`i.reported_date <= $${i++}`); params.push(to); }
 
@@ -133,7 +133,7 @@ export function buildActionFilters(query = {}) {
 
   if (status) { where.push(`a.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`a.priority = $${i++}`); params.push(priority); }
-  if (projectName) { where.push(`p.name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (projectName) { where.push(`a.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
   if (related) { where.push(`a.related_to_type = $${i++}`); params.push(related); }
   if (from) { where.push(`a.created_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`a.created_date <= $${i++}`); params.push(to); }
@@ -167,7 +167,7 @@ export function buildDependencyFilters(query = {}) {
   if (priority) { where.push(`d.priority = $${i++}`); params.push(priority); }
   if (type) { where.push(`d.type = $${i++}`); params.push(type); }
   if (projectName) {
-    where.push(`p.name ILIKE $${i++}`);
+    where.push(`d.project_name ILIKE $${i++}`);
     params.push(`%${projectName}%`);
   }
   if (dependentOn) { where.push(`d.dependent_on ILIKE $${i++}`); params.push(`%${dependentOn}%`); }
@@ -202,7 +202,7 @@ export function buildEscalationFilters(query = {}) {
   if (priority) { where.push(`e.priority = $${i++}`); params.push(priority); }
   if (category) { where.push(`e.category = $${i++}`); params.push(category); }
   if (projectName) {
-    where.push(`p.name ILIKE $${i++}`);
+    where.push(`e.project_name ILIKE $${i++}`);
     params.push(`%${projectName}%`);
   }
   if (from) { where.push(`e.reported_date >= $${i++}`); params.push(from); }
@@ -230,7 +230,7 @@ export function buildAppreciationFilters(query = {}) {
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
 
-  if (projectName) { where.push(`p.name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (projectName) { where.push(`a.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
   if (from) { where.push(`a.received_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`a.received_date <= $${i++}`); params.push(to); }
 
@@ -259,7 +259,7 @@ export function buildCollectionFilters(query = {}) {
 
   if (status) { where.push(`c.status = $${i++}`); params.push(status); }
   if (projectName) {
-    where.push(`p.name ILIKE $${i++}`);
+    where.push(`c.project_name ILIKE $${i++}`);
     params.push(`%${projectName}%`);
   }
   if (from) { where.push(`c.invoice_date >= $${i++}`); params.push(from); }

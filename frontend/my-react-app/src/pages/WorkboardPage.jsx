@@ -1,10 +1,6 @@
-// frontend/my-react-app/src/pages/WorkboardPage.jsx
-
 import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { formatDisplayDate } from "../utils/dateFormat";
-import { BASE_URL, authHeaders } from "../api/http";
-import { FiPlus } from "react-icons/fi";
-import { useLocation } from "react-router-dom";
 
 const toDateInputValue = (value) => {
   if (!value) return "";
@@ -18,37 +14,29 @@ const toDateInputValue = (value) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-const formatDateForSave = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+const toYYYYMMDD = (date) => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
 };
 
-// map status → row background color
-const getStatusRowClass = (row) => {
-  const raw = row.status || row.Status || row.current_status;
-  if (!raw) return "";
-  const s = String(raw).toLowerCase();
-
-  if (s === "open") return "bg-blue-50";
-  if (s === "inholding") return "bg-yellow-50";
-  if (s === "resolved") return "bg-orange-50";
-  if (s === "cancelled") return "bg-gray-200";
-
+// Status classes map for row coloring
+const getStatusRowClass = (status) => {
+  const s = String(status || "").toLowerCase();
+  if (s === "open" || s === "identified") return "status-open";
+  if (s === "on-holding" || s === "inholding" || s === "on hold") return "status-onhold";
+  if (s === "resolved" || s === "completed") return "status-resolved";
+  if (s === "approved" || s === "approved & closed") return "status-approved";
+  if (s === "cancelled" || s === "rejected") return "status-cancelled";
+  if (s === "in progress") return "status-inprogress";
   return "";
 };
-
 
 const WorkboardPage = ({
   title,
   moduleKey,
-  mode, // "view" | "edit"
+  mode,
   fetchList,
   createItem,
   updateItem,
@@ -58,51 +46,18 @@ const WorkboardPage = ({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [showToast, setShowToast] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const editId = params.get("id");
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const editId = searchParams.get("id");
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const params = editId ? { id: editId } : {};
-      const res = await fetchList(params);
-      const list = editId ? [res.data] : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-      setRows(list);
-      if (editId && list.length > 0) {
-        handleEdit(list[0]);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to load data");
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // useMemo to prevent fields array from forcing re-renders
+  const fields = React.useMemo(() => formConfig?.fields || [], [formConfig]);
 
-  useEffect(() => {
-    const init = async () => {
-      await loadData();
-    };
-    init();
-  }, [moduleKey, editId]);
-
-
-
-  const fields = formConfig?.fields || [];
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleEdit = (row) => {
-    setEditingId(row.id || row.escalation_id);
-
+  const handleEditState = React.useCallback((row) => {
+    setEditingId(row.id || row.issue_id || row.risk_id || row.escalation_id || row.action_id || row.dependency_id || row.appreciation_id || row.collection_id);
     const mapped = { ...row };
     fields
       .filter((f) => f.type === "date")
@@ -110,257 +65,236 @@ const WorkboardPage = ({
         mapped[f.name] = toDateInputValue(row[f.name]);
       });
     setFormData(mapped);
-  };
+  }, [fields]);
 
   const handleNew = () => {
     setEditingId(null);
     const initial = {};
-    fields.forEach((f) => {
-      initial[f.name] = "";
-    });
+    fields.forEach((f) => initial[f.name] = "");
     setFormData(initial);
-  };
-
-  const validateForm = () => {
-    for (const f of fields) {
-      if (f.required && !formData[f.name]) {
-        alert(`Please fill: ${f.label}`);
-        return false;
-      }
-    }
-    return true;
-  };
-
-  // Helper to format date as YYYY-MM-DD
-  const toYYYYMMDD = (date) => {
-    if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString().slice(0, 10);
+    // Use navigate instead of window.location
+    navigate(`${location.pathname}?mode=edit`);
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
     try {
       setSaving(true);
       const payload = { ...formData };
       fields
         .filter((f) => f.type === "date")
         .forEach((f) => {
-          if (payload[f.name]) {
-            payload[f.name] = toYYYYMMDD(payload[f.name]);
-          } else {
-            payload[f.name] = null;
-          }
+          payload[f.name] = payload[f.name] ? toYYYYMMDD(payload[f.name]) : null;
         });
-      // 🚀 map project_name → project_id before saving
 
       if (editingId) {
         await updateItem(editingId, payload);
       } else {
-        // 🚫 Escalations are EDIT-ONLY
         await createItem(payload);
       }
 
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
-      // After save, return to view mode
-      window.location.href = `${window.location.pathname}?mode=view`;
-      await loadData();
+      setEditingId(null);
+      setFormData({});
+      navigate(`${location.pathname}?mode=view`);
     } catch (err) {
-      console.error(err);
-      alert("Failed to save");
+      alert("Failed to save record. Please check inputs.");
     } finally {
       setSaving(false);
     }
   };
 
-const columns = rows[0] ? Object.keys(rows[0]).filter(c => c !== "project_id") : [];
-  const hasEdit = !!(mode === "view" && updateItem);
+  const loadData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      // Ensure we fetch all data if we are in view mode or if the editId search fails
+      const res = await fetchList({});
+      let list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+
+      setRows(list);
+
+      if (editId) {
+        // If editing, find the item in the full list to handle cases where API doesn't support filtering by ID directly
+        // or if we just want to be safe.
+        const found = list.find(r =>
+          String(r.id || r.issue_id || r.risk_id || r.escalation_id || r.action_id || r.dependency_id || r.appreciation_id || r.collection_id) === String(editId)
+        );
+        if (found) {
+          handleEditState(found);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [editId, fetchList, handleEditState]);
+
+  useEffect(() => {
+    loadData();
+  }, [moduleKey, editId, loadData]);
+
+  const columnsToHide = ["project_id"];
+  const columns = rows[0] ? Object.keys(rows[0]).filter(c => !columnsToHide.includes(c)) : [];
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-brandBg text-brandDark px-3 sm:px-5 py-3 relative">
-      {showToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-2 rounded-full shadow-lg animate-fade-in">
-          Saved Successfully
+    <div className="p-8 text-brandDark">
+      <header className="mb-2 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-marcellus font-medium text-gray-900">{title}</h1>
+          <p className="text-sm text-gray-500 mt-1 italic">
+            👉 Tap <span className="font-bold">Add New</span> first to start a fresh entry.
+          </p>
+        </div>
+        {/* Show Add New button in BOTH view and edit modes */}
+        <button
+          onClick={handleNew}
+          className="px-6 py-2 border border-gray-300 rounded-full font-bold text-gray-600 hover:bg-gray-50 transition-all text-sm uppercase tracking-wide"
+        >
+          Add New
+        </button>
+      </header>
+
+      {mode === "view" && (
+        <div className="bg-white border rounded shadow overflow-hidden">
+          {loading ? (
+            <div className="p-20 text-center">Loading...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Actions</th>
+                    {columns.map(col => (
+                      <th key={col} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const rowId = row.id || row.issue_id || row.risk_id || row.action_id || row.dependency_id || row.escalation_id || row.appreciation_id || row.collection_id;
+                    return (
+                      <tr key={rowId} className={`${getStatusRowClass(row.status || row.current_status)} border-b hover:bg-opacity-80 transition-colors text-sm`}>
+                        <td className="px-6 py-3 font-medium">
+                          <button
+                            onClick={() => navigate(`${location.pathname}?mode=edit&id=${rowId}`)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                        {columns.map(col => {
+                          const val = row[col];
+                          const isDate = col.toLowerCase().includes('date') || col.toLowerCase().includes('_at');
+                          return (
+                            <td key={col} className="px-6 py-3">
+                              <span>{isDate ? formatDisplayDate(val) : String(val ?? '-')}</span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={columns.length + 1} className="p-10 text-center text-gray-500">
+                        No records found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-marcellus font-bold text-3xl sm:text-4xl text-brandDark tracking-tight mb-1">{title}</h2>
-        {mode === "edit" && (
-          <button
-            type="button"
-            onClick={handleNew}
-            className="inline-flex items-center justify-center rounded-full border border-brandDark/20 px-3 py-2 text-sm font-urbanist text-brandDark hover:bg-brandDark hover:text-white transition shadow-sm"
-            title="Add New"
-          >
-            <FiPlus className="w-5 h-5" />
-          </button>
-        )}
-      </div>
 
-      {/* VIEW MODE: table */}
-      {mode === "view" && (
-        <>
-          <div className="mb-2 text-xs text-brandMuted font-urbanist">To update this record, click Edit</div>
-          <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-            {loading ? (
-              <div className="p-6 text-sm text-brandMuted">Loading...</div>
-            ) : (
-              <div className="overflow-auto">
-                <table className="min-w-full text-left text-xs sm:text-sm font-urbanist">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      {hasEdit && (
-                        <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">
-                          Edit
-                        </th>
-                      )}
-                      {columns.map((col) => (
-                        <th
-                          key={col}
-                          className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap"
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={row.id || row.issue_id || row.risk_id}
-                        className={`${getStatusRowClass(
-                          row
-                        )} border-b border-gray-100 hover:bg-gray-50/80`}
-                      >
-                        {hasEdit && (
-                          <td className="px-3 sm:px-4 py-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                // Redirect to edit mode with id in URL
-                                window.location.href = `${window.location.pathname}?mode=edit&id=${row.id || row.issue_id || row.risk_id}`;
-                              }}
-                              className="inline-flex items-center justify-center rounded-full border border-brandDark/20 px-3 py-1 text-[11px] font-urbanist text-brandDark hover:bg-brandDark hover:text-white transition"
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        )}
-                        {columns.map((col) => (
-                          <td
-                            key={col}
-                            className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm text-brandDark whitespace-nowrap font-urbanist"
-                          >
-                            {col.toLowerCase().includes("date") || col.toLowerCase().includes("_at") ? formatDisplayDate(row[col]) : String(row[col] ?? "")}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-
-                    {rows.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={columns.length + (hasEdit ? 1 : 0) || 1}
-                          className="px-3 sm:px-4 py-4 text-center text-xs sm:text-sm text-brandMuted"
-                        >
-                          No records found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+      {mode === "edit" && (
+        <div className="bg-white p-8 border rounded-xl shadow-lg">
+          <div className="flex justify-between mb-8 border-b pb-4">
+            <h2 className="text-2xl font-marcellus font-medium text-gray-800">
+              {editingId ? `Update ${title} Entry` : `New ${title} Entry`}
+            </h2>
+            <button
+              onClick={() => navigate(`${location.pathname}?mode=view`)}
+              className="text-3xl text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              &times;
+            </button>
           </div>
-        </>
-      )}
-
-      {/* EDIT MODE: form */}
-      {mode === "edit" && createItem && updateItem && (
-        <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5">
-          <p className="text-xs text-brandMuted font-urbanist mb-4">Click + Add New before creating a record</p>
-          <h3 className="font-urbanist font-semibold text-lg mb-4 text-brandDark">
-            {editingId ? `Edit ${title}` : `New ${title}`}
-          </h3>
 
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
-            }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+            className="space-y-6"
           >
-            {fields.map((field) => {
-              const value = formData[field.name] ?? "";
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              {fields.map((field) => {
+                const value = formData[field.name] ?? "";
+                const isLong = field.type === "textarea" || field.name.includes("description") || field.name.includes("impact") || field.name.includes("comments");
 
-              if (field.type === "textarea") {
                 return (
-                  <div key={field.name} className="sm:col-span-2 flex flex-col gap-1">
-                    <label className="text-xs font-medium text-brandMuted">
-                      {field.label}
+                  <div key={field.name} className={isLong ? "md:col-span-2" : ""}>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                      {field.label} {field.required && <span className="text-red-500">*</span>}
                     </label>
-                    <textarea
-                      name={field.name}
-                      value={value}
-                      onChange={handleChange}
-                      className="min-h-[80px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-urbanist text-brandDark focus:outline-none focus:ring-2 focus:ring-brandDark/15"
-                    />
+
+                    {field.type === "textarea" ? (
+                      <textarea
+                        name={field.name}
+                        value={value}
+                        rows={3}
+                        required={field.required}
+                        onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className="w-full border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      />
+                    ) : field.type === "select" ? (
+                      <select
+                        name={field.name}
+                        value={value}
+                        required={field.required}
+                        onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className="w-full border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all appearance-none bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em]"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")` }}
+                      >
+                        <option value="">Select...</option>
+                        {field.options?.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type={field.type === "date" ? "datetime-local" : "text"}
+                        name={field.name}
+                        value={value}
+                        required={field.required}
+                        disabled={field.readOnly && editingId}
+                        placeholder={field.readOnly && !value ? "Auto-generated upon save" : ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className={`w-full border border-gray-200 p-3 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all ${field.readOnly && editingId ? "bg-gray-100 text-gray-600 cursor-not-allowed" : ""
+                          }`}
+                      />
+                    )}
                   </div>
                 );
-              }
+              })}
+            </div>
 
-              if (field.type === "select") {
-                return (
-                  <div key={field.name} className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-brandMuted">
-                      {field.label}
-                    </label>
-                    <select
-                      name={field.name}
-                      value={value}
-                      onChange={handleChange}
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-urbanist text-brandDark focus:outline-none focus:ring-2 focus:ring-brandDark/15"
-                    >
-                      <option value="">Select {field.label}</option>
-                      {field.options?.map((opt) => {
-                        const v = typeof opt === "string" ? opt : opt.value;
-                        const label = typeof opt === "string" ? opt : opt.label;
-                        return (
-                          <option key={v} value={v}>
-                            {label}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                );
-              }
-
-              return (
-                <div key={field.name} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-brandMuted">
-                    {field.label}
-                  </label>
-                  <input
-                    type={field.type === "date" ? "datetime-local" : "text"}
-                    name={field.name}
-                    value={value}
-                    onChange={handleChange}
-                    className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-urbanist text-brandDark focus:outline-none focus:ring-2 focus:ring-brandDark/15"
-                  />
-                </div>
-              );
-            })}
-
-            <div className="sm:col-span-2 flex justify-end mt-2">
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <button
+                type="button"
+                onClick={() => navigate(`${location.pathname}?mode=view`)}
+                className="px-4 py-2 border rounded font-semibold text-gray-600 hover:bg-gray-50"
+                disabled={saving}
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center justify-center rounded-full bg-brandDark px-6 py-2 text-sm font-urbanist font-semibold text-white hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition"
+                className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>

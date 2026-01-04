@@ -2,35 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  @apply h-full bg-gray-50 text-brandDark font-urbanist;
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --status-risk: #ef4444;
+  --status-issue: #f97316;
+  --status-action: #facc15;
+  --status-dependency: #a855f7;
+  --status-escalation: #ec4899;
+  --status-appreciation: #10b981;
+  --status-collection: #3b82f6;
+
+  --font-small: "Urbanist", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-large: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html,
+body,
+#root {
+  @apply h-full bg-gray-50;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-small);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  @apply bg-gray-50 text-slate-900;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap');
 
-h1, h2, h3, h4, h5 {
-  font-family: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-large);
+  @apply font-bold text-gray-900;
+}
+
+/* Keeping class name for compatibility, but using new font */
+.font-marcellus {
+  font-family: var(--font-large);
+}
+
+.font-urbanist {
+  font-family: var(--font-small);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
 /* === Hero text fade-in from left === */
 @keyframes fadeInLeftFast {
   0% {
     opacity: 0;
     transform: translateX(-24px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -42,10 +75,12 @@ code {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   40% {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -76,13 +111,16 @@ code {
     background-color: #000;
     color: #fff;
   }
+
   55% {
     background-color: #000;
     color: #fff;
   }
+
   100% {
     background-color: #ffffff;
-    color: #111827; /* gray-900 style */
+    color: #111827;
+    /* gray-900 style */
   }
 }
 
@@ -111,14 +149,17 @@ code {
     opacity: 0;
     transform: scale(1.02);
   }
+
   15% {
     opacity: 1;
     transform: scale(1);
   }
+
   85% {
     opacity: 1;
     transform: scale(1);
   }
+
   100% {
     opacity: 0;
     transform: scale(1.02);
@@ -129,6 +170,7 @@ code {
   opacity: 0;
   animation: heroImageFadeCycle 6s ease-in-out forwards;
 }
+
 /* ===============================
    WORKBOARD – ADMIN / BM / PM
    Clean • Corporate • Excel-like
@@ -189,27 +231,33 @@ code {
 /* ===== ROW BACKGROUNDS (very mild, readable) ===== */
 
 .status-open {
-  background: #eef4ff; /* calm blue → new item */
+  background: #eef4ff;
+  /* calm blue → new item */
 }
 
 .status-inprogress {
-  background: #fff6ed; /* soft amber → active work */
+  background: #fff6ed;
+  /* soft amber → active work */
 }
 
 .status-onhold {
-  background: #fffbe6; /* pause / waiting */
+  background: #fffbe6;
+  /* pause / waiting */
 }
 
 .status-resolved {
-  background: #f1fdfa; /* work done, not yet approved */
+  background: #f1fdfa;
+  /* work done, not yet approved */
 }
 
 .status-approved {
-  background: #f2f4f8; /* FINAL – archived, executive */
+  background: #f2f4f8;
+  /* FINAL – archived, executive */
 }
 
 .status-cancelled {
-  background: #fef2f2; /* stopped */
+  background: #fef2f2;
+  /* stopped */
 }
 
 
@@ -220,34 +268,41 @@ code {
   height: 8px;
   border-radius: 50%;
   display: inline-block;
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.04); /* subtle presence */
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+  /* subtle presence */
 }
 
 
 /* ===== STATUS DOT COLORS (meaning-driven) ===== */
 
 .dot-open {
-  background: #2563eb; /* confident blue */
+  background: #2563eb;
+  /* confident blue */
 }
 
 .dot-inprogress {
-  background: #d97706; /* focused amber */
+  background: #d97706;
+  /* focused amber */
 }
 
 .dot-onhold {
-  background: #ca8a04; /* caution */
+  background: #ca8a04;
+  /* caution */
 }
 
 .dot-resolved {
-  background: #0f766e; /* calm teal – done */
+  background: #0f766e;
+  /* calm teal – done */
 }
 
 .dot-approved {
-  background: #1f2937; /* FINAL authority (dark slate) */
+  background: #1f2937;
+  /* FINAL authority (dark slate) */
 }
 
 .dot-cancelled {
-  background: #dc2626; /* terminated */
+  background: #dc2626;
+  /* terminated */
 }
 
 /* ===== Monitoring Table Header ===== */
@@ -280,13 +335,16 @@ code {
   align-items: center;
   gap: 6px;
 }
+
 .monitoring-title {
-  font-family: inherit;              /* ← key line */
+  font-family: inherit;
+  /* ← key line */
   font-weight: 600;
   font-size: 18px;
   letter-spacing: 0.02em;
   color: #111827;
 }
+
 /* ===============================
    Monitoring Tables – Column Grid
    Excel-style, clean & readable
@@ -303,14 +361,16 @@ code {
 
 /* HEADER CELLS */
 .monitoring-table thead th {
-  border-right: 1px solid #d1d5db;   /* stronger than body */
+  border-right: 1px solid #d1d5db;
+  /* stronger than body */
   border-bottom: 1.5px solid #cbd5e1;
   background: #f9fafb;
 }
 
 /* BODY CELLS */
 .monitoring-table tbody td {
-  border-right: 1px solid #e2e8f0;   /* visible but soft */
+  border-right: 1px solid #e2e8f0;
+  /* visible but soft */
 }
 
 /* REMOVE LAST COLUMN BORDER */
@@ -323,9 +383,39 @@ code {
 .monitoring-table tbody tr {
   box-shadow: inset 0 -1px 0 #e5e7eb;
 }
+
+/* Ceremony Layout Helpers */
+.ceremony-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.bullet-square {
+  list-style-type: none;
+}
+
+.bullet-square li::before {
+  content: "▪";
+  color: #fff;
+  display: inline-block;
+  width: 1.5em;
+  margin-left: -1.5em;
+}
+
+.text-muted-p3 {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.text-bright-p3 {
+  color: #fff;
+  transition: color 1s ease;
+}
+
 /* --- MOBILE NAVBAR CLEANUP --- */
 @media (max-width: 640px) {
-  header > div:first-child {
+  header>div:first-child {
     padding-top: .25rem !important;
     padding-bottom: .25rem !important;
   }

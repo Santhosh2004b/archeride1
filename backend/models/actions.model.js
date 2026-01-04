@@ -114,19 +114,6 @@ export async function createAction(data) {
 
   const { rows } = await pool.query(sql, params);
   return rows[0];
-  if (updated && String(updated.status).toLowerCase() === "resolved") {
-    await createResolutionNotification({
-      module: "action",
-      itemId: updated.id,
-      itemCode: updated.action_id,
-      statusBefore: data.previous_status || null,
-      statusAfter: "Resolved",
-      payload: updated,
-      bmUser: updated.created_by,
-    });
-  }
-
-  return updated;
 }
 
 /* ============================

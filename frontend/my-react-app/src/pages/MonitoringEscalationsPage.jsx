@@ -1,12 +1,13 @@
 // ---------------- MONITORING ESCALATIONS PAGE (MASTER FILTER PATTERN) ----------------
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchEscalations } from "../api/escalationsApi";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
-import { FiFilter, FiSearch } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { FiFilter, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
 
 /* STATUS → UI META */
@@ -32,6 +33,7 @@ const cleanParams = (obj) =>
 
 /* MAIN */
 const MonitoringEscalationsPage = () => {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]); // Store unfiltered data
@@ -58,13 +60,14 @@ const MonitoringEscalationsPage = () => {
      APPLY FILTERS + LIVE SEARCH (matches to top)
   ====================================================== */
   const applyFiltersAndSearch = (data) => {
-    let filtered = data;
+    let filtered = [...data];
 
-    // Apply select filters (not project_name or search)
+    // 1. Apply select filters
     const selectFilters = { ...filters };
+    const pName = selectFilters.project_name?.trim().toLowerCase();
     delete selectFilters.project_name;
     delete selectFilters.search;
-    
+
     Object.entries(selectFilters).forEach(([key, value]) => {
       if (value) {
         filtered = filtered.filter((row) =>
@@ -73,38 +76,27 @@ const MonitoringEscalationsPage = () => {
       }
     });
 
-    // Split by project name (live search)
-    let projectMatches = [];
-    let projectNonMatches = filtered;
-
-    if (filters.project_name.trim()) {
-      const q = filters.project_name.toLowerCase();
-      projectMatches = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(q)
-      );
-      projectNonMatches = filtered.filter((row) =>
-        !String(row.project_name ?? "").toLowerCase().includes(q)
+    // 2. Project Name Filter
+    if (pName) {
+      filtered = filtered.filter((row) =>
+        String(row.project_name ?? "").toLowerCase().includes(pName)
       );
     }
 
-    // Apply global search (matches to top)
-    let globalMatches = [];
-
+    // 3. Global Search
     if (globalSearch.trim()) {
       const term = globalSearch.toLowerCase();
-      const searchableData = [...projectMatches, ...projectNonMatches];
-      globalMatches = searchableData.filter((row) =>
-        Object.values(row).some((v) => String(v ?? "").toLowerCase().includes(term))
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((v) =>
+          v !== null && v !== undefined && String(v).toLowerCase().includes(term)
+        )
       );
-      // globalNonMatches is not used
-    } else {
-      globalMatches = [...projectMatches, ...projectNonMatches];
     }
 
     // Sort by latest updated
-    globalMatches.sort((a, b) => new Date(b.last_updated || b.updated_at || 0) - new Date(a.last_updated || a.updated_at || 0));
+    filtered.sort((a, b) => new Date(b.last_updated || b.updated_at || b.created_at || 0) - new Date(a.last_updated || a.updated_at || a.created_at || 0));
 
-    setRows(globalMatches);
+    setRows(filtered);
   };
 
   /* LOAD */
@@ -164,34 +156,36 @@ const MonitoringEscalationsPage = () => {
     setGlobalSearch("");
   };
 
+
+
   /* COLUMNS */
   const columns = rows[0]
     ? ["status", ...Object.keys(rows[0]).filter(c => c !== "status")]
     : [];
 
   return (
-    <motion.div 
+    <motion.div
       className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       {/* Animated Header */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus text-2xl sm:text-3xl font-bold text-gray-900">Escalations</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Table — Latest Updates</p>
-          <p className="text-xs text-gray-400 mt-1">Monitor escalation requests and their resolution status across projects.</p>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Escalation</h1>
+          <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
+
       </motion.div>
 
       {/* ROW 1 — filters */}
-      <motion.div 
+      <motion.div
         className="w-full rounded-xl bg-white border shadow-sm px-4 py-4 flex flex-col lg:flex-row gap-4"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -244,13 +238,13 @@ const MonitoringEscalationsPage = () => {
       </motion.div>
 
       {/* ROW 2 — global search */}
-      <motion.div 
+      <motion.div
         className="w-full rounded-xl bg-white border shadow-sm px-4 py-3 flex items-center gap-3"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <label className="text-xs font-semibold w-24">Global Search</label>
+        <label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-500 w-28">Global Search</label>
 
         <div className="relative flex-1">
           <input
@@ -271,7 +265,7 @@ const MonitoringEscalationsPage = () => {
       </motion.div>
 
       {/* TABLE */}
-      <motion.div 
+      <motion.div
         className="flex-1 rounded-xl bg-white border shadow-sm overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -288,6 +282,7 @@ const MonitoringEscalationsPage = () => {
                   {columns.map((c) => (
                     <th key={c} className="px-4 py-2.5 text-xs font-semibold uppercase">{c}</th>
                   ))}
+
                 </tr>
               </thead>
               <tbody>
@@ -300,11 +295,12 @@ const MonitoringEscalationsPage = () => {
                         <td key={c} className="px-4 py-2 whitespace-nowrap">
                           {c.toLowerCase() === "status" && m
                             ? <span className="inline-flex items-center gap-2">
-                                <span className={`status-dot ${m.dotClass}`} />{m.label}
-                              </span>
+                              <span className={`status-dot ${m.dotClass}`} />{m.label}
+                            </span>
                             : String(row[c] ?? "")}
                         </td>
                       ))}
+
                     </tr>
                   );
                 })}

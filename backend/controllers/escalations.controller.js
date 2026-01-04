@@ -60,7 +60,15 @@ export async function getEscalation(req, res) {
 
 export async function createEscalationHandler(req, res) {
   try {
-
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.escalation_id || req.body.escalation_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.escalation_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "escalation"
+      );
+    }
 
     const created = await createEscalation(
       {

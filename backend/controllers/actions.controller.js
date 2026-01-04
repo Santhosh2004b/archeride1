@@ -79,6 +79,16 @@ export async function createAction(req, res) {
     req.body.completion_percent =
       cp === "" || isNaN(cp) ? null : Number(cp);
 
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.action_id || req.body.action_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.action_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "action"
+      );
+    }
+
     const created = await createActionModel({
       ...req.body,
       project_name: req.body.project_name,
@@ -124,7 +134,7 @@ export async function updateActionHandler(req, res) {
 
     // 🔔 notify admin on completion
     const normalize = (s) => s?.trim().toLowerCase();
-    
+
 
     return sendSuccess(res, updated);
   } catch (err) {

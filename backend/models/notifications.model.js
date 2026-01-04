@@ -92,7 +92,8 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
 ====================================================== */
 function baseAdminQuery(module, table, titleCol) {
   return `
-    SELECT n.*,
+    SELECT DISTINCT ON (n.item_id)
+           n.*,
            t.${titleCol} AS title,
            
            COALESCE(t.project_name, p.name) AS project_name,
@@ -112,7 +113,7 @@ function baseAdminQuery(module, table, titleCol) {
       AND n.decision IS NULL
       AND (t.status ILIKE '%resolved%' OR n.status_after = 'Resolved')
 
-    ORDER BY n.created_at DESC;
+    ORDER BY n.item_id, n.created_at DESC;
   `;
 }
 

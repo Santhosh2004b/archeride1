@@ -13,7 +13,7 @@ import SparklineCard from "../components/SparklineCard";
 import DashboardTable from "../components/DashboardTable";
 import RevealRow from "../components/RevealRow";
 
-const STATUS_BUCKETS = ["Open", "Inholding", "Resolved", "Cancelled"];
+const STATUS_BUCKETS = ["Open", "on-holding", "Resolved", "Cancelled"];
 // NOTE: “Approved & Closed” merged into “Resolved” (Option-A decision)
 
 const MODULES = ["Risk", "Issue", "Dependency", "Action", "Collection"];
@@ -22,7 +22,7 @@ const normalizeStatus = (raw) => {
   if (!raw) return "Open";
   const s = raw.trim().toLowerCase();
 
-  if (s.includes("hold")) return "Inholding";
+  if (s.includes("hold")) return "on-holding";
   if (s === "approved & closed" || s === "closed" || s === "completed") return "Resolved";
   if (s === "resolved") return "Resolved";
   if (s === "cancelled") return "Cancelled";
@@ -179,7 +179,7 @@ const MonitoringDashboardPage = () => {
     load();
   }, [selectedYear, selectedActionWeek]);
 
-  if (loading || !kpis) return <p>Loading dashboard...</p>;
+  if (!kpis) return <div className="flex h-screen items-center justify-center bg-white"><p className="text-lg font-urbanist animate-pulse">Loading dashboard...</p></div>;
 
   return (
     <div
@@ -189,7 +189,8 @@ const MonitoringDashboardPage = () => {
         padding: "28px",
         display: "flex",
         flexDirection: "column",
-        gap: "32px"
+        gap: "32px",
+        fontFamily: "Urbanist"
       }}
     >
       {/* ROW 1 — KPIs + Donut */}
@@ -197,7 +198,7 @@ const MonitoringDashboardPage = () => {
         <section style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "24px" }}>
           <div style={{ display: "flex", gap: "16px", justifyContent: "space-between" }}>
             <KpiCard title="Total Open" value={kpis.totalOpen} />
-            <KpiCard title="In Progress" value={kpis.totalInProgress} />
+            <KpiCard title="On Hold" value={kpis.totalInProgress} />
             <KpiCard title="Closed" value={kpis.totalClosed} />
             <KpiCard title="Total Items" value={kpis.totalItems} />
           </div>
@@ -206,7 +207,7 @@ const MonitoringDashboardPage = () => {
             background: "#fff", padding: 20, borderRadius: 12,
             boxShadow: "0 6px 16px rgba(0,0,0,0.08)"
           }}>
-            <h3 style={{ marginBottom: 12, fontFamily: "Montserrat" }}>Priority Split</h3>
+            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Priority Split</h3>
             <RiskPie data={pieData} />
           </div>
         </section>
@@ -218,7 +219,7 @@ const MonitoringDashboardPage = () => {
           background: "#fff", padding: 24, borderRadius: 12,
           boxShadow: "0 6px 16px rgba(0,0,0,0.08)", width: "100%"
         }}>
-          <h3 style={{ marginBottom: 16, fontFamily: "Montserrat" }}>Status by Module</h3>
+          <h3 style={{ marginBottom: 16, fontWeight: 700 }}>Status by Module</h3>
           <StackedColumnChart data={moduleStatus} />
         </section>
       </RevealRow>
@@ -228,7 +229,7 @@ const MonitoringDashboardPage = () => {
         <section style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontFamily: "Montserrat" }}>Risk Trend</h3>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Risk Trend</h3>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -253,83 +254,102 @@ const MonitoringDashboardPage = () => {
           </div>
 
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ margin: 0, fontFamily: "Montserrat" }}>Action Status (Weekly)</h3>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {/* MONTH SELECTOR */}
-                  {availableActionMonths.length > 0 && (
-                    <select
-                      value={selectedActionMonth}
-                      onChange={(e) => {
-                        const newMonth = e.target.value;
-                        setSelectedActionMonth(newMonth);
-                        // Auto-select first week of new month
-                        const relevantWeeks = availableActionWeeks.filter(w => {
-                          const d = new Date(w.value);
-                          const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                          return mKey === newMonth;
-                        });
-                        if (relevantWeeks.length > 0) {
-                          setSelectedActionWeek(relevantWeeks[0].value);
-                        } else {
-                          setSelectedActionWeek("");
-                        }
-                      }}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 6,
-                        border: "1px solid #D1D5DB",
-                        backgroundColor: "#fff",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        color: "#374151",
-                        fontFamily: "Urbanist",
-                        maxWidth: 110
-                      }}
-                    >
-                      {availableActionMonths.map(m => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
-                      ))}
-                    </select>
-                  )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Action Status (Weekly)</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {/* YEAR SELECTOR FOR ACTIONS */}
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "1px solid #D1D5DB",
+                    backgroundColor: "#fff",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    color: "#374151",
+                    fontFamily: "Urbanist",
+                    maxWidth: 80
+                  }}
+                >
+                  {availableYears.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                {/* MONTH SELECTOR */}
+                {availableActionMonths.length > 0 && (
+                  <select
+                    value={selectedActionMonth}
+                    onChange={(e) => {
+                      const newMonth = e.target.value;
+                      setSelectedActionMonth(newMonth);
+                      // Auto-select first week of new month
+                      const relevantWeeks = availableActionWeeks.filter(w => {
+                        const d = new Date(w.value);
+                        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        return mKey === newMonth;
+                      });
+                      if (relevantWeeks.length > 0) {
+                        setSelectedActionWeek(relevantWeeks[0].value);
+                      } else {
+                        setSelectedActionWeek("");
+                      }
+                    }}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #D1D5DB",
+                      backgroundColor: "#fff",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      color: "#374151",
+                      fontFamily: "Urbanist",
+                      maxWidth: 110
+                    }}
+                  >
+                    {availableActionMonths.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                )}
 
-                  {/* WEEK SELECTOR */}
-                  {availableActionWeeks.length > 0 && (
-                    <select
-                      value={selectedActionWeek || ""}
-                      onChange={(e) => setSelectedActionWeek(e.target.value)}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 6,
-                        border: "1px solid #D1D5DB",
-                        backgroundColor: "#fff",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        color: "#374151",
-                        fontFamily: "Urbanist",
-                        maxWidth: 140
-                      }}
-                    >
-                      {/* Filter weeks by selected month */}
-                      {availableActionWeeks
-                        .filter(w => {
-                          if (!selectedActionMonth) return true;
-                          const d = new Date(w.value);
-                          const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                          return mKey === selectedActionMonth;
-                        })
-                        .map(w => (
-                          <option key={w.value} value={w.value}>{w.label}</option>
-                        ))}
-                    </select>
-                  )}
-                </div>
+                {/* WEEK SELECTOR */}
+                {availableActionWeeks.length > 0 && (
+                  <select
+                    value={selectedActionWeek || ""}
+                    onChange={(e) => setSelectedActionWeek(e.target.value)}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #D1D5DB",
+                      backgroundColor: "#fff",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      color: "#374151",
+                      fontFamily: "Urbanist",
+                      maxWidth: 140
+                    }}
+                  >
+                    {/* Filter weeks by selected month */}
+                    {availableActionWeeks
+                      .filter(w => {
+                        if (!selectedActionMonth) return true;
+                        const d = new Date(w.value);
+                        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        return mKey === selectedActionMonth;
+                      })
+                      .map(w => (
+                        <option key={w.value} value={w.value}>{w.label}</option>
+                      ))}
+                  </select>
+                )}
               </div>
-              <ActionCompletionChart data={weeklyActionStatus} />
             </div>
+            <ActionCompletionChart data={weeklyActionStatus} />
           </div>
         </section>
       </RevealRow>
@@ -350,24 +370,30 @@ const MonitoringDashboardPage = () => {
       <RevealRow delay={0.60}>
         <section style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <h3 style={{ marginBottom: 12, fontFamily: "Montserrat" }}>Latest Risks</h3>
+            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Risks</h3>
             <DashboardTable
               data={feeds.risks}
-              columns={["risk_id", "risk_title", "priority", "status", "project_name", "identified_date", "identified_by"]}
+              columns={["risk_id", "risk_title", "priority", "status", "project_name", "identified_date"]}
             />
           </div>
 
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <h3 style={{ marginBottom: 12, fontFamily: "Montserrat" }}>Collections Due</h3>
+            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Collections Due</h3>
             <DashboardTable
               data={feeds.collections}
-              columns={["invoice_id", "customer_name", "invoice_amount", "status", "days_overdue", "amount_received", "outstanding_amount", "payment_status", "project_name"]}
+              columns={["invoice_id", "customer_name", "outstanding_amount", "status", "days_overdue", "project_name"]}
+            />
+          </div>
+
+          <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
+            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Issues</h3>
+            <DashboardTable
+              data={feeds.issues}
+              columns={["issue_id", "issue_title", "priority", "status", "project_name", "identified_date"]}
             />
           </div>
         </section>
       </RevealRow>
-
-
     </div>
   );
 };

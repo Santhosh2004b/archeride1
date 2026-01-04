@@ -23,32 +23,16 @@ const MODULES = [
   { key: "action", label: "Action" },
 ];
 
-// resolve notifications by module
 async function loadByModule(module) {
   switch (module) {
-    case "risk":
-      return await fetchRiskNotifications();
-    case "issue":
-      return await fetchIssueNotifications();
-    case "dependency":
-      return await fetchDependencyNotifications();
-    case "escalation":
-      return await fetchEscalationNotifications();
-    case "action":
-      return await fetchActionNotifications();
-    default:
-      return [];
+    case "risk": return await fetchRiskNotifications();
+    case "issue": return await fetchIssueNotifications();
+    case "dependency": return await fetchDependencyNotifications();
+    case "escalation": return await fetchEscalationNotifications();
+    case "action": return await fetchActionNotifications();
+    default: return [];
   }
 }
-
-// module visual tokens (Tailwind utility classes)
-const moduleColors = {
-  all: {
-    bg: "bg-gray-900",
-    pill: "bg-gray-200",
-    text: "text-gray-900",
-  },
-};
 
 const MonitoringNotificationsPage = () => {
   const navigate = useNavigate();
@@ -57,9 +41,8 @@ const MonitoringNotificationsPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [commentById, setCommentById] = useState({});
-  const [openId, setOpenId] = useState(null); // expanded row id
+  const [expandedId, setExpandedId] = useState(null);
 
-  // load items
   const load = async (module = selectedModule) => {
     try {
       setLoading(true);
@@ -74,7 +57,7 @@ const MonitoringNotificationsPage = () => {
   };
 
   useEffect(() => {
-    setOpenId(null);
+    setExpandedId(null);
     load(selectedModule);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModule]);
@@ -83,88 +66,46 @@ const MonitoringNotificationsPage = () => {
     const comment = commentById[id] || "";
     try {
       switch (selectedModule) {
-        case "risk":
-          await decideRiskNotification(id, decision, comment);
-          break;
-        case "issue":
-          await decideIssueNotification(id, decision, comment);
-          break;
-        case "dependency":
-          await decideDependencyNotification(id, decision, comment);
-          break;
-        case "escalation":
-          await decideEscalationNotification(id, decision, comment);
-          break;
-        case "action":
-          await decideActionNotification(id, decision, comment);
-          break;
-        default:
-          return;
+        case "risk": await decideRiskNotification(id, decision, comment); break;
+        case "issue": await decideIssueNotification(id, decision, comment); break;
+        case "dependency": await decideDependencyNotification(id, decision, comment); break;
+        case "escalation": await decideEscalationNotification(id, decision, comment); break;
+        case "action": await decideActionNotification(id, decision, comment); break;
+        default: return;
       }
-      // reload list after decision
       await load();
-      // collapse the row (optional)
-      setOpenId(null);
+      setExpandedId(null);
     } catch (err) {
       console.error(err);
       alert(err?.message || "Failed to update");
     }
   };
 
-  const buildTitleAndProject = (p) => {
-    let title = "";
-    switch (selectedModule) {
-      case "risk":
-        title = p.risk_title || p.title || "";
-        break;
-      case "issue":
-        title = p.issue_title || p.title || "";
-        break;
-      case "dependency":
-        title = p.dependency_title || p.title || "";
-        break;
-      case "action":
-        title = p.action_title || p.title || "";
-        break;
-      default:
-        title = p.title || "";
-    }
-    const project = p.project_name || p.project || "-";
-    return { title, project };
+  const getLabel = () => MODULES.find((m) => m.key === selectedModule)?.label || "Risk";
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
   };
-
-  const formatTime = (iso) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const label = MODULES.find((m) => m.key === selectedModule)?.label || "Risk";
-  const colorFor = moduleColors.all;
-
-  // row click behaviour (dependency navigates to module page)
-  const handleRowClick = (n) => {
-    
-
-    setOpenId((prev) => (prev === n.id ? null : n.id));
-  };
-
 
   return (
-    <motion.div 
-      className="min-h-[calc(100vh-80px)] bg-gray-50 px-3 sm:px-6 py-4"
+    <motion.div
+      className="min-h-[calc(100vh-80px)] bg-gray-50 px-4 sm:px-8 py-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      <div className="max-w-6xl mx-auto font-urbanist">
-        <h2 className="font-marcellus text-2xl text-gray-900 mb-4">
-          {label} Approval Inbox
-        </h2>
+      <div className="max-w-7xl mx-auto font-urbanist">
+        <div className="mb-8">
+          <h1 className="text-3xl font-montserrat font-medium text-gray-900">
+            {getLabel()} Approval Inbox
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Review and approve pending status changes.
+          </p>
+        </div>
 
-        {/* Tabs */}
-        <div className="mb-4 flex flex-wrap gap-2">
+        {/* Tab Navigation */}
+        <div className="mb-8 flex flex-wrap gap-2">
           {MODULES.map((m) => {
             const active = selectedModule === m.key;
             return (
@@ -172,218 +113,178 @@ const MonitoringNotificationsPage = () => {
                 key={m.key}
                 type="button"
                 onClick={() => setSelectedModule(m.key)}
-                className={`px-4 py-2 rounded-lg text-xs sm:text-sm border flex items-center gap-2 transition ${active
-                  ? "bg-gray-900 text-white border-gray-900 shadow"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${active
+                  ? "bg-black text-white shadow-lg transform scale-105"
+                  : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-100"
                   }`}
               >
-                {m.label}
+                {m.label} Inbox
               </button>
             );
           })}
         </div>
 
-        <div className="rounded-2xl bg-white border border-gray-200 shadow-md overflow-hidden">
-          {loading ? (
-            <div className="p-4 text-sm text-slate-400">Loading...</div>
-          ) : items.length === 0 ? (
-            <div className="p-4 text-sm text-slate-400">No pending notifications.</div>
-          ) : (
-            <div className="overflow-auto">
-              <table className="min-w-full text-left text-xs font-urbanist">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">Project Name</th>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">ID</th>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">Priority</th>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">Status Before</th>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">Status After</th>
-                    <th className="px-2 py-2 font-extrabold text-xs uppercase tracking-wide text-gray-800 whitespace-nowrap">Recent Update Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...items]
-                    .sort((a, b) => {
-                      // Resolved first, then by created_at desc
-                      const aResolved = (a.status_after || "").toLowerCase().includes("resolved");
-                      const bResolved = (b.status_after || "").toLowerCase().includes("resolved");
-                      if (aResolved && !bResolved) return -1;
-                      if (!aResolved && bResolved) return 1;
-                      return new Date(b.created_at) - new Date(a.created_at);
-                    })
-                    .map((n) => {
-                      const p = n.payload || {};
-                      const { title, project } = buildTitleAndProject(p);
-                      const idField = n.risk_id || n.issue_id || n.dependency_id || n.escalation_id || n.action_id || n.id;
-                      const priority = p.priority || "NA";
-                      const statusBadge = (status) => {
-                        const s = (status || "").toLowerCase();
-                        if (s.includes("approved")) return "bg-green-100 text-green-700 border-green-300";
-                        if (s.includes("resolved")) return "bg-blue-100 text-blue-700 border-blue-300";
-                        if (s.includes("inholding")) return "bg-yellow-100 text-yellow-700 border-yellow-300";
-                        if (s.includes("open")) return "bg-gray-100 text-gray-700 border-gray-300";
-                        if (s.includes("cancelled")) return "bg-gray-200 text-gray-500 border-gray-300";
-                        return "bg-gray-100 text-gray-700 border-gray-300";
-                      };
-                      // Helper variables for summary/detail row
-                      const from = p.from || p.bm_user || p.created_by || "-";
-                      const timeText = n.created_at ? new Date(n.created_at).toLocaleString() : "-";
-                      const isOpen = openId === n.id;
-                      return (
-                        <React.Fragment key={n.id}>
-                          {/* Table Row */}
-                          <tr className="border-b border-gray-100">
-                            <td className="px-2 py-2 whitespace-nowrap text-xs font-semibold">{project}</td>
-                            <td className="px-2 py-2 whitespace-nowrap text-xs">{idField}</td>
-                            <td className="px-2 py-2 whitespace-nowrap text-xs font-semibold">{priority}</td>
-                            <td className="px-2 py-2 whitespace-nowrap text-xs">
-                              <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${statusBadge(n.status_before)}`}>{n.status_before || "-"}</span>
-                            </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-xs">
-                              <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${statusBadge(n.status_after)}`}>{n.status_after || "-"}</span>
-                            </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-xs">{n.created_at ? new Date(n.created_at).toLocaleString() : "-"}</td>
-                          </tr>
-                          {/* Summary/Detail Row (collapsible) */}
-                          <tr>
-                            <td colSpan={6} className="p-0">
-                              <div className="relative">
-                                {/* summary row */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRowClick(n)}
-                                  className={`w-full flex items-start sm:items-center gap-3 px-3 sm:px-5 py-3 hover:bg-slate-800/70 transition text-left`}
-                                >
-                                  {/* left controls */}
-                                  <div className="flex items-start sm:items-center gap-3 text-slate-400 pt-1 sm:pt-0">
-                                    <div className="h-4 w-4 border border-slate-600 rounded-sm" />
-                                    <div className="h-3 w-3 rounded-full bg-amber-400 mt-1 sm:mt-0" />
-                                  </div>
-                                  {/* main */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                        <span className="text-sm sm:text-base text-slate-50 truncate max-w-[45vw] sm:max-w-xs">
-                                          {title || "(No title)"}
-                                        </span>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${colorFor.pill} ${colorFor.text} border border-slate-200/10`}>
-                                          {n.item_code || "-"}
-                                        </span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-900 border border-slate-200">
-                                          {project}
-                                        </span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-600/10 text-amber-300 border border-amber-400/60">
-                                          {priority}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[11px] text-slate-400">{timeText}</span>
-                                        <span className="text-[11px] text-slate-400">{isOpen ? "Hide details" : "View details"}</span>
-                                      </div>
-                                    </div>
-                                    <div className="mt-1">
-                                      <span className="text-xs text-slate-400 block truncate max-w-full">
-                                        From {from} • Status set to {n.status_after || "Completed"} • Awaiting admin decision
-                                      </span>
-                                    </div>
-                                  </div>
-                                </button>
-                                {/* detail row (collapsible) */}
-                                {isOpen && (
-                                  <div className="px-3 sm:px-5 pb-4 bg-gray-50 transition-all duration-300 ease-out">
-                                    <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
-                                      <table className="min-w-full text-sm">
-                                        <tbody>
-                                          <tr className="border-b border-slate-100">
-                                            <td className="px-3 py-3 font-semibold w-1/4">BM User</td>
-                                            <td className="px-3 py-3 w-1/4">{from}</td>
-                                            <td className="px-3 py-3 font-semibold w-1/4">Module</td>
-                                            <td className="px-3 py-3 w-1/4 capitalize">{selectedModule}</td>
-                                          </tr>
-                                          <tr className="border-b border-slate-100">
-                                            <td className="px-3 py-3 font-semibold">Item Code</td>
-                                            <td className="px-3 py-3">{n.item_code || "-"}</td>
-                                            <td className="px-3 py-3 font-semibold">Project</td>
-                                            <td className="px-3 py-3">{project}</td>
-                                          </tr>
-                                          <tr className="border-b border-slate-100">
-                                            <td className="px-3 py-3 font-semibold">Priority</td>
-                                            <td className="px-3 py-3">{priority}</td>
-                                            <td className="px-3 py-3 font-semibold">Status Before</td>
-                                            <td className="px-3 py-3">{n.status_before || "-"}</td>
-                                          </tr>
-                                          <tr className="border-b border-slate-100">
-                                            <td className="px-3 py-3 font-semibold">Status After</td>
-                                            <td className="px-3 py-3">{n.status_after || "-"}</td>
-                                            <td className="px-3 py-3 font-semibold">Created At</td>
-                                            <td className="px-3 py-3">{n.created_at ? new Date(n.created_at).toLocaleString() : "-"}</td>
-                                          </tr>
-                                          <tr>
-                                            <td className="px-3 py-3 font-semibold align-top">Payload</td>
-                                            <td colSpan={3} className="px-3 py-3">
-                                              <pre className="text-[12px] text-slate-600 whitespace-pre-wrap break-all">
-                                                {JSON.stringify(p, null, 2)}
-                                              </pre>
-                                            </td>
-                                          </tr>
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                    {/* approval area */}
-                                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3 py-3">
-                                      <input
-                                        type="text"
-                                        value={commentById[n.id] || ""}
-                                        onChange={(e) =>
-                                          setCommentById((prev) => ({ ...prev, [n.id]: e.target.value }))
-                                        }
-                                        className="w-full sm:w-80 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                                        placeholder="Admin comment"
-                                      />
-                                      <div className="flex gap-2 items-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDecision(n.id, "Closed")}
-                                          className={`inline-flex items-center rounded-full px-4 py-2 text-sm text-white bg-gray-900 shadow\n`}
-                                        >
-                                          Approve & Close
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDecision(n.id, "On Hold")}
-                                          className="inline-flex items-center rounded-full px-4 py-2 text-sm text-white bg-gray-600 shadow"
-                                        >
-                                          Keep Open
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            // quick navigate to edit / view page for this item (module-aware)
-                                            const base = `${selectedModule}s`;
-                                            navigate(`/monitoring/${base}?id=${encodeURIComponent(n.id)}`);
-                                          }}
-                                          className="inline-flex items-center rounded-full px-3 py-2 text-sm text-slate-700 bg-slate-100 border"
-                                        >
-                                          Open Item
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-64 bg-gray-200 rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-20 text-gray-400">
+            <span className="text-4xl mb-4">✨</span>
+            <p>No pending approvals for {getLabel()}.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...items]
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              .map((n) => {
+                const p = n.payload || {};
+                // Extract meaningful data
+                const title = p.risk_title || p.issue_title || p.dependency_title || p.action_title || p.title || "(No Title)";
+                const project = p.project_name || p.project || "Unknown Project";
+                const priority = p.priority || "Medium";
+                const idField = n.risk_id || n.issue_id || n.dependency_id || n.escalation_id || n.action_id || n.item_code || n.id?.substring(0, 8);
+                const fromUser = p.from || p.bm_user || p.created_by || "BM User";
+
+                const isExpanded = expandedId === n.id;
+
+                return (
+                  <div
+                    key={n.id}
+                    className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 ${isExpanded ? "ring-2 ring-blue-500 shadow-md transform scale-[1.01]" : "hover:shadow-md"
+                      }`}
+                  >
+                    {/* Card Header (Clickable) */}
+                    <div className="p-5 cursor-pointer" onClick={() => toggleExpand(n.id)}>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400 truncate max-w-[60%]">
+                          {project}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${(priority === "Critical" || priority === "High") ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"
+                          }`}>
+                          {priority}
+                        </span>
+                      </div>
+
+                      <h3 className="font-montserrat font-bold text-lg text-gray-900 mb-1 truncate">
+                        {idField}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-1 h-5">{title}</p>
+
+                      <div className="flex items-center justify-between text-xs bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="flex flex-col">
+                          <span className="text-gray-400 mb-1 text-[10px] uppercase">Status Change</span>
+                          <div className="flex items-center gap-2 font-medium">
+                            <span className="line-through text-gray-400">{n.status_before || "Open"}</span>
+                            <span className="text-gray-300">→</span>
+                            <span className={`
+                                   ${(n.status_after || "").toLowerCase().includes("resolved") ? "text-blue-600" :
+                                (n.status_after || "").toLowerCase().includes("closed") ? "text-green-600" : "text-gray-800"}
+                                `}>
+                              {n.status_after}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="block text-gray-400 mb-1 text-[10px] uppercase">Updated</span>
+                          <span className="text-gray-700">{new Date(n.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[9px] font-bold text-gray-600">
+                            {fromUser.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-xs text-gray-500 truncate max-w-[100px]">{fromUser}</span>
+                        </div>
+                        <span className="text-xs text-blue-500 font-bold hover:underline">
+                          {isExpanded ? "Hide Details" : "View Details"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div className="px-5 pb-5 pt-0 animate-fadeIn bg-white border-t border-gray-100">
+                        <div className="mt-4 space-y-3">
+                          {/* Mini Data Table */}
+                          <div className="grid grid-cols-2 gap-2 text-xs mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <span className="block text-gray-400 text-[10px] uppercase">BM User</span>
+                              <span className="font-medium text-gray-700 break-words">{fromUser}</span>
+                            </div>
+                            <div>
+                              <span className="block text-gray-400 text-[10px] uppercase">Module</span>
+                              <span className="font-medium text-gray-700 capitalize">{selectedModule}</span>
+                            </div>
+                            <div>
+                              <span className="block text-gray-400 text-[10px] uppercase">Item Code</span>
+                              <span className="font-medium text-gray-700">{n.item_code || idField}</span>
+                            </div>
+                            <div>
+                              <span className="block text-gray-400 text-[10px] uppercase">Created At</span>
+                              <span className="font-medium text-gray-700">{new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          {/* Payload Dump (Styled) */}
+                          <div className="mb-4">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Payload Data</span>
+                            <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto max-h-40 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                              <pre className="text-[10px] font-mono text-green-400 whitespace-pre-wrap">
+                                {JSON.stringify(p, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="space-y-3 pt-2 border-t border-gray-100">
+                            <input
+                              type="text"
+                              value={commentById[n.id] || ""}
+                              onChange={(e) => setCommentById((prev) => ({ ...prev, [n.id]: e.target.value }))}
+                              placeholder="Admin comment..."
+                              className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                            />
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleDecision(n.id, "Closed")}
+                                className="flex-1 py-2 bg-black text-white text-xs font-bold uppercase rounded hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
+                              >
+                                Approve & Close
+                              </button>
+                              <button
+                                onClick={() => handleDecision(n.id, "On Hold")}
+                                className="flex-1 py-2 border border-gray-300 text-gray-700 text-xs font-bold uppercase rounded hover:bg-gray-50 transition-colors"
+                              >
+                                Keep Open
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const base = `${selectedModule}s`;
+                                navigate(`/monitoring/${base}?id=${encodeURIComponent(n.item_code || n.risk_id || n.id)}`); // Try to link via code if possible
+                              }}
+                              className="w-full py-2 text-blue-600 text-xs font-bold uppercase hover:bg-blue-50 rounded transition-colors"
+                            >
+                              Open Item View
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        )}
       </div>
     </motion.div>
   );
-}
+};
 
 export default MonitoringNotificationsPage;

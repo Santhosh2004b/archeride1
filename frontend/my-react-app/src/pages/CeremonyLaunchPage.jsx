@@ -1,254 +1,328 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import CanvasFireworks from '../components/ceremony/CanvasFireworks';
-import ParticleCracker from '../components/ceremony/ParticleCracker';
-import RibbonCutting from '../components/ceremony/RibbonCutting';
-import styles from './Ceremony.module.css';
-import arcLogo from '../assets/arche-logo.png'; // Importing directly from src/assets
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import logo from "../assets/arche-logo.png";
+import FireworksCanvas from "../components/FireworksCanvas";
+import { CheckCircle, ChartLineUp, ShieldCheck } from "phosphor-react";
+import "./Ceremony.css";
 
-const CeremonyLaunchPage = () => {
+const vpImg = "/assets/SATHISH.png";
+const devImg = "/assets/SANTHOSH.jpg";
+
+// PARTICLE CONFIG
+const TOTAL_LOGO_PARTICLES = 40;
+const LOGO_RADIUS = 70;
+const STAR_COUNT = 45;
+
+const STRATEGIC_PAIRS = [
+  ["Where purpose shapes execution", "and execution shapes trust"],
+  ["Where culture drives creation", "and creation fuels impact"],
+  ["Where vision meets velocity", "and velocity carries legacy forward"],
+  ["Where imagination becomes innovation",
+    "and innovation becomes tomorrow’s standard"]
+];
+
+function CeremonyLaunchPage() {
+  const [phase, setPhase] = useState(1);
+  const [pairIndex, setPairIndex] = useState(0);
+  const [transitioning, setTransitioning] = useState(false);
+  const [fadeSequence, setFadeSequence] = useState(0);
+  const [starsFading, setStarsFading] = useState(false);
   const navigate = useNavigate();
-  const [phase, setPhase] = useState('LANDING');
-  // Phases: 'LANDING', 'INTRO', 'RIBBON', 'POST_RIBBON_WELCOME', 'POST_RIBBON_CONTENT', 'FINAL_CTA', 'VIDEO'
+  const location = useLocation();
 
-  // Audio
-  const audioRef = useRef(new Audio('/assets/Awards_Ceremony_Grand_Opening.mp3'));
+  // Phase 1.5 Animation State
+  const [serviceStep, setServiceStep] = useState(0);
 
-  // State for sequencing
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [showContent, setShowContent] = useState(false);
-  const [showProfiles, setShowProfiles] = useState(false);
-  const [profileStep, setProfileStep] = useState(0);
+  // 1. Generate Logo Particles
+  const logoParticles = useMemo(() => {
+    const items = [];
+    for (let i = 0; i < TOTAL_LOGO_PARTICLES; i++) {
+      const r = LOGO_RADIUS * Math.sqrt(Math.random());
+      const theta = Math.random() * 2 * Math.PI;
+      const x = r * Math.cos(theta);
+      const y = r * Math.sin(theta);
+      const moveX = (Math.random() - 0.5) * 40;
+      const moveY = (Math.random() - 0.5) * 40;
 
-  // Handle initial mount audio cleanup
-  useEffect(() => {
-    const audio = audioRef.current;
-    return () => {
-      audio.pause();
-      audio.currentTime = 0;
-    };
+      const style = {
+        left: `calc(50% + ${x}px)`,
+        top: `calc(50% + ${y}px)`,
+        width: Math.random() > 0.5 ? '2px' : '3px',
+        height: Math.random() > 0.5 ? '2px' : '3px',
+        animationDelay: `${Math.random() * 2}s`,
+        "--move-x": `${moveX}px`,
+        "--move-y": `${moveY}px`
+      };
+      items.push(<div key={`lp-${i}`} className="inner-particle" style={style} />);
+    }
+    return items;
   }, []);
 
-  // 1. LANDING -> INTRO
-  const handleGetStarted = () => {
-    // Play Audio
-    audioRef.current.play().catch(e => console.log('Audio autoplay blocked', e));
-    setPhase('INTRO');
-  };
-
-  // 2. INTRO -> RIBBON
-  const handleLaunchClick = () => {
-    // Transit to Ribbon
-    // "remove background music here"
-    audioRef.current.pause();
-    setPhase('RIBBON');
-  };
-
-  // 3. RIBBON -> POST_RIBBON
-  const handleRibbonCut = () => {
-    // Fireworks burst for 3s
-    // We can use a temp state or just timeout
-    // Show fireworks/confetti (handled by Ribbon component or overlay)
-
-    // After 3s, move to welcome
-    setTimeout(() => {
-      setPhase('POST_RIBBON_WELCOME');
-    }, 3000);
-  };
-
-  // 4. POST_RIBBON_WELCOME (Welcome to ArcWrite)
-  useEffect(() => {
-    if (phase === 'POST_RIBBON_WELCOME') {
-      setShowWelcome(true);
-      // Fade out fully after animation (e.g. 4s)
-      setTimeout(() => {
-        setShowWelcome(false);
-        setPhase('POST_RIBBON_CONTENT');
-      }, 4000);
-    }
-  }, [phase]);
-
-  // 5. POST_RIBBON_CONTENT (Story -> Bullets -> Paragraph -> Profiles)
-  useEffect(() => {
-    if (phase === 'POST_RIBBON_CONTENT') {
-      setShowContent(true);
-
-      // Sequence:
-      // Text Anims happen via CSS delays.
-      // Bullets take ~2s. Paragraph takes ~1s.
-      // Let's give it 4s before showing profiles
-
-      setTimeout(() => {
-        setShowProfiles(true);
-        // Profile Sequence
-        // 1. Satish Fade In
-        setProfileStep(1);
-
-        // 2. Santhosh Fade In (after 2s)
-        setTimeout(() => {
-          setProfileStep(2);
-        }, 2000);
-
-        // 3. Final CTA (after another 2s)
-        setTimeout(() => {
-          setPhase('FINAL_CTA');
-        }, 4000);
-
-      }, 5000); // Wait for text content
-    }
-  }, [phase]);
-
-
-  const handleFinalLaunch = () => {
-    setPhase('VIDEO');
-    // Video plays inline, then redirect
-    const video = document.getElementById('launch-video');
-    if (video) {
-      video.play();
-      video.onended = () => {
-        navigate('/login');
+  // 2. Generate Bright Star Field
+  const starField = useMemo(() => {
+    const stars = [];
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const top = Math.random() * 100;
+      const left = Math.random() * 100;
+      const isCenter = Math.abs(top - 50) < 20 && Math.abs(left - 50) < 20;
+      const size = isCenter ? (Math.random() * 1 + 1) : (Math.random() * 2 + 1);
+      const duration = 2 + Math.random() * 4;
+      const delay = Math.random() * 5;
+      const fadeDelay = Math.random() * 2;
+      const style = {
+        top: `${top}%`,
+        left: `${left}%`,
+        width: `${size}px`,
+        height: `${size}px`,
+        "--duration": `${duration}s`,
+        "--delay": `${delay}s`,
+        opacity: starsFading ? 0 : undefined,
+        transition: `opacity 1s ease-out ${fadeDelay}s`
       };
-      // Fallback if video doesn't play or errors
-      setTimeout(() => navigate('/login'), 8000);
-    } else {
-      setTimeout(() => navigate('/login'), 3000);
+      stars.push(<div key={`s-${i}`} className="star-point" style={style} />);
     }
+    return stars;
+  }, [starsFading]);
+
+  useEffect(() => {
+    if (location.state?.playAudio || phase === 1.5) {
+      window.playCeremonyAudio?.();
+    }
+  }, [location.state, phase]);
+
+  // Phase 1.5 Sequence Logic (v1.5 Sync Fix)
+  useEffect(() => {
+    if (phase === 1.5) {
+      // RESET
+      setServiceStep(0);
+
+      // Reveal Sequence
+      const tHeading = setTimeout(() => setServiceStep(1), 400);   // Heading Micro-entry
+      const tShells = setTimeout(() => setServiceStep(2), 800);    // Shell Materialize
+      const tContent = setTimeout(() => setServiceStep(3), 1600);  // Content Reveal (Visible by 2.8s)
+
+      // --- MANDATORY 3S HOLD ---
+      // Cards are fully visible from 2.8s to 5.8s
+
+      // Exit Sequence (Tiered)
+      const tContentExit = setTimeout(() => setServiceStep(5), 6000); // Content Slides Away (v1.3 logic)
+      const tShellExit = setTimeout(() => setServiceStep(6), 6200);   // Shells Collapse
+      const tHeadingExit = setTimeout(() => setServiceStep(7), 6800); // Heading Drifts Up & Fades
+
+      const tPhaseNext = setTimeout(() => {
+        setPhase(2);
+        setPairIndex(0);
+      }, 8500);
+
+      return () => {
+        clearTimeout(tHeading);
+        clearTimeout(tShells);
+        clearTimeout(tContent);
+        clearTimeout(tContentExit);
+        clearTimeout(tShellExit);
+        clearTimeout(tHeadingExit);
+        clearTimeout(tPhaseNext);
+      };
+    }
+  }, [phase]);
+
+  const [excellenceStep, setExcellenceStep] = useState(0);
+
+  // Phase 2 Logic (v1.9 Recognition & Leadership)
+  useEffect(() => {
+    if (phase === 2) {
+      setExcellenceStep(0);
+
+      // 1. Heading Reveal
+      const tH1 = setTimeout(() => setExcellenceStep(1), 500);   // "A Milestone"
+      const tH2 = setTimeout(() => setExcellenceStep(2), 1200);  // "Achieved"
+      const tSub = setTimeout(() => setExcellenceStep(3), 2000); // Subheading
+
+      // 2. Body Copy (Narrative)
+      const tB1 = setTimeout(() => setExcellenceStep(4), 3200);  // Para 1
+      const tB2 = setTimeout(() => setExcellenceStep(5), 5500);  // Para 2
+
+      // 3. Leadership Cards
+      const tGrid = setTimeout(() => setExcellenceStep(6), 7500); // Grid container
+      const tC1 = setTimeout(() => setExcellenceStep(7), 8500);   // Satish Card
+      const tC2 = setTimeout(() => setExcellenceStep(8), 9500);   // Santhosh Card
+
+      // 4. Final Footer / CTA
+      const tFinal = setTimeout(() => setExcellenceStep(10), 12000);
+
+      return () => {
+        [tH1, tH2, tSub, tB1, tB2, tGrid, tC1, tC2, tFinal].forEach(clearTimeout);
+      };
+    }
+  }, [phase]);
+
+  const handleLaunchMoment = () => {
+    // Cinematic slow sequence for landing page exit
+    setFadeSequence(1);
+    setTimeout(() => setFadeSequence(2), 1000);
+    setTimeout(() => setFadeSequence(3), 2000);
+    setTimeout(() => setFadeSequence(4), 3000);
+    setTimeout(() => setFadeSequence(5), 4000);
+
+    setTimeout(() => {
+      setPhase(1.5);
+    }, 6500);
+  };
+
+  const handleEnterClick = () => {
+    navigate("/ceremony/ribbon");
   };
 
   return (
-    <div className={styles.container}>
-
-      {/* BACKGROUND ANIMATION - Always On */}
-      <div className={styles.globalCrackers}>
-        <ParticleCracker />
-        <CanvasFireworks />
-      </div>
-
-      {/* PHASE 0: LANDING */}
-      {phase === 'LANDING' && (
-        <div className={styles.landingContainer}>
-          <button className={styles.getStartedBtn} onClick={handleGetStarted}>
-            Get Started
-          </button>
+    <>
+      <div className="ceremony-fullscreen">
+        {/* SHARED BACKDROP - One World Rule */}
+        <div className="ceremony-service-bg">
+          <div className="parallax-stars-1" />
+          <div className="parallax-stars-2" />
+          <div className="parallax-stars-3" />
+          <div className="blue-sparkle" style={{ top: '20%', left: '10%' }} />
+          <div className="blue-sparkle" style={{ top: '60%', left: '80%', animationDelay: '1s' }} />
+          <div className="blue-sparkle" style={{ top: '10%', left: '70%', animationDelay: '2s' }} />
         </div>
-      )}
 
-      {/* PHASE 1: INTRO (Logo Right, Button Bottom Right) */}
-      {phase === 'INTRO' && (
-        <div className={styles.introContainer}>
-          {/* Left: Headers? User didn't specify text here, usually it's "ArcWrite..." */}
-          {/* Assuming we keep the intro text or just the logo? 
-                        User: "keep the layout you already made... Green circle on the right"
-                    */}
-          <div className={styles.leftContent}>
-            <h1 className={styles.introTitleMain}>ArcWrite</h1>
-            <h2 className={styles.introTitleSub}>Powered by Engineering Vision</h2>
-          </div>
-
-          <div className={styles.rightContent}>
-            <div className={styles.logoCircle}>
-              <img src={arcLogo} alt="ArcWrite Logo" className={styles.logoImage} />
+        {/* PHASE 1: LANDING */}
+        {phase === 1 && (
+          <div className="intro-text-container z-10">
+            <div className={`intro-logo-container ${fadeSequence >= 1 ? 'fade-out-now' : ''}`}>
+              <div className="logo-circle-border" />
+              <div className="logo-particle-wrap">{logoParticles}</div>
+              <img src={logo} alt="ArcheRIDE" className="intro-logo-img" />
             </div>
-
-            <div className={styles.buzzerButtonContainer}>
-              <button className={styles.launchCircleBtn} onClick={handleLaunchClick}>
-                <div>Launch ➜</div>
-              </button>
-            </div>
+            <h2 className={`intro-line-1 ${fadeSequence >= 2 ? 'fade-out-now' : ''}`}>Welcome to Arche Global</h2>
+            <h1 className={`intro-line-2 ${fadeSequence >= 3 ? 'fade-out-now' : ''}`}>Presenting ArcheRIDE</h1>
+            <p className={`intro-subtitle ${fadeSequence >= 4 ? 'fade-out-now' : ''}`}>unified service delivery platform designed to synchronize vision with execution.</p>
+            <button onClick={handleLaunchMoment} className={`intro-btn ${fadeSequence >= 5 ? 'fade-out-now' : ''}`}>Launch Moment</button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* PHASE 2: RIBBON */}
-      {phase === 'RIBBON' && (
-        <div className={styles.ribbonLayer}>
-          <RibbonCutting onCut={handleRibbonCut} />
-          <div className={styles.cautionText}>
-            Place your mouse at the center of the ribbon and click to cut.
-          </div>
-        </div>
-      )}
+        {/* PHASE 1.5: SERVICE DELIVERY (v1.5 Robust Reveal) */}
+        {phase === 1.5 && (
+          <div className="service-container">
+            <h1 className={`service-title ${serviceStep >= 1 ? 'visible' : ''} ${serviceStep >= 7 ? 'service-title-exit' : ''}`}>
+              Smarter Service Delivery
+            </h1>
 
-      {/* PHASE 3: WELCOME (Text Only) */}
-      {phase === 'POST_RIBBON_WELCOME' && showWelcome && (
-        <div className={styles.welcomeContainer}>
-          <div className={styles.welcomeRegular}>Welcome to</div>
-          <div className={styles.welcomeBold}>ArcWrite</div>
-        </div>
-      )}
-
-      {/* PHASE 4: CONTENT + PROFILES */}
-      {(phase === 'POST_RIBBON_CONTENT' || phase === 'FINAL_CTA') && (
-        <div className={styles.mainContentContainer}>
-          {/* LEFT: PROFILES */}
-          <div className={styles.profilesLeftSection}>
-            {showProfiles && (
-              <>
-                {/* Profile 1: Satish */}
-                <div className={styles.profileRow} style={{ opacity: profileStep >= 1 ? 1 : 0 }}>
-                  <div className={styles.profileImgWrap}>
-                    <img src="/assets/satish.jpg" alt="Satish Balaji" className={styles.profileImg} />
+            <div className="service-cards-grid">
+              {/* CARD 1 */}
+              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
+                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-l-r' : ''} ${serviceStep >= 5 ? 'content-exit-r' : ''}`}>
+                  <div className="card-icon-wrapper force-visible-icon">
+                    <CheckCircle weight="bold" size={32} />
                   </div>
-                  <div className={styles.profileInfo}>
-                    <div className={styles.profileName}>Satish Balaji</div>
-                    <div className={styles.profileRole}>Senior Vice President</div>
+                  <div className="card-text text-white">
+                    Ticket Management
                   </div>
                 </div>
+              </div>
 
-                {/* Profile 2: Santhosh */}
-                <div className={styles.profileRow} style={{ opacity: profileStep >= 2 ? 1 : 0, transitionDelay: '0.5s' }}>
-                  <div className={styles.profileImgWrap}>
-                    <img src="/assets/santhosh.png" alt="Santhosh B" className={styles.profileImg} />
+              {/* CARD 2 */}
+              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
+                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-b-t' : ''} ${serviceStep >= 5 ? 'content-exit-d' : ''}`}>
+                  <div className="card-icon-wrapper force-visible-icon">
+                    <ChartLineUp weight="bold" size={32} />
                   </div>
-                  <div className={styles.profileInfo}>
-                    <div className={styles.profileName}>Santhosh B</div>
-                    <div className={styles.profileRole}>Full Stack Developer</div>
+                  <div className="card-text text-white">
+                    Service Issue Tracking
                   </div>
                 </div>
-              </>
+              </div>
+
+              {/* CARD 3 */}
+              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
+                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-r-l' : ''} ${serviceStep >= 5 ? 'content-exit-l' : ''}`}>
+                  <div className="card-icon-wrapper force-visible-icon">
+                    <ShieldCheck weight="bold" size={32} />
+                  </div>
+                  <div className="card-text text-white">
+                    Risk & Escalation Handling
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PHASE 2: RECOGNITION (v1.9 Final Content & Design) */}
+        {phase === 2 && (
+          <div className="recognition-container relative z-10 flex flex-col items-center justify-center min-h-screen">
+            {/* Heading Reveal Sequence */}
+            <div className="mb-12">
+              <h1 className="recognition-heading">
+                <span className={`word-entry ${excellenceStep >= 1 ? 'visible' : ''}`}>A Milestone&nbsp;</span>
+                <span className={`word-entry achieved ${excellenceStep >= 2 ? 'visible' : ''}`}>Achieved</span>
+              </h1>
+              <p className={`recognition-subheading word-entry ${excellenceStep >= 3 ? 'visible' : ''}`}>
+                through shared vision and synergy
+              </p>
+            </div>
+
+            {/* Executive Body narrative */}
+            <div className="recognition-body">
+              <p className={`word-entry ${excellenceStep >= 4 ? 'visible' : ''}`}>
+                "This moment represents more than a platform launch. It stands as a testament to the collective intent, discipline, and belief shared by everyone who contributed to ArcheRIDE."
+              </p>
+              <p className={`word-entry ${excellenceStep >= 5 ? 'visible' : ''}`}>
+                "From late-night problem solving to thoughtful design and uncompromising execution, this achievement belongs to every contributor who helped transform vision into reality."
+              </p>
+            </div>
+
+            {/* Leadership Cards */}
+            <div className={`leadership-grid ${excellenceStep >= 6 ? 'opacity-100 transition-opacity duration-1000' : 'opacity-0'}`}>
+              {/* SATISH CARD */}
+              <div className={`leadership-card word-entry ${excellenceStep >= 7 ? 'visible' : ''}`}>
+                <div className="profile-portrait-ring">
+                  <div className="profile-portrait-inner">
+                    <img src={vpImg} alt="Satish Balaji" />
+                  </div>
+                </div>
+                <h3 className="leadership-name">Satish Balaji</h3>
+                <span className="leadership-role">Senior Vice President</span>
+                <div className="quote-box">
+                  <p className="quote-text">
+                    "This platform reflects the relentless commitment of a team that believed in doing things the right way — with clarity, care, and purpose."
+                  </p>
+                </div>
+              </div>
+
+              {/* SANTHOSH CARD */}
+              <div className={`leadership-card word-entry ${excellenceStep >= 8 ? 'visible' : ''}`}>
+                <div className="profile-portrait-ring">
+                  <div className="profile-portrait-inner">
+                    <img src={devImg} alt="Santhosh B" />
+                  </div>
+                </div>
+                <h3 className="leadership-name">Santhosh B</h3>
+                <span className="leadership-role">Full Stack Developer</span>
+                <div className="quote-box">
+                  <p className="quote-text">
+                    "Building ArcheRIDE was not just about writing code — it was about translating shared intent into a dependable, meaningful experience."
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle Footer */}
+            <div className={`recognition-footer word-entry ${excellenceStep >= 10 ? 'visible' : ''}`}>
+              ARCHE GLOBAL © 2024 — Thank you for being part of this milestone.
+            </div>
+
+            {/* Optional CTA to finalize */}
+            {excellenceStep >= 10 && (
+              <div className="mt-12 animate-fade-in-up">
+                <button onClick={handleEnterClick} className="intro-btn">Launch Platform →</button>
+              </div>
             )}
           </div>
-
-          {/* RIGHT: TEXT CONTENT */}
-          <div className={styles.contentRightSection} style={{ opacity: showContent ? 1 : 0 }}>
-            <h1 className={styles.storyHeader}>Our Success Story Begins</h1>
-            <ul className={styles.bulletList}>
-              <li style={{ animationDelay: '0.5s' }}>Seamless Integration</li>
-              <li style={{ animationDelay: '1.0s' }}>Precision-First Automation</li>
-              <li style={{ animationDelay: '1.5s' }}>Human-Centered Design</li>
-              <li style={{ animationDelay: '2.0s' }}>Future-Ready Scalability</li>
-            </ul>
-            <p className={styles.storyPara} style={{ animationDelay: '2.5s' }}>
-              We are redefining how engineering teams document, collaborate, and deliver.<br />
-              ArcWrite isn’t just a platform — it's a commitment to clarity, speed, and scale.<br />
-              Together, we move smarter, faster, and further.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* PHASE 5: FINAL CTA */}
-      {phase === 'FINAL_CTA' && (
-        <div className={styles.finalCtaOverlay}>
-          <button className={styles.launchPlatformBtn} onClick={handleFinalLaunch}>
-            Launch Platform
-          </button>
-        </div>
-      )}
-
-      {/* VIDEO */}
-      {phase === 'VIDEO' && (
-        <div className={styles.videoContainer}>
-          {/* Placeholder for video, assuming simple video tag or embed */}
-          <video id="launch-video" width="100%" height="100%" controls autoPlay style={{ objectFit: 'cover' }}>
-            <source src="/assets/login-hero.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      )}
-
-    </div>
+        )}
+      </div>
+    </>
   );
-};
+}
 
 export default CeremonyLaunchPage;

@@ -12,7 +12,7 @@ import {
 const router = Router();
 router.get("/", listIssues);
 router.get("/:id", getIssue);
-router.post("/", createIssue);
+router.post("/", createIssueHandler);
 router.put("/:id", updateIssueHandler);
 router.post("/decisions/:notificationId", decideIssueResolution);
 

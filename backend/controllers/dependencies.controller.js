@@ -57,6 +57,16 @@ export async function getDependency(req, res) {
 
 export async function createDependencyHandler(req, res) {
   try {
+    // 🆔 Auto-generate ID if not provided
+    if (!req.body.dependency_id || req.body.dependency_id.trim() === "") {
+      const { generateEntityId } = await import("../utils/idGenerator.js");
+      req.body.dependency_id = await generateEntityId(
+        req.user.email,
+        req.body.project_name || "Default",
+        "dependency"
+      );
+    }
+
     const payload = {
       ...req.body,
       project_name: req.body.project_name,

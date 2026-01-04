@@ -13,28 +13,7 @@ const HERO_IMAGES = [img1, img2, img3];
 
 function LandingPage() {
   const navigate = useNavigate();
-  const [years, setYears] = useState(0);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
-
-  // count-up animation for "18+"
-  useEffect(() => {
-    const target = 18;
-    const duration = 3500;
-    const stepMs = 60;
-    const step = target / (duration / stepMs);
-    let current = 0;
-
-    const id = setInterval(() => {
-      current += step;
-      if (current >= target) {
-        current = target;
-        clearInterval(id);
-      }
-      setYears(Math.round(current));
-    }, stepMs);
-
-    return () => clearInterval(id);
-  }, []);
 
   // rotate hero background images
   useEffect(() => {
@@ -49,7 +28,8 @@ function LandingPage() {
 
   const handleGetStarted = (e) => {
     e.preventDefault();
-    navigate("/ceremony");
+    window.playCeremonyAudio?.();
+    navigate("/ceremony", { state: { playAudio: true } });
   };
 
   // even index -> zoom in, odd -> zoom out
@@ -87,8 +67,7 @@ function LandingPage() {
 
           {/* sub-copy: comes in after heading */}
           <p className="font-urbanist text-sm sm:text-base text-brandMuted max-w-xl fade-in-left-slower">
-            Single workspace for Business Managers and Admins to track risks,
-            issues, dependencies and escalations in real time.
+            Empowering teams to execute with precision, collaborate with purpose, and deliver with excellence across every project milestone.
           </p>
 
           {/* stats + CTAs */}
@@ -108,23 +87,12 @@ function LandingPage() {
                 Get started
               </a>
             </div>
-
-            <div className="mt-2 sm:mt-0 flex items-center gap-3">
-              <div className="rounded-2xl border border-brandDark/10 px-4 py-3 bg-white/80 shadow-sm years-card">
-                <p className="font-marcellus font-bold text-xl text-brandDark">
-                  {years}+
-                </p>
-                <p className="font-urbanist text-[11px] text-brandMuted">
-                  years of Arche Global experience
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 
         {/* right visual: smooth zoom in/out slider */}
         <section className="w-full lg:w-1/2 flex justify-center">
-<div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-[rgba(0,0,0,0.25)_0px_54px_55px,_rgba(0,0,0,0.12)_0px_-12px_30px,_rgba(0,0,0,0.12)_0px_4px_6px,_rgba(0,0,0,0.17)_0px_12px_13px,_rgba(0,0,0,0.09)_0px_-3px_5px]">
+          <div className="relative w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-[rgba(0,0,0,0.25)_0px_54px_55px,_rgba(0,0,0,0.12)_0px_-12px_30px,_rgba(0,0,0,0.12)_0px_4px_6px,_rgba(0,0,0,0.17)_0px_12px_13px,_rgba(0,0,0,0.09)_0px_-3px_5px]">
             <img
               src={activeHeroImage}
               alt="Delivery visual"
@@ -132,7 +100,7 @@ function LandingPage() {
             />
 
             {/* dashed crosshair overlay only */}
-           
+
           </div>
         </section>
       </main>

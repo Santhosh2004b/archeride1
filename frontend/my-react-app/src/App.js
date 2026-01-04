@@ -2,12 +2,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import KpiCard from "./components/KpiCard";
-import DonutChart from "./components/DonutChart";
-import StackedColumnChart from "./components/StackedColumnChart";
-
 import ProtectedRoute from "./routes/ProtectedRoute";
 import BmNotificationsPage from "./pages/BmNotificationsPage";
+import RiskApprovalPage from "./pages/RiskApprovalPage";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -32,19 +29,38 @@ import MonitoringNotificationsPage from "./pages/MonitoringNotificationsPage";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
 import CeremonyLaunchPage from "./pages/CeremonyLaunchPage";
+import CeremonyRibbonPage from "./pages/CeremonyRibbonPage";
+import FinalCeremonyPage from "./pages/FinalCeremonyPage";
 
 function App() {
+  const audioRef = React.useRef(null);
+
+  React.useEffect(() => {
+    window.playCeremonyAudio = () => {
+      if (audioRef.current) {
+        audioRef.current.play().catch(e => console.error("Audio error", e));
+      }
+    };
+    window.stopCeremonyAudio = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   return (
     <AuthProvider>
+      <audio ref={audioRef} src="/assets/Awards_Ceremony_Grand_Opening.mp3" preload="auto" />
       <Router>
         <Routes>
           {/* public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/ceremony" element={<CeremonyLaunchPage />} />
+          <Route path="/ceremony/ribbon" element={<CeremonyRibbonPage />} />
+          <Route path="/ceremony/final" element={<FinalCeremonyPage />} />
 
-          {/* optional old list pages */}
-          
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/actions" element={<ActionsPage />} />
           <Route path="/dependencies" element={<DependenciesPage />} />
@@ -171,6 +187,16 @@ function App() {
               <ProtectedRoute allowedRoles={["BM", "PM"]}>
                 <MainLayout>
                   <BmNotificationsPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/risk-approval"
+            element={
+              <ProtectedRoute allowedRoles={["BM", "PM", "ADMIN"]}>
+                <MainLayout>
+                  <RiskApprovalPage />
                 </MainLayout>
               </ProtectedRoute>
             }

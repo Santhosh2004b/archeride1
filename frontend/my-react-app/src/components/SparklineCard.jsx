@@ -26,7 +26,7 @@ const SparklineCard = ({ title, data = [], color }) => {
             <div style={{ width: "100%", height: 60 }}>
                 <ResponsiveContainer>
                     <LineChart data={data}>
-            // agpl-main/frontend/my-react-app/src/components/SparklineCard.jsx
+                        {/* Sparkline line component */}
                         <Line
                             type="monotone"
                             dataKey="value"
