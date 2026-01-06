@@ -24,6 +24,16 @@ export async function fetchEscalations(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchEscalationApi(id) {
+  const res = await fetch(`${BASE_URL}/escalations/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 export async function createEscalationApi(payload) {
   const res = await fetch(`${BASE_URL}/escalations`, {
     method: "POST",

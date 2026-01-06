@@ -3,26 +3,30 @@ import React from "react";
 import { useParams, useLocation } from "react-router-dom";
 import WorkboardPage from "../pages/WorkboardPage";
 
-import { fetchRisks, createRiskApi, updateRiskApi } from "../api/risksApi";
-import { fetchIssues, createIssueApi, updateIssueApi } from "../api/issuesApi";
-import { fetchActions, createActionApi, updateActionApi } from "../api/actionsApi";
+import { fetchRisks, fetchRiskApi, createRiskApi, updateRiskApi } from "../api/risksApi";
+import { fetchIssues, fetchIssueApi, createIssueApi, updateIssueApi } from "../api/issuesApi";
+import { fetchActions, fetchActionApi, createActionApi, updateActionApi } from "../api/actionsApi";
 import {
   fetchDependencies,
+  fetchDependencyApi,
   createDependencyApi,
   updateDependencyApi,
 } from "../api/dependenciesApi";
 import {
   fetchEscalations,
+  fetchEscalationApi,
   createEscalationApi,
   updateEscalationApi,
 } from "../api/escalationsApi";
 import {
   fetchAppreciations,
+  fetchAppreciationApi,
   createAppreciationApi,
   updateAppreciationApi,
 } from "../api/appreciationsApi";
 import {
   fetchCollections,
+  fetchCollectionApi,
   createCollectionApi,
   updateCollectionApi,
 } from "../api/collectionsApi";
@@ -41,6 +45,7 @@ const moduleMap = {
   risks: {
     title: "Risks Workboard",
     fetchList: fetchRisks,
+    fetchItem: fetchRiskApi,
     createItem: createRiskApi,
     updateItem: updateRiskApi,
     formConfig: risksFormConfig,
@@ -48,6 +53,7 @@ const moduleMap = {
   issues: {
     title: "Issues Workboard",
     fetchList: fetchIssues,
+    fetchItem: fetchIssueApi,
     createItem: createIssueApi,
     updateItem: updateIssueApi,
     formConfig: issuesFormConfig,
@@ -55,6 +61,7 @@ const moduleMap = {
   actions: {
     title: "Actions Workboard",
     fetchList: fetchActions,
+    fetchItem: fetchActionApi,
     createItem: createActionApi,
     updateItem: updateActionApi,
     formConfig: actionsFormConfig,
@@ -62,6 +69,7 @@ const moduleMap = {
   dependencies: {
     title: "Dependencies Workboard",
     fetchList: fetchDependencies,
+    fetchItem: fetchDependencyApi,
     createItem: createDependencyApi,
     updateItem: updateDependencyApi,
     formConfig: dependenciesFormConfig,
@@ -69,6 +77,7 @@ const moduleMap = {
   escalations: {
     title: "Escalations Workboard",
     fetchList: fetchEscalations,
+    fetchItem: fetchEscalationApi,
     createItem: createEscalationApi,
     updateItem: updateEscalationApi,
     formConfig: escalationsFormConfig,
@@ -76,6 +85,7 @@ const moduleMap = {
   appreciations: {
     title: "Appreciations Workboard",
     fetchList: fetchAppreciations,
+    fetchItem: fetchAppreciationApi,
     createItem: createAppreciationApi,
     updateItem: updateAppreciationApi,
     formConfig: appreciationsFormConfig,
@@ -83,6 +93,7 @@ const moduleMap = {
   collections: {
     title: "Collections Workboard",
     fetchList: fetchCollections,
+    fetchItem: fetchCollectionApi,
     createItem: createCollectionApi,
     updateItem: updateCollectionApi,
     formConfig: collectionsFormConfig,
@@ -104,6 +115,7 @@ const ModuleRoute = () => {
       moduleKey={moduleKey}
       mode={mode}
       fetchList={cfg.fetchList}
+      fetchItem={cfg.fetchItem}
       // Add New only in edit mode
       createItem={mode === "edit" ? cfg.createItem : null}
       // Always allow updating so view table can show Edit buttons

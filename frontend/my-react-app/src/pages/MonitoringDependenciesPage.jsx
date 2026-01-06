@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchDependencies } from "../api/dependenciesApi";
+import { formatDisplayDate } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
@@ -314,7 +315,9 @@ const MonitoringDependenciesPage = () => {
                             ? <span className="inline-flex items-center gap-2">
                               <span className={`status-dot ${m.dotClass}`} />{m.label}
                             </span>
-                            : String(row[c] ?? "")}
+                            : c.toLowerCase().includes("date") || c.toLowerCase().includes("_at")
+                              ? formatDisplayDate(row[c], true)
+                              : String(row[c] ?? "")}
                         </td>
                       ))}
 

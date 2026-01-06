@@ -13,6 +13,16 @@ export async function fetchCollections(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchCollectionApi(id) {
+  const res = await fetch(`${BASE_URL}/collections/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 export async function createCollectionApi(payload) {
   const res = await fetch(`${BASE_URL}/collections`, {
     method: "POST",

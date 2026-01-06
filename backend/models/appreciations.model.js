@@ -103,18 +103,26 @@ export async function createAppreciation(data) {
   last_updated,
   comments
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,
-  $10,
-  $11,
-  $12,
+  $1::text,
+  $2::text,
+  $3::date,
+  $4::text,
+  $5::text,
+  $6::text,
+  $7::text,
+  $8::text,
+  $9::text,
+  $10::text,
+  $11::boolean,
+  $12::text,
   now(),
-  $13
+  $13::text
 )
 RETURNING *,
   CASE
-    WHEN $10 IS NULL OR $10 = ''
+    WHEN $10::text IS NULL OR $10::text = ''
     THEN 0
-    ELSE array_length(string_to_array($10, ','), 1)
+    ELSE array_length(string_to_array($10::text, ','), 1)
   END as team_members_count;
 
   `;
@@ -130,7 +138,7 @@ RETURNING *,
     data.subject,
     data.details,
     data.team_members_recognized || null,
-    data.shared_with_team ?? false,
+    data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
     data.comments || null
   ];
@@ -145,29 +153,27 @@ RETURNING *,
 export async function updateAppreciation(id, data) {
   const sql = `
     UPDATE appreciations SET
-      appreciation_id = $1,
-      project_name = $2,
-      received_date = $3,
-      recorded_by = $4,
-      customer_name = $5,
-      customer_contact = $6,
-      appreciation_type = $7,
-      subject = $8,
-      details = $9,
-      team_members_recognized = $10,
-
+      appreciation_id = $1::text,
+      project_name = $2::text,
+      received_date = $3::date,
+      recorded_by = $4::text,
+      customer_name = $5::text,
+      customer_contact = $6::text,
+      appreciation_type = $7::text,
+      subject = $8::text,
+      details = $9::text,
+      team_members_recognized = $10::text,
       team_members_count = CASE
-        WHEN $10 IS NULL OR $10 = ''
+        WHEN $10::text IS NULL OR $10::text = ''
         THEN 0
-        ELSE array_length(string_to_array($10, ','), 1)
+        ELSE array_length(string_to_array($10::text, ','), 1)
       END,
-
-      shared_with_team = $11,
-      follow_up_action = $12,
+      shared_with_team = $11::boolean,
+      follow_up_action = $12::text,
       last_updated = now(),
-      comments = $13,
+      comments = $13::text,
       updated_at = now()
-    WHERE id = $14
+    WHERE id = $14::uuid
     RETURNING *;
   `;
 
@@ -182,7 +188,7 @@ export async function updateAppreciation(id, data) {
     data.subject,
     data.details,
     data.team_members_recognized || null,
-    data.shared_with_team ?? false,
+    data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
     data.comments || null,
     id

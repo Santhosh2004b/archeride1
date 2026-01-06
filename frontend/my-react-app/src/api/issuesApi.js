@@ -33,6 +33,16 @@ export async function fetchIssues(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchIssueApi(id) {
+  const res = await fetch(`${BASE_URL}/issues/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 /**
  * Create a new issue
  */

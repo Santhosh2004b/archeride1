@@ -23,6 +23,16 @@ export async function fetchActions(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchActionApi(id) {
+  const res = await fetch(`${BASE_URL}/actions/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 export async function createActionApi(payload) {
   const res = await fetch(`${BASE_URL}/actions`, {
     method: "POST",

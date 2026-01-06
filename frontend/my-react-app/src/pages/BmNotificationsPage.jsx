@@ -15,82 +15,64 @@ const COLUMN_CONFIG = {
   risk: [
     { label: "Risk ID", key: "risk_id" },
     { label: "Project Name", key: "project_name" },
-    { label: "Reported Date", key: "reported_date", isDate: true },
-    { label: "Reported By", key: "reported_by" },
-    { label: "Status Before", key: "status_before", status: true },
-    { label: "Status After", key: "status_after", status: true },
+    { label: "Risk Title", key: "risk_title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
-    { label: "Risk Title", key: "title" },
+    { label: "Impact", key: "impact" },
+    { label: "Probability", key: "probability" },
   ],
   issue: [
     { label: "Issue ID", key: "issue_id" },
     { label: "Project Name", key: "project_name" },
-    { label: "Reported Date", key: "reported_date", isDate: true },
-    { label: "Reported By", key: "reported_by" },
-    { label: "Status Before", key: "status_before", status: true },
-    { label: "Status After", key: "status_after", status: true },
+    { label: "Issue Title", key: "issue_title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
-    { label: "Issue Title", key: "title" },
+    { label: "Assigned To", key: "assigned_to" },
   ],
   dependency: [
     { label: "Dependency ID", key: "dependency_id" },
     { label: "Project Name", key: "project_name" },
-    { label: "Reported Date", key: "reported_date", isDate: true },
-    { label: "Reported By", key: "raised_by" },
-    { label: "Status Before", key: "status_before", status: true },
-    { label: "Status After", key: "status_after", status: true },
+    { label: "Dependency Title", key: "dependency_title" },
     { label: "Priority", key: "priority" },
     { label: "Type", key: "type" },
-    { label: "Dependency Title", key: "title" },
+    { label: "Required By", key: "required_by_date", isDate: true },
   ],
   escalation: [
     { label: "Escalation ID", key: "escalation_id" },
     { label: "Project Name", key: "project_name" },
-    { label: "Reported Date", key: "reported_date", isDate: true },
-    { label: "Reported By", key: "reported_by" },
-    { label: "Status Before", key: "status_before", status: true },
-    { label: "Status After", key: "status_after", status: true },
+    { label: "Title", key: "title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
-    { label: "Title", key: "title" },
-    { label: "Description", key: "description" },
+    { label: "Escalated To", key: "escalated_to" },
   ],
   action: [
     { label: "Action ID", key: "action_id" },
-    { label: "Created Date", key: "created_at", isDate: true },
-    { label: "Created By", key: "created_by" },
-    { label: "Status Before", key: "status_before", status: true },
-    { label: "Status After", key: "status_after", status: true },
+    { label: "Project Name", key: "project_name" },
+    { label: "Action Title", key: "action_title" },
     { label: "Priority", key: "priority" },
-    { label: "Action Title", key: "title" },
-    { label: "Action Description", key: "description" },
-    { label: "Action Owner", key: "owner" },
+    { label: "Owner", key: "action_owner" },
     { label: "Due Date", key: "due_date", isDate: true },
-    { label: "Completion Date", key: "completion_date", isDate: true },
+    { label: "Comp %", key: "completion_percent" },
   ],
 };
 
 /* Helper to safely extract value from item or its payload */
 const getValue = (item, key) => {
-  // First check root, then payload, then try constructing fallback
-  // The notification item usually has: id, message, status_before, status_after, created_at, payload(JSON)
-  // We want to prefer the current live data if possible, but the notification snapshot (payload) is often what's available.
-
-  if (key === "status_before") return item.status_before;
-  if (key === "status_after") return item.status_after;
-
-  const val = item[key] || item.payload?.[key];
-  if (val !== undefined && val !== null) return val;
-
-  // Fallbacks for specific IDs if not strictly named in payload
-  if (key.endsWith("_id")) {
-    // e.g. risk_id might be stored as simply 'id' in the payload
-    return item.payload?.id || item.id;
+  // Check in root first (useful for flattened results from model)
+  if (item[key] !== undefined && item[key] !== null && item[key] !== "") {
+    return item[key];
   }
-  if (key === "title") return item.payload?.title || item.payload?.risk_title || item.payload?.issue_title;
-  if (key === "description") return item.payload?.description;
+
+  // Check in payload snapshot
+  const p = item.payload || {};
+  const val = p[key];
+
+  if (val !== undefined && val !== null && val !== "") return val;
+
+  // Fallbacks for specific IDs or common naming mismatches
+  if (key.endsWith("_id")) return p.id || item.item_code || "-";
+  if (key.includes("title")) return p.title || p.risk_title || p.issue_title || p.dependency_title || p.action_title || "-";
+  if (key === "description") return p.description || p.risk_description || p.issue_description || p.action_description || "-";
 
   return "-";
 };
@@ -99,6 +81,9 @@ const BmNotificationsPage = () => {
   const [selectedModule, setSelectedModule] = useState("risk");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+
+  const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
   const load = async (module = selectedModule) => {
     try {
@@ -153,8 +138,11 @@ const BmNotificationsPage = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0 border-r border-gray-200 last:border-r-0">
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0 border-r border-gray-200">
                     Status Change
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0 border-r border-gray-200">
+                    Admin Feedback
                   </th>
                   {columns.map((col) => (
                     <th key={col.key} className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 whitespace-nowrap border-r border-gray-200 last:border-r-0">
@@ -174,28 +162,96 @@ const BmNotificationsPage = () => {
                   );
 
                   return (
-                    <tr key={n.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="px-6 py-4 border-r border-gray-100 bg-gray-50/30">
-                        {statusChange}
-                      </td>
-                      {columns.map((col) => {
-                        const val = getValue(n, col.key);
-                        let displayVal = val;
+                    <React.Fragment key={n.id}>
+                      <tr
+                        className={`hover:bg-blue-50/30 transition-colors cursor-pointer ${expandedId === n.id ? "bg-blue-50/50" : ""}`}
+                        onClick={() => toggleExpand(n.id)}
+                      >
+                        <td className="px-6 py-4 border-r border-gray-100 bg-gray-50/10">
+                          {statusChange}
+                        </td>
+                        <td className="px-6 py-4 border-r border-gray-100">
+                          {n.decision ? (
+                            <div className="flex flex-col">
+                              <span className={`text-[10px] font-bold uppercase ${n.decision === 'Closed' ? 'text-green-600' : 'text-orange-600'}`}>
+                                {n.decision === 'Closed' ? 'Approved' : n.decision}
+                              </span>
+                              <span className="text-xs text-gray-500 line-clamp-1 italic">{n.comment || "No comment."}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-blue-500 font-bold animate-pulse uppercase tracking-tight">Pending Admin Review</span>
+                          )}
+                        </td>
+                        {columns.map((col) => {
+                          const val = getValue(n, col.key);
+                          let displayVal = val;
 
-                        // If user specifically asked for status column, we use the CURRENT (after) status
-                        if (col.key === 'status') {
-                          displayVal = <span className="px-2 py-1 rounded bg-gray-100 text-xs font-medium border">{n.status_after || val}</span>;
-                        } else if (col.isDate) {
-                          displayVal = formatDisplayDate(val);
-                        }
+                          if (col.isDate && val !== "-") {
+                            displayVal = formatDisplayDate(val, true);
+                          }
 
-                        return (
-                          <td key={col.key} className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0">
-                            {displayVal}
+                          return (
+                            <td key={col.key} className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0">
+                              {displayVal}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {/* Expansion Row */}
+                      {expandedId === n.id && (
+                        <tr className="bg-gray-50/80 animate-fadeIn">
+                          <td colSpan={columns.length + 2} className="px-8 py-6">
+                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                              <div className="flex justify-between items-start mb-6">
+                                <h4 className="text-sm font-bold uppercase text-gray-400 tracking-widest">Notification Details</h4>
+                                <span className="text-[10px] text-gray-400">Created: {formatDisplayDate(n.created_at, true)}</span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Status Section */}
+                                <div className="space-y-4">
+                                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                                    <span className="block text-[10px] font-bold text-blue-400 uppercase mb-2">Governance Status</span>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-sm font-medium text-gray-500 line-through">{n.status_before || "OPEN"}</span>
+                                      <span className="text-gray-300">→</span>
+                                      <span className="text-sm font-bold text-blue-600">{n.status_after || "RESOLVED"}</span>
+                                    </div>
+                                    <div className="pt-2 border-t border-blue-200/50">
+                                      <span className="block text-[10px] font-bold text-blue-400 uppercase mb-1">Admin Decision</span>
+                                      <span className={`text-xs font-bold ${n.decision === 'Closed' ? 'text-green-600' : 'text-orange-600'}`}>
+                                        {n.decision ? (n.decision === 'Closed' ? 'APPROVED & CLOSED' : n.decision.toUpperCase()) : 'PENDING'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {n.comment && (
+                                    <div className="p-4 bg-orange-50/50 rounded-lg border border-orange-100">
+                                      <span className="block text-[10px] font-bold text-orange-400 uppercase mb-1">Admin Comment</span>
+                                      <p className="text-sm text-gray-700 italic">"{n.comment}"</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Payload Section */}
+                                <div className="lg:col-span-2">
+                                  <span className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-widest">Full Record Data</span>
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs text-gray-600">
+                                    {Object.entries(n.payload || {}).map(([k, v]) => (
+                                      <div key={k} className="flex flex-col border-b border-gray-200/50 pb-1 last:border-0 truncate">
+                                        <span className="text-[9px] font-bold text-gray-400 uppercase">{k.replace(/_/g, ' ')}</span>
+                                        <span className="font-medium text-gray-900 truncate" title={String(v)}>{String(v ?? '-')}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </td>
-                        );
-                      })}
-                    </tr>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

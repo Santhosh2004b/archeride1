@@ -1,20 +1,10 @@
 import db from "../db.js";
 
-/**
- * 🆔 Generates a unique "Enterprise-Style" Entity ID
- * Format: [PREFIX][3-DIGITS] => e.g., RSK042, ISS109
- * 
- * Rules:
- * - Prefix is deterministic based on entityType (risk->RSK)
- * - Number is sequential based on existing max ID in DB
- * - Returns the next available ID
- * 
- * @param {string} userEmail - Ignored (legacy param)
- * @param {string} projectName - Ignored (legacy param)
- * @param {string} entityType - risk, issue, etc.
- */
 export async function generateEntityId(userEmail, projectName, entityType) {
+    const client = await db.connect();
     try {
+        await client.query('BEGIN');
+
         // 1. Define Prefixes
         const prefixMap = {
             risk: "RSK",
@@ -23,26 +13,43 @@ export async function generateEntityId(userEmail, projectName, entityType) {
             escalation: "ESC",
             action: "ACT",
             appreciation: "APP",
-            collection: "COL"
+            collection: "INV",
+            project: "PRJ"
         };
 
         const prefix = prefixMap[entityType.toLowerCase()] || "GEN";
 
-        // 2. Generate Random Alphanumeric Component (6 chars)
-        // This ensures IDs are unique, non-sequential, and "continuously changing"
-        const allowed = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed I, O, 1, 0 to avoid confusion
-        let randomPart = "";
-        for (let i = 0; i < 6; i++) {
-            randomPart += allowed.charAt(Math.floor(Math.random() * allowed.length));
+        // 2. Get User Code
+        const userRes = await client.query('SELECT id, user_code FROM users WHERE email = $1', [userEmail]);
+        if (userRes.rows.length === 0) {
+            throw new Error(`User not found: ${userEmail}`);
         }
+        const { id: userId, user_code: userCode } = userRes.rows[0];
 
-        const generatedId = `${prefix}-${randomPart}`; // e.g., RSK-9A2X4M
+        // 3. Get and Increment Sequence
+        const seqRes = await client.query(`
+            INSERT INTO user_entity_sequences (user_id, entity_type, last_value)
+            VALUES ($1, $2, 1)
+            ON CONFLICT (user_id, entity_type)
+            DO UPDATE SET last_value = user_entity_sequences.last_value + 1
+            RETURNING last_value
+        `, [userId, entityType.toLowerCase()]);
 
-        console.log(`🆔 Generated ID for ${entityType}: ${generatedId}`);
+        const nextVal = seqRes.rows[0].last_value;
+        const paddedVal = String(nextVal).padStart(3, '0');
+
+        const generatedId = `${prefix}-${userCode}-${paddedVal}`; // e.g., RSK-BM1-001
+
+        await client.query('COMMIT');
+
+        console.log(`🆔 Generated Sequential ID for ${entityType}: ${generatedId}`);
         return generatedId;
 
     } catch (err) {
+        if (client) await client.query('ROLLBACK');
         console.error("ID Generation Error:", err);
-        return `ERR${Math.floor(Math.random() * 1000)}`;
+        return `${entityType.toUpperCase().slice(0, 3)}-ERR-${Math.floor(Math.random() * 999)}`;
+    } finally {
+        if (client) client.release();
     }
 }

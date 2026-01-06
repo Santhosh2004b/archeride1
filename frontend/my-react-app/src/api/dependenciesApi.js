@@ -25,6 +25,16 @@ export async function fetchDependencies(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchDependencyApi(id) {
+  const res = await fetch(`${BASE_URL}/dependencies/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 
 export async function createDependencyApi(payload) {
   const res = await fetch(`${BASE_URL}/dependencies`, {

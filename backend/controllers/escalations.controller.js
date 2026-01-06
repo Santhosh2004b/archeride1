@@ -148,13 +148,6 @@ export async function decideEscalationResolution(req, res) {
       comment,
     });
 
-    await createBmNotificationForEscalationDecision({
-      escalationId: decided.item_id,
-      bmEmail: decided.bm_user,
-      decision,
-      comment,
-    });
-
     return sendSuccess(res, decided);
   } catch (err) {
     console.error("Escalation decision failed", err);

@@ -2,6 +2,7 @@
 // Phase-6 — Added scroll, S.No column, sorting by last_updated DESC
 
 import React, { useMemo } from "react";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 const STATUS_COLORS = {
   Open: "#E63946",        // red
@@ -153,7 +154,9 @@ const DashboardTable = ({ data = [], columns = [] }) => {
                     }}
                     title={String(row[col] ?? "")}
                   >
-                    {row[col] ?? "-"}
+                    {col.toLowerCase().includes("date") || col.toLowerCase().includes("_at")
+                      ? formatDisplayDate(row[col], true)
+                      : (row[col] ?? "-")}
                   </td>
                 ))}
               </tr>

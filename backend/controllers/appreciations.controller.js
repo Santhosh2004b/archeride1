@@ -114,7 +114,9 @@ export async function updateAppreciationHandler(req, res) {
 
     return sendSuccess(res, updated);
   } catch (err) {
-    console.error("Error updating appreciation", err);
-    return sendError(res, 500, "Failed to update appreciation");
+    console.error("Error updating appreciation:", err);
+    console.error("Request body:", req.body);
+    console.error("Error details:", err.message, err.stack);
+    return sendError(res, 500, `Failed to update appreciation: ${err.message}`);
   }
 }

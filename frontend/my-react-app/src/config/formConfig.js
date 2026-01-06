@@ -70,8 +70,8 @@ export const issuesFormConfig = {
   fields: [
     { name: "issue_id", label: "Issue ID", type: "text", required: false, readOnly: true },
     { name: "project_name", label: "Project Name", type: "text", required: false },
-    { name: "identified_date", label: "Identified Date", type: "date", required: true },
-    { name: "identified_by", label: "Identified By", type: "text", required: true },
+    { name: "reported_date", label: "Reported Date", type: "date", required: true },
+    { name: "reported_by", label: "Reported By", type: "text", required: true },
     {
       name: "status",
       label: "Status",

@@ -14,6 +14,7 @@ import {
   decideEscalationNotification,
   decideActionNotification,
 } from "../api/notificationsApi";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 const MODULES = [
   { key: "risk", label: "Risk" },
@@ -189,7 +190,7 @@ const MonitoringNotificationsPage = () => {
                         </div>
                         <div className="text-right">
                           <span className="block text-gray-400 mb-1 text-[10px] uppercase">Updated</span>
-                          <span className="text-gray-700">{new Date(n.created_at).toLocaleDateString()}</span>
+                          <span className="text-gray-700">{formatDisplayDate(n.created_at, true)}</span>
                         </div>
                       </div>
 
@@ -226,7 +227,7 @@ const MonitoringNotificationsPage = () => {
                             </div>
                             <div>
                               <span className="block text-gray-400 text-[10px] uppercase">Created At</span>
-                              <span className="font-medium text-gray-700">{new Date(n.created_at).toLocaleString()}</span>
+                              <span className="font-medium text-gray-700">{formatDisplayDate(n.created_at, true)}</span>
                             </div>
                           </div>
 

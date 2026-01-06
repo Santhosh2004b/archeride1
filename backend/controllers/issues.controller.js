@@ -35,12 +35,10 @@ export async function listIssues(req, res) {
     // Call the model function which uses raw SQL + pool
     const rows = await findIssues({ whereSql, params });
 
-    return res.status(200).json(rows);
+    return sendSuccess(res, rows);
   } catch (err) {
     console.error("issues.listIssues error", err);
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch issues", error: err.message || err });
+    return sendError(res, 500, "Failed to fetch issues");
   }
 }
 
@@ -89,12 +87,18 @@ export async function createIssueHandler(req, res) {
       );
     }
 
-    // 🗺️ Map frontend field names to backend database column names
-    const payload = {
-      ...req.body,
-      reported_date: req.body.identified_date || req.body.reported_date,
-      reported_by: req.body.identified_by || req.body.reported_by || req.user.email,
-    };
+    // 🛡️ SECURITY: Force reported_by to be user email if not admin
+    const payload = { ...req.body };
+    payload.reported_date = payload.reported_date || payload.identified_date;
+
+    if (req.user.role !== "ADMIN") {
+      payload.reported_by = req.user.email;
+    } else {
+      payload.reported_by = payload.reported_by || payload.identified_by || req.user.email;
+    }
+
+    console.log("💾 Saving Issue - User Email:", req.user.email);
+    console.log("💾 Saving Issue - Final reported_by:", payload.reported_by);
 
     // Remove the old field names if they exist
     delete payload.identified_date;
@@ -136,13 +140,20 @@ export async function updateIssueHandler(req, res) {
     }
 
     // 🗺️ Map frontend field names to backend database column names
-    const payload = {
-      ...req.body,
-      reported_date: req.body.identified_date || req.body.reported_date || existing.reported_date,
-      reported_by: existing.reported_by, // Don't allow changing who reported it
-    };
+    // 🛡️ SECURITY: Never allow non-admins to change ownership (reported_by)
+    const payload = { ...req.body };
 
-    // Remove the old field names
+    // Explicitly handle date mapping
+    payload.reported_date = payload.reported_date || payload.identified_date || existing.reported_date;
+
+    // If NOT admin, force reported_by to remain the existing email to prevent "ghosting"
+    if (req.user.role !== "ADMIN") {
+      payload.reported_by = existing.reported_by;
+    } else {
+      payload.reported_by = payload.reported_by || payload.identified_by || existing.reported_by;
+    }
+
+    // Clean up old field names
     delete payload.identified_date;
     delete payload.identified_by;
 
@@ -159,24 +170,7 @@ export async function updateIssueHandler(req, res) {
     const updated = await updateIssueModel(id, {
       ...payload,
       project_name: payload.project_name,
-    })
-    if (becameResolved && req.user?.email) {
-      await createResolutionNotification({
-        module: "issue",
-        itemId: updated.id,
-        itemCode: updated.issue_id,
-        statusBefore: oldStatus,
-        statusAfter: newStatus,
-        payload: {
-          project_name: existing.project_name,
-          priority: updated.priority,
-          category: updated.category,
-          issue_title: updated.issue_title,
-          reported_date: updated.reported_date,
-        },
-        bmUser: req.user.email,
-      });
-    }
+    });
 
     return sendSuccess(res, updated);
   } catch (err) {
@@ -201,14 +195,6 @@ export async function decideIssueResolution(req, res) {
       decision,
       comment,
     });
-
-    await createBmNotificationForIssueDecision({
-      issueId: decided.item_id,
-      bmEmail: decided.bm_user,
-      decision,
-      comment,
-    });
-
     return sendSuccess(res, decided);
   } catch (err) {
     console.error("Issue decision failed", err);

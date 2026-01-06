@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import MonitoringFilters from "../components/MonitoringFilters";
 import { fetchIssues } from "../api/issuesApi";
+import { formatDisplayDate } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import { useNavigate } from "react-router-dom";
 import { FiFilter, FiRotateCcw, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import { issuesFormConfig } from "../config/formConfig";
 
 /* OPTION ARRAYS */
 const statusOptions = [
@@ -143,7 +144,8 @@ const MonitoringIssuesPage = () => {
     if (allRows.length > 0) {
       applyFiltersAndSearch(allRows);
     }
-  }, [filters, globalSearch]);
+    // eslint-disable-next-line
+  }, [filters, globalSearch, allRows]);
 
   const handleApply = () => {
     loadData();
@@ -157,10 +159,8 @@ const MonitoringIssuesPage = () => {
     setGlobalSearch("");
   };
 
-  /* TABLE COLS */
-  const columns = rows[0]
-    ? ["status", ...Object.keys(rows[0]).filter(c => c !== "status")]
-    : [];
+  /* TABLE COLS - Dynamically showing all fields from config */
+  const columns = issuesFormConfig.fields;
 
   return (
     <motion.div
@@ -293,7 +293,7 @@ const MonitoringIssuesPage = () => {
                 <tr>
                   <th className="px-4 py-2.5 text-xs font-semibold uppercase w-12">S.No</th>
                   {columns.map(c => (
-                    <th key={c} className="px-4 py-2.5 text-xs font-semibold uppercase">{c}</th>
+                    <th key={c.name} className="px-4 py-2.5 text-xs font-semibold uppercase">{c.label}</th>
                   ))}
 
                 </tr>
@@ -305,12 +305,14 @@ const MonitoringIssuesPage = () => {
                     <tr key={row.id} className={`${m?.rowClass || ""} border-b`}>
                       <td className="px-4 py-2 whitespace-nowrap font-semibold w-12">{idx + 1}</td>
                       {columns.map(c => (
-                        <td key={c} className="px-4 py-2 whitespace-nowrap">
-                          {c.toLowerCase() === "status" && m
+                        <td key={c.name} className="px-4 py-2 whitespace-nowrap">
+                          {c.name === "status" && m
                             ? <span className="inline-flex items-center gap-2">
                               <span className={`status-dot ${m.dotClass}`} />{m.label}
                             </span>
-                            : String(row[c] ?? "")}
+                            : c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at")
+                              ? formatDisplayDate(row[c.name], true)
+                              : String(row[c.name] ?? "")}
                         </td>
                       ))}
 

@@ -151,13 +151,6 @@ export async function decideDependencyResolution(req, res) {
       comment,
     });
 
-    await createBmNotificationForDependencyDecision({
-      dependencyId: decided.item_id,
-      bmEmail: decided.bm_user,
-      decision,
-      comment,
-    });
-
     return sendSuccess(res, decided);
   } catch (err) {
     console.error("Dependency decision failed", err);

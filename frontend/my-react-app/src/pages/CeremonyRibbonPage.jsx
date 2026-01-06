@@ -1,84 +1,143 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Ceremony.css";
 import FireworksCanvas from "../components/FireworksCanvas";
+import "./Ceremony.css";
 
 const scissorsIcon = "https://upload.wikimedia.org/wikipedia/commons/7/74/Scissors_icon_black.svg";
 
 function CeremonyRibbonPage() {
+    const [ribbonReady, setRibbonReady] = useState(false);
     const [ribbonCut, setRibbonCut] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-    const [showScissors, setShowScissors] = useState(true);
-    const [isReady, setIsReady] = useState(false); // 500ms Black Reset
-    const [showText, setShowText] = useState(false); // 600ms Delayed Text
-
+    const [crackersIntensity, setCrackersIntensity] = useState(0);
+    const [showWelcome, setShowWelcome] = useState(false);
+    const [showTestimonials, setShowTestimonials] = useState(false);
     const navigate = useNavigate();
 
-    // v1.4: Cinematic Sequence Control
+    // Ribbon animation: slide in from sides
     useEffect(() => {
-        // Step 1: Hard Black Reset (Silence)
-        const tReset = setTimeout(() => setIsReady(true), 500);
-        // Step 2: Delay intro text reveal post-reset
-        const tText = setTimeout(() => setShowText(true), 1100);
+        const t1 = setTimeout(() => setRibbonReady(true), 1000);
+        return () => clearTimeout(t1);
+    }, []);
 
+    useEffect(() => {
         const handleMouseMove = (e) => {
             setMousePos({ x: e.clientX + 30, y: e.clientY - 20 });
         };
         window.addEventListener("mousemove", handleMouseMove);
-        return () => {
-            clearTimeout(tReset);
-            clearTimeout(tText);
-            window.removeEventListener("mousemove", handleMouseMove);
-        };
+        return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
 
     const handleRibbonClick = () => {
         if (ribbonCut) return;
         setRibbonCut(true);
-        setShowScissors(false);
 
-        // Final Fix 6: Strict Music OFF after ribbon
-        window.stopCeremonyAudio?.();
+        // Start crackers at 100%
+        setCrackersIntensity(100);
 
-        // v1.3: Wait for ribbon animation to finish, then transition
+        // After 2 seconds, reduce to 75%
+        setTimeout(() => setCrackersIntensity(75), 2000);
+
+        // After 3 seconds, show "Welcome to ArcheRIDE"
+        setTimeout(() => setShowWelcome(true), 3000);
+
+        // After 6 seconds, fade out welcome
+        setTimeout(() => setShowWelcome(false), 6000);
+
+        // After 7 seconds, reduce crackers to 50% and show testimonials
         setTimeout(() => {
-            navigate("/ceremony/final");
-        }, 7000); // 1s longer for v1.4 ceremonial weight
+            setCrackersIntensity(50);
+            setShowTestimonials(true);
+        }, 7000);
+
+        // After 18 seconds, navigate to final page or login
+        setTimeout(() => {
+            navigate("/login");
+        }, 18000);
     };
 
     return (
-        <div className="ceremony-fullscreen overflow-hidden relative" style={{ background: 'black' }}>
-            {/* v1.3: ISOLATION MODE - Pure Black */}
+        <div className="ceremony-fullscreen ribbon-page-bg">
+            {/* Fireworks Canvas */}
+            <FireworksCanvas isActive={crackersIntensity > 0} intensity={crackersIntensity} />
 
-            {/* Crackers trigger ONLY on cut */}
-            <FireworksCanvas isActive={ribbonCut} />
-
-            {/* v1.4: Staged Reveal Sequence */}
-            {isReady && (
-                <>
-                    {/* Intro Text - Delayed Reveal */}
-                    <div className={`ribbon-caution-v3 text-center ${!showText ? 'invisible-fade' : ''} ${ribbonCut ? 'exit' : ''}`}>
-                        The moment of trajectory... click to cut.
-                    </div>
-
-                    {/* Ribbon - Visible but calm, scaled 1.05 */}
-                    <div id="ribbon" onClick={handleRibbonClick} style={{ transform: 'translateY(-50%) scale(1.05)', filter: 'contrast(1.1) brightness(1.1)' }}>
-                        <div className={`ribbon bow ${ribbonCut ? 'hide' : ''}`}></div>
-                        <div className={`ribbon ribbon--l ${ribbonCut ? 'hide' : ''}`}></div>
-                        <div className={`ribbon ribbon--r ${ribbonCut ? 'hide' : ''}`}></div>
-                    </div>
-                </>
+            {/* Caution Text */}
+            {ribbonReady && !ribbonCut && (
+                <div className="ribbon-caution-text fade-in-slow">
+                    The moment of trajectory... click to cut the ribbon.
+                </div>
             )}
 
-            {/* Scissors Cursor Cursor Follow */}
-            {isReady && showScissors && (
+            {/* Ribbon Structure */}
+            {ribbonReady && (
+                <div className="ribbon-container" onClick={handleRibbonClick}>
+                    {/* Left Ribbon */}
+                    <div className={`ribbon-strip ribbon-left ${ribbonCut ? 'ribbon-left-exit' : 'ribbon-left-enter'}`}></div>
+
+                    {/* Right Ribbon */}
+                    <div className={`ribbon-strip ribbon-right ${ribbonCut ? 'ribbon-right-exit' : 'ribbon-right-enter'}`}></div>
+
+                    {/* Center Bow */}
+                    <div className={`ribbon-bow ${ribbonCut ? 'ribbon-bow-exit' : 'ribbon-bow-enter'}`}></div>
+                </div>
+            )}
+
+            {/* Scissors Cursor Follow */}
+            {ribbonReady && !ribbonCut && (
                 <img
-                    id="imgFollow"
                     src={scissorsIcon}
                     alt="Scissors"
-                    className="scissors-cursor-follow"
+                    className="scissors-follow"
                     style={{ left: mousePos.x, top: mousePos.y }}
                 />
+            )}
+
+            {/* Welcome Message (after cut) */}
+            {showWelcome && (
+                <div className="welcome-archeride fade-in-out">
+                    <h1>Welcome to ArcheRIDE</h1>
+                </div>
+            )}
+
+            {/* Testimonials (after welcome fades) */}
+            {showTestimonials && (
+                <div className="testimonials-container fade-in-slow-up">
+                    <div className="testimonial-quote fade-in-sequence-1">
+                        <p className="testimonial-text">
+                            "This moment represents more than a platform launch. It stands as a testament to the collective intent, discipline, and belief shared by everyone who contributed to ArcheRIDE."
+                        </p>
+                    </div>
+
+                    <div className="testimonial-quote fade-in-sequence-2">
+                        <p className="testimonial-text">
+                            "From late-night problem solving to thoughtful design and uncompromising execution, this achievement belongs to every contributor who helped transform vision into reality."
+                        </p>
+                    </div>
+
+                    <div className="leadership-profiles fade-in-sequence-3">
+                        <div className="profile-card">
+                            <div className="profile-img-ring">
+                                <img src="/assets/SATHISH.png" alt="Satish Balaji" />
+                            </div>
+                            <h3 className="profile-name">Satish Balaji</h3>
+                            <p className="profile-role">Senior Vice President</p>
+                            <div className="profile-statement">
+                                "This platform reflects the relentless commitment of a team that believed in doing things the right way — with clarity, care, and purpose."
+                            </div>
+                        </div>
+
+                        <div className="profile-card">
+                            <div className="profile-img-ring">
+                                <img src="/assets/SANTHOSH.jpg" alt="Santhosh B" />
+                            </div>
+                            <h3 className="profile-name">Santhosh B</h3>
+                            <p className="profile-role">Full Stack Developer</p>
+                            <div className="profile-statement">
+                                "Building ArcheRIDE was about translating shared intent into a dependable, meaningful experience that drives operational excellence."
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

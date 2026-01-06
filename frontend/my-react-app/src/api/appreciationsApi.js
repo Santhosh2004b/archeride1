@@ -13,6 +13,16 @@ export async function fetchAppreciations(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchAppreciationApi(id) {
+  const res = await fetch(`${BASE_URL}/appreciations/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 export async function createAppreciationApi(payload) {
   const res = await fetch(`${BASE_URL}/appreciations`, {
     method: "POST",

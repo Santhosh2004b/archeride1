@@ -82,6 +82,17 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
       `UPDATE ${table} SET status = $1 WHERE id = $2`,
       [FINAL_STATUS, notif.item_id]
     );
+
+    // 🔔 Notify the BM who sent this
+    if (notif.bm_user) {
+      const bmTable = `bm_${notif.module}_notifications`;
+      const idCol = `${notif.module}_id`;
+      await pool.query(
+        `INSERT INTO ${bmTable} (${idCol}, bm_email, decision, comment, created_at, is_read)
+         VALUES ($1,$2,$3,$4,NOW(),false)`,
+        [notif.item_id, notif.bm_user, decision, comment]
+      );
+    }
   }
 
   return notif;
@@ -183,46 +194,59 @@ export const countAdminPendingActionNotifications = () =>
 /* ======================================================
    BM NOTIFICATION LISTS
 ====================================================== */
-export async function listBmRiskNotifications(email) {
-  const { rows } = await pool.query(
-    `SELECT * FROM bm_risk_notifications WHERE bm_email=$1 ORDER BY created_at DESC`,
-    [email]
-  );
+// BM – generic list for any module from the main notifications table
+export async function listBmNotificationsByModule(email, module) {
+  const sql = `
+    SELECT n.*,
+           (n.payload->>'project_name') as project_name,
+           (n.payload->>'priority') as priority,
+           (n.payload->>'risk_title') as risk_title,
+           (n.payload->>'issue_title') as issue_title,
+           (n.payload->>'dependency_title') as dependency_title,
+           (n.payload->>'action_title') as action_title,
+           (n.payload->>'title') as title
+    FROM notifications n
+    WHERE n.bm_user = $1 AND n.module = $2
+    ORDER BY n.created_at DESC
+  `;
+  const { rows } = await pool.query(sql, [email, module]);
   return rows;
+}
+
+export async function listBmRiskNotifications(email) {
+  return listBmNotificationsByModule(email, "risk");
 }
 
 export async function listBmIssueNotifications(email) {
-  const { rows } = await pool.query(
-    `SELECT * FROM bm_issue_notifications WHERE bm_email=$1 ORDER BY created_at DESC`,
-    [email]
-  );
-  return rows;
+  return listBmNotificationsByModule(email, "issue");
 }
 
 export async function listBmDependencyNotifications(email) {
-  const { rows } = await pool.query(
-    `SELECT * FROM bm_dependency_notifications WHERE bm_email=$1 ORDER BY created_at DESC`,
-    [email]
-  );
-  return rows;
+  return listBmNotificationsByModule(email, "dependency");
 }
 
 export async function listBmEscalationNotifications(email) {
-  const { rows } = await pool.query(
-    `SELECT * FROM bm_escalation_notifications WHERE bm_email=$1 ORDER BY created_at DESC`,
-    [email]
-  );
-  return rows;
+  return listBmNotificationsByModule(email, "escalation");
+}
+
+export async function listBmActionNotifications(email) {
+  return listBmNotificationsByModule(email, "action");
 }
 
 /* ======================================================
    BM BELL COUNT
 ====================================================== */
 export async function countBmNotifications(email) {
-  const { rows } = await pool.query(
-    `SELECT COUNT(*) AS c FROM bm_risk_notifications WHERE bm_email=$1 AND is_read=false`,
-    [email]
-  );
+  const sql = `
+    SELECT
+      (SELECT COUNT(*) FROM bm_risk_notifications WHERE bm_email=$1 AND is_read=false) +
+      (SELECT COUNT(*) FROM bm_issue_notifications WHERE bm_email=$1 AND is_read=false) +
+      (SELECT COUNT(*) FROM bm_dependency_notifications WHERE bm_email=$1 AND is_read=false) +
+      (SELECT COUNT(*) FROM bm_escalation_notifications WHERE bm_email=$1 AND is_read=false) +
+      (SELECT COUNT(*) FROM bm_action_notifications WHERE bm_email=$1 AND is_read=false)
+    AS c
+  `;
+  const { rows } = await pool.query(sql, [email]);
   return Number(rows[0].c || 0);
 }
 

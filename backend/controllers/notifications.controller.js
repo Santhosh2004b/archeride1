@@ -9,6 +9,7 @@ import {
   listBmIssueNotifications,
   listBmEscalationNotifications,
   listBmDependencyNotifications,
+  listBmActionNotifications,
   countAdminPendingRiskNotifications,
   countBmNotifications,
 } from "../models/notifications.model.js";
@@ -96,6 +97,9 @@ export async function listBmNotificationsByModule(req, res) {
         break;
       case "escalation":
         items = await listBmEscalationNotifications(email);
+        break;
+      case "action":
+        items = await listBmActionNotifications(email);
         break;
       default:
         items = [];

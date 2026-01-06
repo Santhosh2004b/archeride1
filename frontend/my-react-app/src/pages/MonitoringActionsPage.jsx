@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchActions } from "../api/actionsApi";
+import { formatDisplayDate } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
@@ -325,7 +326,9 @@ const MonitoringActionsPage = () => {
                               >
                                 Edit
                               </button>
-                              : String(row[c.key] ?? "")
+                              : (c.key.toLowerCase().includes("date") || c.key.toLowerCase().includes("_at"))
+                                ? formatDisplayDate(row[c.key], true)
+                                : String(row[c.key] ?? "")
                           }
                         </td>
                       ))}
@@ -341,7 +344,7 @@ const MonitoringActionsPage = () => {
           </div>
         )}
       </motion.div>
-    </motion.div>
+    </motion.div >
   );
 };
 

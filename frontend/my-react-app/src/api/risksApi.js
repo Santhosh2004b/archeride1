@@ -24,6 +24,16 @@ export async function fetchRisks(params = {}) {
   return handleResponse(res);
 }
 
+export async function fetchRiskApi(id) {
+  const res = await fetch(`${BASE_URL}/risks/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+  });
+  return handleResponse(res);
+}
+
 export async function createRiskApi(payload) {
   const res = await fetch(`${BASE_URL}/risks`, {
     method: "POST",

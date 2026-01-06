@@ -1,327 +1,160 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/arche-logo.png";
-import FireworksCanvas from "../components/FireworksCanvas";
-import { CheckCircle, ChartLineUp, ShieldCheck } from "phosphor-react";
+import { CheckCircle, ChartLineUp, ShieldCheck, Gauge, Medal, TrendUp } from "phosphor-react";
 import "./Ceremony.css";
 
 const vpImg = "/assets/SATHISH.png";
 const devImg = "/assets/SANTHOSH.jpg";
 
-// PARTICLE CONFIG
-const TOTAL_LOGO_PARTICLES = 40;
-const LOGO_RADIUS = 70;
-const STAR_COUNT = 45;
-
-const STRATEGIC_PAIRS = [
-  ["Where purpose shapes execution", "and execution shapes trust"],
-  ["Where culture drives creation", "and creation fuels impact"],
-  ["Where vision meets velocity", "and velocity carries legacy forward"],
-  ["Where imagination becomes innovation",
-    "and innovation becomes tomorrow’s standard"]
-];
-
 function CeremonyLaunchPage() {
   const [phase, setPhase] = useState(1);
-  const [pairIndex, setPairIndex] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [fadeSequence, setFadeSequence] = useState(0);
-  const [starsFading, setStarsFading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Phase 1.5 Animation State
+  const [fadeOut, setFadeOut] = useState(false);
   const [serviceStep, setServiceStep] = useState(0);
+  const [excellenceStep, setExcellenceStep] = useState(0);
+  const navigate = useNavigate();
 
-  // 1. Generate Logo Particles
-  const logoParticles = useMemo(() => {
-    const items = [];
-    for (let i = 0; i < TOTAL_LOGO_PARTICLES; i++) {
-      const r = LOGO_RADIUS * Math.sqrt(Math.random());
-      const theta = Math.random() * 2 * Math.PI;
-      const x = r * Math.cos(theta);
-      const y = r * Math.sin(theta);
-      const moveX = (Math.random() - 0.5) * 40;
-      const moveY = (Math.random() - 0.5) * 40;
-
-      const style = {
-        left: `calc(50% + ${x}px)`,
-        top: `calc(50% + ${y}px)`,
-        width: Math.random() > 0.5 ? '2px' : '3px',
-        height: Math.random() > 0.5 ? '2px' : '3px',
-        animationDelay: `${Math.random() * 2}s`,
-        "--move-x": `${moveX}px`,
-        "--move-y": `${moveY}px`
-      };
-      items.push(<div key={`lp-${i}`} className="inner-particle" style={style} />);
-    }
-    return items;
-  }, []);
-
-  // 2. Generate Bright Star Field
-  const starField = useMemo(() => {
-    const stars = [];
-    for (let i = 0; i < STAR_COUNT; i++) {
-      const top = Math.random() * 100;
-      const left = Math.random() * 100;
-      const isCenter = Math.abs(top - 50) < 20 && Math.abs(left - 50) < 20;
-      const size = isCenter ? (Math.random() * 1 + 1) : (Math.random() * 2 + 1);
-      const duration = 2 + Math.random() * 4;
-      const delay = Math.random() * 5;
-      const fadeDelay = Math.random() * 2;
-      const style = {
-        top: `${top}%`,
-        left: `${left}%`,
-        width: `${size}px`,
-        height: `${size}px`,
-        "--duration": `${duration}s`,
-        "--delay": `${delay}s`,
-        opacity: starsFading ? 0 : undefined,
-        transition: `opacity 1s ease-out ${fadeDelay}s`
-      };
-      stars.push(<div key={`s-${i}`} className="star-point" style={style} />);
-    }
-    return stars;
-  }, [starsFading]);
-
-  useEffect(() => {
-    if (location.state?.playAudio || phase === 1.5) {
-      window.playCeremonyAudio?.();
-    }
-  }, [location.state, phase]);
-
-  // Phase 1.5 Sequence Logic (v1.5 Sync Fix)
+  // PHASE 1.5: SMARTER SERVICE DELIVERY (First 3 Cards - FASTER)
   useEffect(() => {
     if (phase === 1.5) {
-      // RESET
       setServiceStep(0);
+      const t1 = setTimeout(() => setServiceStep(1), 200);   // Title - Slide L-R
+      const t2 = setTimeout(() => setServiceStep(2), 600);   // Cards Shell
+      const t3 = setTimeout(() => setServiceStep(3), 1000);  // Content (FASTER)
+      const t4 = setTimeout(() => setServiceStep(4), 2500);  // Exit Start
+      const t5 = setTimeout(() => {
+        setPhase(1.7); // Go to Driving Excellence cards
+      }, 4000);
 
-      // Reveal Sequence
-      const tHeading = setTimeout(() => setServiceStep(1), 400);   // Heading Micro-entry
-      const tShells = setTimeout(() => setServiceStep(2), 800);    // Shell Materialize
-      const tContent = setTimeout(() => setServiceStep(3), 1600);  // Content Reveal (Visible by 2.8s)
-
-      // --- MANDATORY 3S HOLD ---
-      // Cards are fully visible from 2.8s to 5.8s
-
-      // Exit Sequence (Tiered)
-      const tContentExit = setTimeout(() => setServiceStep(5), 6000); // Content Slides Away (v1.3 logic)
-      const tShellExit = setTimeout(() => setServiceStep(6), 6200);   // Shells Collapse
-      const tHeadingExit = setTimeout(() => setServiceStep(7), 6800); // Heading Drifts Up & Fades
-
-      const tPhaseNext = setTimeout(() => {
-        setPhase(2);
-        setPairIndex(0);
-      }, 8500);
-
-      return () => {
-        clearTimeout(tHeading);
-        clearTimeout(tShells);
-        clearTimeout(tContent);
-        clearTimeout(tContentExit);
-        clearTimeout(tShellExit);
-        clearTimeout(tHeadingExit);
-        clearTimeout(tPhaseNext);
-      };
+      return () => [t1, t2, t3, t4, t5].forEach(clearTimeout);
     }
   }, [phase]);
 
-  const [excellenceStep, setExcellenceStep] = useState(0);
-
-  // Phase 2 Logic (v1.9 Recognition & Leadership)
+  // PHASE 1.7: DRIVING OPERATIONAL EXCELLENCE (Second 3 Cards)
   useEffect(() => {
-    if (phase === 2) {
+    if (phase === 1.7) {
       setExcellenceStep(0);
+      const t1 = setTimeout(() => setExcellenceStep(1), 200);   // Title words reveal one by one
+      const t2 = setTimeout(() => setExcellenceStep(2), 800);
+      const t3 = setTimeout(() => setExcellenceStep(3), 1400);
+      const t4 = setTimeout(() => setExcellenceStep(4), 2000);  // Cards appear
+      const t5 = setTimeout(() => setExcellenceStep(5), 2400);
+      const t6 = setTimeout(() => setExcellenceStep(6), 2800);
+      const t7 = setTimeout(() => setExcellenceStep(7), 5000);  // Hold
+      const t8 = setTimeout(() => setExcellenceStep(8), 5500);  // Exit
+      const t9 = setTimeout(() => {
+        setPhase(2); // Go to Ribbon message
+      }, 7000);
 
-      // 1. Heading Reveal
-      const tH1 = setTimeout(() => setExcellenceStep(1), 500);   // "A Milestone"
-      const tH2 = setTimeout(() => setExcellenceStep(2), 1200);  // "Achieved"
-      const tSub = setTimeout(() => setExcellenceStep(3), 2000); // Subheading
-
-      // 2. Body Copy (Narrative)
-      const tB1 = setTimeout(() => setExcellenceStep(4), 3200);  // Para 1
-      const tB2 = setTimeout(() => setExcellenceStep(5), 5500);  // Para 2
-
-      // 3. Leadership Cards
-      const tGrid = setTimeout(() => setExcellenceStep(6), 7500); // Grid container
-      const tC1 = setTimeout(() => setExcellenceStep(7), 8500);   // Satish Card
-      const tC2 = setTimeout(() => setExcellenceStep(8), 9500);   // Santhosh Card
-
-      // 4. Final Footer / CTA
-      const tFinal = setTimeout(() => setExcellenceStep(10), 12000);
-
-      return () => {
-        [tH1, tH2, tSub, tB1, tB2, tGrid, tC1, tC2, tFinal].forEach(clearTimeout);
-      };
+      return () => [t1, t2, t3, t4, t5, t6, t7, t8, t9].forEach(clearTimeout);
     }
   }, [phase]);
 
-  const handleLaunchMoment = () => {
-    // Cinematic slow sequence for landing page exit
-    setFadeSequence(1);
-    setTimeout(() => setFadeSequence(2), 1000);
-    setTimeout(() => setFadeSequence(3), 2000);
-    setTimeout(() => setFadeSequence(4), 3000);
-    setTimeout(() => setFadeSequence(5), 4000);
-
-    setTimeout(() => {
-      setPhase(1.5);
-    }, 6500);
+  const handleGetStarted = () => {
+    setFadeOut(true);
+    setTimeout(() => setPhase(1.5), 1500);
   };
 
-  const handleEnterClick = () => {
+  const handleRibbonClick = () => {
     navigate("/ceremony/ribbon");
   };
 
   return (
-    <>
-      <div className="ceremony-fullscreen">
-        {/* SHARED BACKDROP - One World Rule */}
-        <div className="ceremony-service-bg">
-          <div className="parallax-stars-1" />
-          <div className="parallax-stars-2" />
-          <div className="parallax-stars-3" />
-          <div className="blue-sparkle" style={{ top: '20%', left: '10%' }} />
-          <div className="blue-sparkle" style={{ top: '60%', left: '80%', animationDelay: '1s' }} />
-          <div className="blue-sparkle" style={{ top: '10%', left: '70%', animationDelay: '2s' }} />
-        </div>
-
-        {/* PHASE 1: LANDING */}
-        {phase === 1 && (
-          <div className="intro-text-container z-10">
-            <div className={`intro-logo-container ${fadeSequence >= 1 ? 'fade-out-now' : ''}`}>
-              <div className="logo-circle-border" />
-              <div className="logo-particle-wrap">{logoParticles}</div>
-              <img src={logo} alt="ArcheRIDE" className="intro-logo-img" />
-            </div>
-            <h2 className={`intro-line-1 ${fadeSequence >= 2 ? 'fade-out-now' : ''}`}>Welcome to Arche Global</h2>
-            <h1 className={`intro-line-2 ${fadeSequence >= 3 ? 'fade-out-now' : ''}`}>Presenting ArcheRIDE</h1>
-            <p className={`intro-subtitle ${fadeSequence >= 4 ? 'fade-out-now' : ''}`}>unified service delivery platform designed to synchronize vision with execution.</p>
-            <button onClick={handleLaunchMoment} className={`intro-btn ${fadeSequence >= 5 ? 'fade-out-now' : ''}`}>Launch Moment</button>
-          </div>
-        )}
-
-        {/* PHASE 1.5: SERVICE DELIVERY (v1.5 Robust Reveal) */}
-        {phase === 1.5 && (
-          <div className="service-container">
-            <h1 className={`service-title ${serviceStep >= 1 ? 'visible' : ''} ${serviceStep >= 7 ? 'service-title-exit' : ''}`}>
-              Smarter Service Delivery
-            </h1>
-
-            <div className="service-cards-grid">
-              {/* CARD 1 */}
-              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
-                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-l-r' : ''} ${serviceStep >= 5 ? 'content-exit-r' : ''}`}>
-                  <div className="card-icon-wrapper force-visible-icon">
-                    <CheckCircle weight="bold" size={32} />
-                  </div>
-                  <div className="card-text text-white">
-                    Ticket Management
-                  </div>
-                </div>
-              </div>
-
-              {/* CARD 2 */}
-              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
-                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-b-t' : ''} ${serviceStep >= 5 ? 'content-exit-d' : ''}`}>
-                  <div className="card-icon-wrapper force-visible-icon">
-                    <ChartLineUp weight="bold" size={32} />
-                  </div>
-                  <div className="card-text text-white">
-                    Service Issue Tracking
-                  </div>
-                </div>
-              </div>
-
-              {/* CARD 3 */}
-              <div className={`service-card ${serviceStep >= 2 ? 'shell-visible' : ''} ${serviceStep >= 6 ? 'shell-exit' : ''}`}>
-                <div className={`card-content-wrapper ${serviceStep >= 3 ? 'revealed content-r-l' : ''} ${serviceStep >= 5 ? 'content-exit-l' : ''}`}>
-                  <div className="card-icon-wrapper force-visible-icon">
-                    <ShieldCheck weight="bold" size={32} />
-                  </div>
-                  <div className="card-text text-white">
-                    Risk & Escalation Handling
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PHASE 2: RECOGNITION (v1.9 Final Content & Design) */}
-        {phase === 2 && (
-          <div className="recognition-container relative z-10 flex flex-col items-center justify-center min-h-screen">
-            {/* Heading Reveal Sequence */}
-            <div className="mb-12">
-              <h1 className="recognition-heading">
-                <span className={`word-entry ${excellenceStep >= 1 ? 'visible' : ''}`}>A Milestone&nbsp;</span>
-                <span className={`word-entry achieved ${excellenceStep >= 2 ? 'visible' : ''}`}>Achieved</span>
-              </h1>
-              <p className={`recognition-subheading word-entry ${excellenceStep >= 3 ? 'visible' : ''}`}>
-                through shared vision and synergy
-              </p>
-            </div>
-
-            {/* Executive Body narrative */}
-            <div className="recognition-body">
-              <p className={`word-entry ${excellenceStep >= 4 ? 'visible' : ''}`}>
-                "This moment represents more than a platform launch. It stands as a testament to the collective intent, discipline, and belief shared by everyone who contributed to ArcheRIDE."
-              </p>
-              <p className={`word-entry ${excellenceStep >= 5 ? 'visible' : ''}`}>
-                "From late-night problem solving to thoughtful design and uncompromising execution, this achievement belongs to every contributor who helped transform vision into reality."
-              </p>
-            </div>
-
-            {/* Leadership Cards */}
-            <div className={`leadership-grid ${excellenceStep >= 6 ? 'opacity-100 transition-opacity duration-1000' : 'opacity-0'}`}>
-              {/* SATISH CARD */}
-              <div className={`leadership-card word-entry ${excellenceStep >= 7 ? 'visible' : ''}`}>
-                <div className="profile-portrait-ring">
-                  <div className="profile-portrait-inner">
-                    <img src={vpImg} alt="Satish Balaji" />
-                  </div>
-                </div>
-                <h3 className="leadership-name">Satish Balaji</h3>
-                <span className="leadership-role">Senior Vice President</span>
-                <div className="quote-box">
-                  <p className="quote-text">
-                    "This platform reflects the relentless commitment of a team that believed in doing things the right way — with clarity, care, and purpose."
-                  </p>
-                </div>
-              </div>
-
-              {/* SANTHOSH CARD */}
-              <div className={`leadership-card word-entry ${excellenceStep >= 8 ? 'visible' : ''}`}>
-                <div className="profile-portrait-ring">
-                  <div className="profile-portrait-inner">
-                    <img src={devImg} alt="Santhosh B" />
-                  </div>
-                </div>
-                <h3 className="leadership-name">Santhosh B</h3>
-                <span className="leadership-role">Full Stack Developer</span>
-                <div className="quote-box">
-                  <p className="quote-text">
-                    "Building ArcheRIDE was not just about writing code — it was about translating shared intent into a dependable, meaningful experience."
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Subtle Footer */}
-            <div className={`recognition-footer word-entry ${excellenceStep >= 10 ? 'visible' : ''}`}>
-              ARCHE GLOBAL © 2024 — Thank you for being part of this milestone.
-            </div>
-
-            {/* Optional CTA to finalize */}
-            {excellenceStep >= 10 && (
-              <div className="mt-12 animate-fade-in-up">
-                <button onClick={handleEnterClick} className="intro-btn">Launch Platform →</button>
-              </div>
-            )}
-          </div>
-        )}
+    <div className="ceremony-fullscreen">
+      {/* Star Background */}
+      <div className="ceremony-service-bg">
+        <div className="parallax-stars-1" />
+        <div className="parallax-stars-2" />
+        <div className="parallax-stars-3" />
       </div>
-    </>
+
+      {/* PHASE 1: WELCOME PAGE */}
+      {phase === 1 && (
+        <div className={`welcome-container z-10 ${fadeOut ? 'fade-exit-alternate' : ''}`}>
+          <div className="welcome-logo-wrap">
+            <div className="logo-ring" />
+            <img src={logo} alt="ArcheRIDE" className="welcome-logo" />
+          </div>
+          <h1 className="welcome-h1 slide-l-r">Welcome to ArcheRIDE</h1>
+          <h2 className="welcome-h2 slide-r-l">Unified Service Delivery Platform</h2>
+          <p className="welcome-subtitle slide-l-r">Designed to synchronize vision with execution</p>
+          <button onClick={handleGetStarted} className="welcome-btn slide-r-l">
+            Get Started
+          </button>
+        </div>
+      )}
+
+      {/* PHASE 1.5: SMARTER SERVICE DELIVERY (First 3 Cards - FASTER) */}
+      {phase === 1.5 && (
+        <div className="service-phase-container">
+          <h1 className={`service-phase-title ${serviceStep >= 1 ? 'visible slide-l-r' : ''} ${serviceStep >= 4 ? 'exit-slide-r-l' : ''}`}>
+            Smarter Service Delivery
+          </h1>
+          <div className="service-cards-row">
+            {/* Card 1 */}
+            <div className={`service-phase-card ${serviceStep >= 2 ? 'shell-in' : ''} ${serviceStep >= 4 ? 'shell-out' : ''}`}>
+              <div className={`card-phase-content ${serviceStep >= 3 ? 'reveal-l-r' : ''} ${serviceStep >= 4 ? 'exit-r' : ''}`}>
+                <CheckCircle size={48} weight="bold" className="card-phase-icon" />
+                <p className="card-phase-text">Ticket Management</p>
+              </div>
+            </div>
+            {/* Card 2 */}
+            <div className={`service-phase-card ${serviceStep >= 2 ? 'shell-in' : ''} ${serviceStep >= 4 ? 'shell-out' : ''}`}>
+              <div className={`card-phase-content ${serviceStep >= 3 ? 'reveal-b-t' : ''} ${serviceStep >= 4 ? 'exit-d' : ''}`}>
+                <ChartLineUp size={48} weight="bold" className="card-phase-icon" />
+                <p className="card-phase-text">Service Issue Tracking</p>
+              </div>
+            </div>
+            {/* Card 3 */}
+            <div className={`service-phase-card ${serviceStep >= 2 ? 'shell-in' : ''} ${serviceStep >= 4 ? 'shell-out' : ''}`}>
+              <div className={`card-phase-content ${serviceStep >= 3 ? 'reveal-r-l' : ''} ${serviceStep >= 4 ? 'exit-l' : ''}`}>
+                <ShieldCheck size={48} weight="bold" className="card-phase-icon" />
+                <p className="card-phase-text">Risk & Escalation Handling</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 1.7: DRIVING OPERATIONAL EXCELLENCE (Second 3 Cards) */}
+      {phase === 1.7 && (
+        <div className="excellence-phase-container">
+          <h1 className={`excellence-phase-title ${excellenceStep >= 8 ? 'exit-up' : ''}`}>
+            <span className={`word-reveal ${excellenceStep >= 1 ? 'visible' : ''}`}>Driving</span>{' '}
+            <span className={`word-reveal ${excellenceStep >= 2 ? 'visible' : ''}`}>Operational</span>{' '}
+            <span className={`word-reveal ${excellenceStep >= 3 ? 'visible' : ''}`}>Excellence</span>
+          </h1>
+          <div className="excellence-cards-row">
+            {/* Excellence Card 1 */}
+            <div className={`excellence-phase-card ${excellenceStep >= 4 ? 'appear' : ''} ${excellenceStep >= 8 ? 'disappear' : ''}`}>
+              <Gauge size={56} weight="bold" className="excellence-icon-lg" />
+              <h3 className="excellence-card-title">Faster issue resolution</h3>
+            </div>
+            {/* Excellence Card 2 */}
+            <div className={`excellence-phase-card ${excellenceStep >= 5 ? 'appear' : ''} ${excellenceStep >= 8 ? 'disappear' : ''}`}>
+              <Medal size={56} weight="bold" className="excellence-icon-lg" />
+              <h3 className="excellence-card-title">Improved service quality</h3>
+            </div>
+            {/* Excellence Card 3 */}
+            <div className={`excellence-phase-card ${excellenceStep >= 6 ? 'appear' : ''} ${excellenceStep >= 8 ? 'disappear' : ''}`}>
+              <TrendUp size={56} weight="bold" className="excellence-icon-lg" />
+              <h3 className="excellence-card-title">Proactive risk management</h3>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 2: RIBBON CUTTING MESSAGE */}
+      {phase === 2 && (
+        <div className="ribbon-message-container fade-in-slow">
+          <p className="ribbon-msg-line1">This moment represents more than a platform launch.</p>
+          <p className="ribbon-msg-line2">It stands as a testament to our shared vision.</p>
+          <button onClick={handleRibbonClick} className="ribbon-launch-btn">
+            Begin Ceremony →
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -308,7 +308,7 @@ const MonitoringRisksPage = () => {
                             {meta.label}
                           </span>
                         ) : c.toLowerCase().includes("date") || c.toLowerCase().includes("_at") ? (
-                          formatDisplayDate(row[c])
+                          formatDisplayDate(row[c], true)
                         ) : (
                           String(row[c] ?? "")
                         )}
