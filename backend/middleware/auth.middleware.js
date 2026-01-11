@@ -62,3 +62,10 @@ export function authMiddleware(req, res, next) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 }
+
+export function requireAdmin(req, res, next) {
+  if (!req.user || String(req.user.role).toUpperCase() !== "ADMIN") {
+    return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
+  }
+  next();
+}

@@ -5,8 +5,16 @@ import { fetchCollections } from "../api/collectionsApi";
 import { formatDisplayDate } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { collectionsFormConfig } from "../config/formConfig";
+import { Pen } from "phosphor-react";
 
 const MonitoringCollectionsPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(collectionsFormConfig?.fields || []);
+
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +23,7 @@ const MonitoringCollectionsPage = () => {
 
   /* === MASTER FILTER SET === */
   const [filters, setFilters] = useState({
-    project_name: "",
+    account: "",
     currency: "",
     status: "",
     payment_status: "",
@@ -50,8 +58,8 @@ const MonitoringCollectionsPage = () => {
 
     // 1. Apply select filters
     const selectFilters = { ...filters };
-    const pName = selectFilters.project_name?.trim().toLowerCase();
-    delete selectFilters.project_name;
+    const pName = selectFilters.account?.trim().toLowerCase();
+    delete selectFilters.account;
     delete selectFilters.search;
 
     Object.entries(selectFilters).forEach(([key, value]) => {
@@ -62,10 +70,10 @@ const MonitoringCollectionsPage = () => {
       }
     });
 
-    // 2. Project Name Filter
+    // 2. Account Filter
     if (pName) {
       filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
+        String(row.account ?? "").toLowerCase().includes(pName)
       );
     }
 
@@ -94,9 +102,9 @@ const MonitoringCollectionsPage = () => {
       const q = cleanParams(base);
       q.search = ""; // Don't send search to backend
 
-      // if project_name exists: map to backend like master spec
-      if (q.project_name) {
-        q.project_name = q.project_name; // same key, just clarifying mapping
+      // if account exists: map to backend like master spec
+      if (q.account) {
+        q.account = q.account; // same key, just clarifying mapping
       }
 
       let res = await fetchCollections(q);
@@ -114,8 +122,25 @@ const MonitoringCollectionsPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("collections");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(collectionsFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(collectionsFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
     return () => { };
   }, []);
 
@@ -133,7 +158,7 @@ const MonitoringCollectionsPage = () => {
 
   const handleClear = () => {
     const cleared = {
-      project_name: "",
+      account: "",
       currency: "",
       status: "",
       payment_status: "",
@@ -149,7 +174,9 @@ const MonitoringCollectionsPage = () => {
 
 
 
-  const columns = rows[0] ? Object.keys(rows[0]) : [];
+  const columns = rows[0]
+    ? Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id")
+    : [];
 
   return (
     <motion.div
@@ -170,6 +197,16 @@ const MonitoringCollectionsPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
+
       </motion.div>
 
       {/* FILTERS */}
@@ -183,9 +220,9 @@ const MonitoringCollectionsPage = () => {
 
           <input
             type="text"
-            name="project_name"
-            placeholder="Project Name"
-            value={filters.project_name}
+            name="account"
+            placeholder="Account"
+            value={filters.account}
             onChange={handleFilterChange}
             className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
           />
@@ -308,8 +345,23 @@ const MonitoringCollectionsPage = () => {
           </div>
         )}
       </motion.div>
+
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("collections", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
 
 export default MonitoringCollectionsPage;
+

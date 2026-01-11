@@ -1,6 +1,14 @@
 // backend/utils/filters.utils.js
 // Utilities to build WHERE clause + params for list endpoints.
 // Each builder returns { whereSql, params } where params is an array for pg.
+import { getAssignedProjects } from "../models/users.model.js";
+
+export async function applyRoleRestrictions(user, query) {
+  if (user.role === "ADMIN") return query;
+  // Previously we used project_id for restrictions. 
+  // For now, we return the query as is, or we can implement restriction by manual_project_id if needed.
+  return query;
+}
 
 function _val(q, a, alt) {
   // helper to read either camelCase or snake_case query params
@@ -33,6 +41,11 @@ function _buildSearchClause(cols, paramIndexStart, params, searchVal) {
   return { snippet, nextIndex: paramIndexStart + 1 };
 }
 
+function _applyAllowedProjects(where, params, i, query, alias) {
+  // Disabling project_id based restriction for global removal
+  return i;
+}
+
 // ------------------ builders ------------------
 
 export function buildRiskFilters(query = {}) {
@@ -43,19 +56,22 @@ export function buildRiskFilters(query = {}) {
   const status = _val(query, "status", "status");
   const priority = _val(query, "priority", "priority");
   const category = _val(query, "category", "category");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const aging = _val(query, "aging", "aging") || _val(query, "aging_bucket", "aging_bucket");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "r");
 
   if (status) { where.push(`r.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`r.priority = $${i++}`); params.push(priority); }
   if (category) { where.push(`r.category = $${i++}`); params.push(category); }
-  if (projectName) {
-    where.push(`r.project_name ILIKE $${i++}`);
-    params.push(`%${projectName}%`);
+  if (manualProjectId) { where.push(`r.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) {
+    where.push(`r.account ILIKE $${i++}`);
+    params.push(`%${account}%`);
   }
   if (from) { where.push(`r.identified_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`r.identified_date <= $${i++}`); params.push(to); }
@@ -86,16 +102,19 @@ export function buildIssueFilters(query = {}) {
 
   const status = _val(query, "status", "status");
   const priority = _val(query, "priority", "priority");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const aging = _val(query, "aging", "aging") || _val(query, "aging_bucket", "aging_bucket");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "i");
 
   if (status) { where.push(`i.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`i.priority = $${i++}`); params.push(priority); }
-  if (projectName) { where.push(`i.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (manualProjectId) { where.push(`i.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) { where.push(`i.account ILIKE $${i++}`); params.push(`%${account}%`); }
   if (from) { where.push(`i.reported_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`i.reported_date <= $${i++}`); params.push(to); }
 
@@ -124,16 +143,19 @@ export function buildActionFilters(query = {}) {
 
   const status = _val(query, "status", "status");
   const priority = _val(query, "priority", "priority");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const related = _val(query, "related_to_type", "related_to_type");
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "a");
 
   if (status) { where.push(`a.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`a.priority = $${i++}`); params.push(priority); }
-  if (projectName) { where.push(`a.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (manualProjectId) { where.push(`a.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) { where.push(`a.account ILIKE $${i++}`); params.push(`%${account}%`); }
   if (related) { where.push(`a.related_to_type = $${i++}`); params.push(related); }
   if (from) { where.push(`a.created_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`a.created_date <= $${i++}`); params.push(to); }
@@ -156,19 +178,22 @@ export function buildDependencyFilters(query = {}) {
   const status = _val(query, "status", "status");
   const priority = _val(query, "priority", "priority");
   const type = _val(query, "type", "type");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const dependentOn = _val(query, "dependent_on", "dependent_on");
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "d");
 
   if (status) { where.push(`d.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`d.priority = $${i++}`); params.push(priority); }
   if (type) { where.push(`d.type = $${i++}`); params.push(type); }
-  if (projectName) {
-    where.push(`d.project_name ILIKE $${i++}`);
-    params.push(`%${projectName}%`);
+  if (manualProjectId) { where.push(`d.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) {
+    where.push(`d.account ILIKE $${i++}`);
+    params.push(`%${account}%`);
   }
   if (dependentOn) { where.push(`d.dependent_on ILIKE $${i++}`); params.push(`%${dependentOn}%`); }
   if (from) { where.push(`d.reported_date >= $${i++}`); params.push(from); }
@@ -192,18 +217,21 @@ export function buildEscalationFilters(query = {}) {
   const status = _val(query, "status", "status");
   const priority = _val(query, "priority", "priority");
   const category = _val(query, "category", "category");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "e");
 
   if (status) { where.push(`e.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`e.priority = $${i++}`); params.push(priority); }
   if (category) { where.push(`e.category = $${i++}`); params.push(category); }
-  if (projectName) {
-    where.push(`e.project_name ILIKE $${i++}`);
-    params.push(`%${projectName}%`);
+  if (manualProjectId) { where.push(`e.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) {
+    where.push(`e.account ILIKE $${i++}`);
+    params.push(`%${account}%`);
   }
   if (from) { where.push(`e.reported_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`e.reported_date <= $${i++}`); params.push(to); }
@@ -224,13 +252,16 @@ export function buildAppreciationFilters(query = {}) {
   const params = [];
   let i = 1;
 
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "a");
 
-  if (projectName) { where.push(`a.project_name ILIKE $${i++}`); params.push(`%${projectName}%`); }
+  if (manualProjectId) { where.push(`a.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) { where.push(`a.account ILIKE $${i++}`); params.push(`%${account}%`); }
   if (from) { where.push(`a.received_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`a.received_date <= $${i++}`); params.push(to); }
 
@@ -251,16 +282,19 @@ export function buildCollectionFilters(query = {}) {
 
   const status = _val(query, "status", "status");
   const aging = _val(query, "aging", "aging") || _val(query, "aging_bucket", "aging_bucket");
-  const projectName = _val(query, "project_name", "project_name");
+  const account = _val(query, "account", "account");
+  const manualProjectId = _val(query, "manual_project_id", "manual_project_id");
 
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  i = _applyAllowedProjects(where, params, i, query, "c");
 
   if (status) { where.push(`c.status = $${i++}`); params.push(status); }
-  if (projectName) {
-    where.push(`c.project_name ILIKE $${i++}`);
-    params.push(`%${projectName}%`);
+  if (manualProjectId) { where.push(`c.manual_project_id = $${i++}`); params.push(manualProjectId); }
+  if (account) {
+    where.push(`c.account ILIKE $${i++}`);
+    params.push(`%${account}%`);
   }
   if (from) { where.push(`c.invoice_date >= $${i++}`); params.push(from); }
   if (to) { where.push(`c.invoice_date <= $${i++}`); params.push(to); }
@@ -282,3 +316,4 @@ export function buildCollectionFilters(query = {}) {
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   return { whereSql, params };
 }
+

@@ -84,23 +84,94 @@
     justify-content: center;
 }
 
+.welcome-h1 {
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: 3.5rem;
+    text-transform: uppercase;
+    letter-spacing: 12px;
+    margin-bottom: 1rem;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    line-height: 1.2;
+}
+
+.welcome-h2 {
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 8px;
+    margin-bottom: 2rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.welcome-subtitle {
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+    font-size: 1.1rem;
+    color: #ffffff;
+    /* Changed from rgba(0.5) to white */
+    margin-bottom: 5rem;
+    letter-spacing: 1px;
+}
+
+.welcome-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 1rem 3rem;
+    font-family: 'Lato', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.welcome-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* ==================== LOGO EFFECTS ==================== */
 .welcome-logo-wrap {
     position: relative;
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 2rem;
+    width: 180px;
+    /* Increased size/padding */
+    height: 180px;
+    margin: 0 auto 3rem;
     display: flex;
     align-items: center;
     justify-content: center;
     animation: fadeInScale 2s ease-out;
+    padding: 20px;
+    /* Padded */
 }
 
 .logo-ring {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 40px rgba(100, 200, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    /* Thinner, more corporate */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    animation: ringPulse 3s infinite alternate;
+}
+
+@keyframes ringPulse {
+    from {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    to {
+        box-shadow: 0 0 50px rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.6);
+    }
 }
 
 .welcome-logo {
@@ -110,124 +181,91 @@
     position: relative;
     z-index: 10;
     display: block;
+    animation: logoGlitch 5s infinite;
+    /* Glitch effect */
 }
 
-.welcome-h1 {
-    font-family: 'Lato', sans-serif;
-    font-size: 3rem;
-    font-weight: 300;
-    text-transform: uppercase;
-    color: #fff;
-    margin-bottom: 1rem;
-    letter-spacing: 8px;
-    animation: slideIn 1.5s ease-out 0.5s both;
-}
+/* Minimal glitch shimmy */
+@keyframes logoGlitch {
 
-.welcome-h2 {
-    font-family: 'Lato', sans-serif;
-    font-size: 1.5rem;
-    font-weight: 300;
-    text-transform: uppercase;
-    color: #aaa;
-    margin-bottom: 2rem;
-    letter-spacing: 6px;
-    animation: slideIn 1.5s ease-out 1s both;
-}
-
-.welcome-subtitle {
-    font-size: 1.2rem;
-    color: #888;
-    margin-bottom: 3rem;
-    font-family: 'Urbanist', sans-serif;
-    animation: slideIn 1.5s ease-out 1.5s both;
-}
-
-.welcome-btn {
-    padding: 0.9rem 2.5rem;
-    font-size: 0.95rem;
-    font-family: 'Lato', sans-serif;
-    font-weight: 400;
-    text-transform: uppercase;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 3px;
-    animation: slideIn 1.5s ease-out 2s both;
-    backdrop-filter: blur(10px);
-}
-
-.welcome-btn:hover {
-    background: #fff;
-    color: #000;
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
-}
-
-/* Slide Animations */
-.slide-l-r {
-    animation: slideLeftRight 1.2s ease-out both;
-}
-
-.slide-r-l {
-    animation: slideRightLeft 1.2s ease-out both;
-}
-
-@keyframes slideLeftRight {
-    from {
-        opacity: 0;
-        transform: translateX(-50px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideRightLeft {
-    from {
-        opacity: 0;
-        transform: translateX(50px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.fade-exit-alternate {
-    animation: fadeOutAlternate 1.5s ease-out forwards;
-}
-
-@keyframes fadeOutAlternate {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
+    0%,
+    90%,
     100% {
-        opacity: 0;
-        transform: scale(0.95);
+        transform: translate(0);
+        opacity: 1;
+        filter: brightness(0) invert(1) blur(0);
+    }
+
+    92% {
+        transform: translate(-2px, 1px);
+        opacity: 0.9;
+        filter: brightness(0) invert(1) blur(0.5px);
+    }
+
+    94% {
+        transform: translate(2px, -1px);
+        opacity: 1;
+    }
+
+    96% {
+        transform: translate(-1px, 2px);
+        opacity: 0.95;
+    }
+
+    98% {
+        transform: translate(1px, -2px);
+        opacity: 1;
     }
 }
 
-@keyframes fadeInScale {
+/* Mirror Slider Effect - REMOVED */
+.welcome-logo-wrap::after {
+    display: none;
+}
+
+/* New Animations for Text Flow */
+.slide-enter-left {
+    opacity: 0;
+    animation: slideEnterLeft 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.slide-enter-right {
+    opacity: 0;
+    animation: slideEnterRight 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 0.5s;
+}
+
+.fade-enter-up {
+    opacity: 0;
+    animation: fadeEnterUp 1.5s ease-out forwards;
+    animation-delay: 1.2s;
+}
+
+@keyframes slideEnterLeft {
     from {
         opacity: 0;
-        transform: scale(0.8);
+        transform: translateX(-60px);
     }
 
     to {
         opacity: 1;
-        transform: scale(1);
+        transform: translateX(0);
     }
 }
 
-@keyframes slideIn {
+@keyframes slideEnterRight {
+    from {
+        opacity: 0;
+        transform: translateX(60px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeEnterUp {
     from {
         opacity: 0;
         transform: translateY(30px);
@@ -238,6 +276,17 @@
         transform: translateY(0);
     }
 }
+
+.welcome-btn-wrapper {
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    margin-top: 2rem;
+}
+
+.welcome-btn-wrapper.visible {
+    opacity: 1;
+}
+
 
 /* ==================== PHASE 1.5: SERVICE DELIVERY (FASTER) ==================== */
 .service-phase-container {
@@ -402,6 +451,24 @@
     font-weight: 600;
     color: #fff;
     font-family: 'Urbanist', sans-serif;
+}
+
+.card-h2 {
+    color: #ffffff !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-family: 'Lato', sans-serif;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.card-h3 {
+    color: #ffffff !important;
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: 'Urbanist', sans-serif;
+    opacity: 0.95;
 }
 
 /* ==================== PHASE 1.7: DRIVING OPERATIONAL EXCELLENCE ==================== */
@@ -707,6 +774,7 @@
     transition: left 0.1s, top 0.1s;
 }
 
+/* ==================== RIBBON WELCOME (Cinzel) ==================== */
 .welcome-archeride {
     position: absolute;
     top: 50%;
@@ -714,43 +782,72 @@
     transform: translate(-50%, -50%);
     z-index: 20;
     text-align: center;
+    width: 100%;
+    pointer-events: none;
 }
 
 .welcome-archeride h1 {
-    font-family: 'Lato', sans-serif;
+    font-family: 'Cinzel', serif;
+    /* Pride-driven font */
     font-size: 4rem;
-    font-weight: 300;
+    font-weight: 400;
+    /* Elegant */
     text-transform: uppercase;
     color: #fff;
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
-    letter-spacing: 10px;
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+    letter-spacing: 2px;
+    animation: riseAndFadeIn 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-.fade-in-out {
-    animation: fadeInOutSequence 3s ease-in-out forwards;
+/* Visual Metaphors (Light Lines) */
+.visual-line-vertical {
+    position: absolute;
+    left: 50%;
+    width: 1px;
+    height: 120px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: translateX(-50%) scaleY(0);
+    animation: growLine 2s ease-out forwards 0.5s;
 }
 
-@keyframes fadeInOutSequence {
+.visual-line-vertical.top {
+    bottom: 100%;
+    margin-bottom: 20px;
+    transform-origin: bottom;
+}
+
+.visual-line-vertical.bottom {
+    top: 100%;
+    margin-top: 20px;
+    transform-origin: top;
+}
+
+@keyframes growLine {
+    to {
+        transform: translateX(-50%) scaleY(1);
+    }
+}
+
+@keyframes riseAndFadeIn {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.8);
-    }
-
-    20% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    80% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translateY(40px);
+        letter-spacing: 4px;
     }
 
     100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 1;
+        transform: translateY(0);
+        letter-spacing: 12px;
+        /* Slight expansion */
     }
 }
+
+.fade-in-out {
+    /* Legacy - kept just in case, but overridden by above if used specifically */
+    animation: riseAndFadeIn 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
 
 /* ==================== TESTIMONIALS ==================== */
 .testimonials-container {
@@ -870,4 +967,48 @@
 
 .fade-in-sequence-3 {
     animation: fadeIn 1.5s ease-out 4s forwards;
+}
+
+/* FIXED: Ribbon Narrative Visibility */
+.ribbon-narrative-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 1000px;
+    margin-bottom: 4rem;
+    /* Lift text above profiles */
+    text-align: center;
+    z-index: 50;
+    /* Ensure on top */
+}
+
+.ribbon-narrative-text {
+    font-family: 'Lato', sans-serif;
+    font-size: 1.5rem;
+    /* Large and clear */
+    font-weight: 400;
+    font-style: italic;
+    color: #FFFFFF;
+    /* FORCE WHITE */
+    line-height: 1.8;
+    opacity: 0;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+    /* Heavy shadow for contrast */
+    animation: fadeNarrativeIn 2.5s ease-out forwards;
+}
+
+.ribbon-narrative-text:nth-child(2) {
+    animation-delay: 1.0s;
+}
+
+@keyframes fadeNarrativeIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

@@ -8,6 +8,10 @@ import useMonitoringExport from "../hooks/useMonitoringExport";
 import { useNavigate } from "react-router-dom";
 import { FiFilter, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { actionsFormConfig } from "../config/formConfig";
+import { Pen } from "phosphor-react";
 
 /* ============================
    STATUS → ROW COLOR / LABEL
@@ -35,7 +39,7 @@ const getStatusMeta = (row) => {
 const COLUMNS = [
   { key: "status", label: "Status" },
   { key: "action_id", label: "Action ID" },
-  { key: "project_name", label: "Project" },
+  { key: "account", label: "Project" },
   { key: "action_title", label: "Title" },
   { key: "action_description", label: "Description" },
   { key: "priority", label: "Priority" },
@@ -56,6 +60,10 @@ const COLUMNS = [
 ];
 
 const MonitoringActionsPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(actionsFormConfig?.fields || []);
+
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +73,7 @@ const MonitoringActionsPage = () => {
 
   /* allowed filters only (as per master filter spec) */
   const [filters, setFilters] = useState({
-    project_name: "",
+    account: "",
     status: "",
     priority: "",
     related_to_type: "",
@@ -85,8 +93,8 @@ const MonitoringActionsPage = () => {
 
     // 1. Apply select filters
     const selectFilters = { ...filters };
-    const pName = selectFilters.project_name?.trim().toLowerCase();
-    delete selectFilters.project_name;
+    const pName = selectFilters.account?.trim().toLowerCase();
+    delete selectFilters.account;
     delete selectFilters.search;
 
     Object.entries(selectFilters).forEach(([key, value]) => {
@@ -98,10 +106,10 @@ const MonitoringActionsPage = () => {
       }
     });
 
-    // 2. Project Name Filter
+    // 2. Account Filter
     if (pName) {
       filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
+        String(row.account ?? "").toLowerCase().includes(pName)
       );
     }
 
@@ -154,8 +162,25 @@ const MonitoringActionsPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("actions");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(actionsFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(actionsFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
   }, []);
 
   // Re-filter when filters or search change (live)
@@ -173,7 +198,7 @@ const MonitoringActionsPage = () => {
 
   const handleClear = () => {
     const cleared = {
-      project_name: "",
+      account: "",
       status: "",
       priority: "",
       related_to_type: "",
@@ -211,6 +236,16 @@ const MonitoringActionsPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
+
       </motion.div>
 
       {/* FILTERS */}
@@ -224,9 +259,9 @@ const MonitoringActionsPage = () => {
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleFilterChange}
               className="border rounded-lg px-3 py-2 text-xs sm:text-sm pr-9"
             />
@@ -343,9 +378,24 @@ const MonitoringActionsPage = () => {
             </table>
           </div>
         )}
+
+
+        {/* Layout Builder Modal */}
+        {showLayoutBuilder && (
+          <LayoutBuilder
+            fields={layoutFields}
+            onClose={() => setShowLayoutBuilder(false)}
+            onSave={async (newLayout) => {
+              await saveLayoutApi("actions", newLayout);
+              setLayoutFields(newLayout);
+              setShowLayoutBuilder(false);
+            }}
+          />
+        )}
       </motion.div>
     </motion.div >
   );
 };
 
 export default MonitoringActionsPage;
+

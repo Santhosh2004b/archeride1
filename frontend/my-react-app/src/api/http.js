@@ -2,7 +2,7 @@
 const BASE_URL = "http://localhost:5000/api";
 
 export function authHeaders() {
-  const stored = localStorage.getItem("agpl_auth");
+  const stored = localStorage.getItem("archeride_auth");
   if (!stored) return {};
   try {
     const parsed = JSON.parse(stored);

@@ -1,4 +1,3 @@
-
 // frontend/my-react-app/src/layouts/MainLayout.jsx 
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -11,6 +10,7 @@ import {
   CheckCircle,
   ThumbsUp,
   FolderOpen,
+  Users,
 } from "phosphor-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -18,7 +18,7 @@ import {
   fetchAdminNotificationCount,
   fetchBmNotificationCount,
 } from "../api/notificationsApi";
-import logo from "../assets/arche-logo.png";
+import logo from "../assets/arche-logo2.png"; // [TASK 7] Updated Logo
 import { exportToExcel } from "../utils/exportToExcel";
 
 const MODULE_LINKS = [
@@ -46,6 +46,7 @@ function getTitle(pathname, search) {
   if (pathname === "/landing") return "Landing";
   if (pathname === "/dashboard") return "Dashboard";
   if (pathname === "/bm/notifications") return "Notifications";
+  if (pathname === "/monitoring/users") return "Users Management";
   return "App";
 }
 
@@ -86,6 +87,8 @@ const MainLayout = ({ children }) => {
     if (user.role === "ADMIN") {
       if (item.key === "dashboard") {
         navigate("/monitoring");
+      } else if (item.key === "users") {
+        navigate("/monitoring/users");
       } else {
         navigate(`/monitoring/${item.key}`);
       }
@@ -183,12 +186,12 @@ const MainLayout = ({ children }) => {
 
             <img
               src={logo}
-              alt="Arche logo"
+              alt="Arche.RIDE logo"
               className="h-6 sm:h-8 w-auto object-contain"
             />
             <div className="flex flex-col">
               <span className="font-marcellus text-lg sm:text-xl leading-tight font-bold text-gray-900">
-                ArcheRIDE
+                ride.arche.global
               </span>
               <span className="text-[9px] sm:text-[11px] text-brandMuted uppercase tracking-[0.1em] sm:tracking-[0.2em]">
                 {title || "Delivery Monitoring"}
@@ -229,7 +232,7 @@ const MainLayout = ({ children }) => {
           )}
 
           <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm ml-auto sm:ml-0">
-            {location.pathname.startsWith("/monitoring") && (
+            {(location.pathname.startsWith("/monitoring") || location.pathname.startsWith("/modules/")) && (
               <button
                 type="button"
                 title="Export to Excel"
@@ -329,7 +332,7 @@ const MainLayout = ({ children }) => {
           <nav>
             <ul className="space-y-1">
               {(user && user.role === "ADMIN")
-                ? MODULE_LINKS.map((item) => {
+                ? [...MODULE_LINKS].map((item) => {
                   const active = isActive(item.key);
                   const Icon = item.icon;
                   return (

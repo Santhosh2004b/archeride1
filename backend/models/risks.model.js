@@ -14,7 +14,9 @@ export async function findRisks({ whereSql = "", params = [] } = {}) {
     SELECT
       r.id,
       r.risk_id,
-      r.project_name,
+      r.manual_project_id,
+      r.project_description,
+      r.account,
       r.identified_date,
       r.identified_by,
       r.status,
@@ -31,10 +33,11 @@ export async function findRisks({ whereSql = "", params = [] } = {}) {
       r.current_status,
       r.last_reviewed_date,
       r.comments,
-      r.created_by,
+      u.email as created_by,
       r.created_at,
       r.updated_at
     FROM risks r
+    LEFT JOIN users u ON r.created_by = u.id
     ${whereSql}
     ORDER BY r.identified_date DESC, r.created_at DESC
   `;
@@ -63,7 +66,9 @@ export async function createRisk(data) {
   const sql = `
     INSERT INTO risks (
       risk_id,
-      project_name,
+      manual_project_id,
+      project_description,
+      account,
       identified_date,
       identified_by,
       status,
@@ -83,14 +88,16 @@ export async function createRisk(data) {
       created_by
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-      $11,$12,$13,$14,$15,$16,$17,$18,$19
+      $11,$12,$13,$14,$15,$16,$17,$18,$19,$20, $21
     )
     RETURNING *;
   `;
 
   const params = [
     data.risk_id,
-    data.project_name,
+    data.manual_project_id || null, // Updated
+    data.project_description || null,
+    data.account || null,
     data.identified_date,
     data.identified_by,
     data.status,
@@ -121,31 +128,34 @@ export async function updateRisk(id, data) {
   const sql = `
     UPDATE risks SET
       risk_id = $1,
-      project_name = $2,
-      identified_date = $3,
-      identified_by = $4,
-      status = $5,
-      priority = $6,
-      category = $7,
-      risk_title = $8,
-      risk_description = $9,
-      probability = $10,
-      impact = $11,
-      risk_score = $12,
-      mitigation_strategy = $13,
-      mitigation_owner = $14,
-      target_mitigation_date = $15,
-      current_status = $16,
-      last_reviewed_date = $17,
-      comments = $18,
+      manual_project_id = $21,
+      project_description = $2,
+      account = $3,
+      identified_date = $4,
+      identified_by = $5,
+      status = $6,
+      priority = $7,
+      category = $8,
+      risk_title = $9,
+      risk_description = $10,
+      probability = $11,
+      impact = $12,
+      risk_score = $13,
+      mitigation_strategy = $14,
+      mitigation_owner = $15,
+      target_mitigation_date = $16,
+      current_status = $17,
+      last_reviewed_date = $18,
+      comments = $19,
       updated_at = NOW()
-    WHERE id = $19
+    WHERE id = $20
     RETURNING *;
   `;
 
   const params = [
     data.risk_id,
-    data.project_name,
+    data.project_description || null,
+    data.account || null,
     data.identified_date,
     data.identified_by,
     data.status,
@@ -163,21 +173,14 @@ export async function updateRisk(id, data) {
     data.last_reviewed_date || null,
     data.comments || null,
     id,
+    data.manual_project_id, // $21
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (String(updated.status).toLowerCase() === "resolved") {
-    await createResolutionNotification({
-      module: "risk",
-      itemId: updated.id,
-      itemCode: updated.risk_id,
-      statusBefore: data.previous_status || null,
-      statusAfter: "Resolved",
-      payload: updated,
-      bmUser: updated.identified_by,
-    });
+    // Notification handled in controller now
   }
 
   return updated;

@@ -1,5 +1,5 @@
 {
-  "name": "ride-plus-tracker",
+  "name": "arche-ride-backend",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
@@ -14,6 +14,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "pg": "^8.11.5"
   },
   "devDependencies": {

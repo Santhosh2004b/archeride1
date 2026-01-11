@@ -31,7 +31,7 @@ const categoryOptions = [
 
 const IssuesMonitoringPage = () => {
   const [filters, setFilters] = useState({
-    project_name: "",
+    manual_project_id: "",
     status: "",
     priority: "",
     category: "",
@@ -44,7 +44,7 @@ const IssuesMonitoringPage = () => {
   // Dummy table data
   const rows = [];
   const columns = [
-    "project_name",
+    "manual_project_id",
     "status",
     "id",
     "issue_id",
@@ -76,7 +76,7 @@ const IssuesMonitoringPage = () => {
         </div>
       )}
       {/* Animated Header */}
-      <motion.div 
+      <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -89,21 +89,21 @@ const IssuesMonitoringPage = () => {
       </motion.div>
 
       {/* Filter controls row */}
-      <motion.div 
+      <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-3 py-3 flex flex-col lg:flex-row gap-2 lg:items-end"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 flex-1">
-          {/* project_name with filter icon */}
+          {/* manual_project_id with filter icon */}
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
-              onChange={e => setFilters({ ...filters, project_name: e.target.value })}
+              name="manual_project_id"
+              placeholder="Project ID"
+              value={filters.manual_project_id}
+              onChange={e => setFilters({ ...filters, manual_project_id: e.target.value })}
               className="w-full rounded-lg border px-3 py-2 text-xs sm:text-sm pr-8 font-urbanist"
             />
             <FiFilter className="absolute right-3 top-2.5 text-gray-500" />
@@ -138,13 +138,13 @@ const IssuesMonitoringPage = () => {
         </div>
         {/* apply + clear */}
         <div className="flex gap-2 justify-end">
-          <button 
+          <button
             title="Apply filters"
             className="rounded-full bg-brandDark text-white p-2 hover:bg-black transition flex items-center justify-center shadow-sm"
           >
             <FiFilter size={18} />
           </button>
-          <button 
+          <button
             title="Clear all filters"
             className="rounded-full border border-gray-300 p-2 hover:bg-gray-100 transition flex items-center justify-center shadow-sm"
             onClick={() => setFilters({ project_name: "", status: "", priority: "", category: "", probability: "", impact: "" })}
@@ -155,7 +155,7 @@ const IssuesMonitoringPage = () => {
       </motion.div>
 
       {/* Global search row */}
-      <motion.div 
+      <motion.div
         className="bg-white border border-gray-200 rounded-xl shadow-sm px-3 py-2 flex items-center gap-2"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -182,7 +182,7 @@ const IssuesMonitoringPage = () => {
 
       {/* Table row */}
       {mode === "view" && (
-        <motion.div 
+        <motion.div
           className="flex-1 rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

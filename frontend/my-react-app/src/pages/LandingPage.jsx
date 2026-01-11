@@ -43,7 +43,7 @@ function LandingPage() {
         <div className="flex items-center gap-2">
           <img
             src={logo}
-            alt="Arche logo"
+            alt="ride.arche.global logo"
             className="h-10 sm:h-8 w-auto object-contain"
           />
         </div>

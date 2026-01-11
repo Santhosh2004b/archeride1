@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
   listActions,
   getAction,
-  createAction,
+  createActionHandler,
   updateActionHandler,
   decideActionResolution,
 } from "../controllers/actions.controller.js";
@@ -12,7 +12,7 @@ const router = Router();
 
 router.get("/", listActions);
 router.get("/:id", getAction);
-router.post("/", createAction);
+router.post("/", createActionHandler);
 router.put("/:id", updateActionHandler);
 router.post("/decisions/:notificationId", decideActionResolution);
 

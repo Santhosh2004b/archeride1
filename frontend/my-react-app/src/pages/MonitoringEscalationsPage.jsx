@@ -10,6 +10,10 @@ import useMonitoringExport from "../hooks/useMonitoringExport";
 import { useNavigate } from "react-router-dom";
 import { FiFilter, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { escalationsFormConfig } from "../config/formConfig";
+import { Pen } from "phosphor-react";
 
 /* STATUS → UI META */
 const getStatusMeta = (row) => {
@@ -34,6 +38,10 @@ const cleanParams = (obj) =>
 
 /* MAIN */
 const MonitoringEscalationsPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(escalationsFormConfig?.fields || []);
+
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +50,7 @@ const MonitoringEscalationsPage = () => {
 
   // aligned filter set
   const [filters, setFilters] = useState({
-    project_name: "",
+    account: "",
     status: "",
     priority: "",
     category: "",
@@ -65,8 +73,8 @@ const MonitoringEscalationsPage = () => {
 
     // 1. Apply select filters
     const selectFilters = { ...filters };
-    const pName = selectFilters.project_name?.trim().toLowerCase();
-    delete selectFilters.project_name;
+    const pName = selectFilters.account?.trim().toLowerCase();
+    delete selectFilters.account;
     delete selectFilters.search;
 
     Object.entries(selectFilters).forEach(([key, value]) => {
@@ -77,10 +85,10 @@ const MonitoringEscalationsPage = () => {
       }
     });
 
-    // 2. Project Name Filter
+    // 2. Account Filter
     if (pName) {
       filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
+        String(row.account ?? "").toLowerCase().includes(pName)
       );
     }
 
@@ -122,8 +130,25 @@ const MonitoringEscalationsPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("escalations");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(escalationsFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(escalationsFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
   }, []);
 
   // Re-filter when filters or search change (live)
@@ -143,7 +168,7 @@ const MonitoringEscalationsPage = () => {
 
   const handleClear = () => {
     const cleared = {
-      project_name: "",
+      account: "",
       status: "",
       priority: "",
       category: "",
@@ -161,7 +186,9 @@ const MonitoringEscalationsPage = () => {
 
   /* COLUMNS */
   const columns = rows[0]
-    ? ["status", ...Object.keys(rows[0]).filter(c => c !== "status")]
+    ? ["status", ...Object.keys(rows[0]).filter(c =>
+      c !== "status" && c !== "id" && c !== "project_id"
+    )]
     : [];
 
   return (
@@ -181,7 +208,18 @@ const MonitoringEscalationsPage = () => {
         <div>
           <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Escalation</h1>
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
+
         </div>
+
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
 
       </motion.div>
 
@@ -194,13 +232,13 @@ const MonitoringEscalationsPage = () => {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 flex-1">
 
-          {/* PROJECT NAME */}
+          {/* Account */}
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleChange}
               className="rounded-lg border w-full px-3 py-2 text-xs sm:text-sm pr-9"
             />
@@ -321,6 +359,20 @@ const MonitoringEscalationsPage = () => {
           </div>
         )}
       </motion.div>
+
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("escalations", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };

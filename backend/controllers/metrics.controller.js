@@ -94,3 +94,63 @@ export async function getSummaryMetrics(req, res) {
       .json({ success: false, message: "Failed to load metrics" });
   }
 }
+
+
+
+export async function getPrioritySplit(req, res) {
+  try {
+    const { module } = req.query; // 'risk', 'issue', 'dependency', etc. or 'all'
+    const cleanModule = (module || "all").toLowerCase();
+
+    let sql = "";
+
+    if (cleanModule === "all") {
+      // Union all tables
+      sql = `
+          SELECT priority, COUNT(*)::int as count 
+          FROM (
+            SELECT priority FROM risks
+            UNION ALL
+            SELECT priority FROM issues
+            UNION ALL
+            SELECT priority FROM dependencies
+            UNION ALL
+            SELECT priority FROM escalations
+            UNION ALL
+            SELECT priority FROM actions
+          ) all_items
+          GROUP BY priority
+        `;
+    } else {
+      let table = "";
+      switch (cleanModule) {
+        case "risk": table = "risks"; break;
+        case "issue": table = "issues"; break;
+        case "dependency": table = "dependencies"; break;
+        case "escalation": table = "escalations"; break;
+        case "collections": table = "collections"; break;
+        case "action": table = "actions"; break;
+        default: return res.status(400).json({ success: false, message: "Invalid module" });
+      }
+
+      sql = `
+          SELECT priority, COUNT(*)::int as count 
+          FROM ${table} 
+          GROUP BY priority
+        `;
+    }
+
+    const { rows } = await pool.query(sql);
+
+    // Return ALL rows found (no filtering by strict list)
+    const result = rows.map(r => ({
+      priority: r.priority || "Unassigned",
+      count: Number(r.count)
+    }));
+
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Failed to load priority split" });
+  }
+}

@@ -33,7 +33,7 @@ function IssuesPage() {
         <thead>
           <tr>
             <th>Issue ID</th>
-            <th>Project</th>
+            <th>Project ID</th>
             <th>Status</th>
             <th>Priority</th>
             <th>Title</th>
@@ -44,7 +44,7 @@ function IssuesPage() {
           {issues.map((i) => (
             <tr key={i.id}>
               <td>{i.issue_id}</td>
-              <td>{i.project_name}</td>
+              <td>{i.manual_project_id}</td>
               <td>{i.status}</td>
               <td>{i.priority}</td>
               <td>{i.issue_title}</td>

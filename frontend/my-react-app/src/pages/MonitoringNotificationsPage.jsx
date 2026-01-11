@@ -144,7 +144,7 @@ const MonitoringNotificationsPage = () => {
                 const p = n.payload || {};
                 // Extract meaningful data
                 const title = p.risk_title || p.issue_title || p.dependency_title || p.action_title || p.title || "(No Title)";
-                const project = p.project_name || p.project || "Unknown Project";
+                const project = p.account || p.project || "Unknown Project";
                 const priority = p.priority || "Medium";
                 const idField = n.risk_id || n.issue_id || n.dependency_id || n.escalation_id || n.action_id || n.item_code || n.id?.substring(0, 8);
                 const fromUser = p.from || p.bm_user || p.created_by || "BM User";
@@ -231,13 +231,50 @@ const MonitoringNotificationsPage = () => {
                             </div>
                           </div>
 
+                          {/* ESCALATION DOCUMENTS */}
+                          {n.documents && n.documents.length > 0 && (
+                            <div className="mb-4">
+                              <span className="text-[10px] font-bold text-blue-500 uppercase mb-1 block">Attached Documents</span>
+                              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                                <div className="space-y-1">
+                                  {n.documents.map((doc, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={`${process.env.REACT_APP_API_URL || "http://localhost:5000"}/${doc.file_path}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:underline"
+                                    >
+                                      📄 {doc.file_name}
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Payload Dump (Styled) */}
                           <div className="mb-4">
                             <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Payload Data</span>
-                            <div className="bg-slate-900 rounded-lg p-3 overflow-x-auto max-h-40 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                              <pre className="text-[10px] font-mono text-green-400 whitespace-pre-wrap">
-                                {JSON.stringify(p, null, 2)}
-                              </pre>
+                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                {Object.entries(p).filter(([k, v]) => {
+                                  if (!v) return false;
+                                  const key = k.toLowerCase();
+                                  // Hide internal fields
+                                  if (key === 'id' || key.includes('id_') || key.endsWith('_id') || key.includes('_at') || key === 'updated_at' || key === 'created_at') return false;
+                                  return true;
+                                }).map(([k, v]) => (
+                                  <div key={k} className="flex flex-col">
+                                    <span className="text-[9px] uppercase text-gray-400 font-bold tracking-wider mb-0.5">
+                                      {k.replace(/_/g, " ")}
+                                    </span>
+                                    <span className="text-xs font-semibold text-gray-800 break-words">
+                                      {String(v)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
 
@@ -289,3 +326,4 @@ const MonitoringNotificationsPage = () => {
 };
 
 export default MonitoringNotificationsPage;
+

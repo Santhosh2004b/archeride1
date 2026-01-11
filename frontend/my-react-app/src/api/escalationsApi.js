@@ -75,3 +75,16 @@ export async function decideEscalationNotification(notificationId, decision, com
   );
   return handleResponse(res);
 }
+
+export async function resolveEscalationApi(id, formData) {
+  // NOTE: do NOT set Content-Type to application/json, browser sets multipart boundary
+  const { Authorization } = authHeaders();
+  const res = await fetch(`${BASE_URL}/escalations/${id}/resolve`, {
+    method: "POST",
+    headers: {
+      Authorization
+    },
+    body: formData
+  });
+  return handleResponse(res);
+}

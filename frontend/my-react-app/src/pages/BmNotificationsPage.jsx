@@ -14,16 +14,14 @@ const MODULES = [
 const COLUMN_CONFIG = {
   risk: [
     { label: "Risk ID", key: "risk_id" },
-    { label: "Project Name", key: "project_name" },
+    { label: "Project ID", key: "manual_project_id" },
     { label: "Risk Title", key: "risk_title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
-    { label: "Impact", key: "impact" },
-    { label: "Probability", key: "probability" },
   ],
   issue: [
     { label: "Issue ID", key: "issue_id" },
-    { label: "Project Name", key: "project_name" },
+    { label: "Project ID", key: "manual_project_id" },
     { label: "Issue Title", key: "issue_title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
@@ -31,7 +29,7 @@ const COLUMN_CONFIG = {
   ],
   dependency: [
     { label: "Dependency ID", key: "dependency_id" },
-    { label: "Project Name", key: "project_name" },
+    { label: "Project ID", key: "manual_project_id" },
     { label: "Dependency Title", key: "dependency_title" },
     { label: "Priority", key: "priority" },
     { label: "Type", key: "type" },
@@ -39,7 +37,7 @@ const COLUMN_CONFIG = {
   ],
   escalation: [
     { label: "Escalation ID", key: "escalation_id" },
-    { label: "Project Name", key: "project_name" },
+    { label: "Project ID", key: "manual_project_id" },
     { label: "Title", key: "title" },
     { label: "Priority", key: "priority" },
     { label: "Category", key: "category" },
@@ -47,7 +45,7 @@ const COLUMN_CONFIG = {
   ],
   action: [
     { label: "Action ID", key: "action_id" },
-    { label: "Project Name", key: "project_name" },
+    { label: "Project ID", key: "manual_project_id" },
     { label: "Action Title", key: "action_title" },
     { label: "Priority", key: "priority" },
     { label: "Owner", key: "action_owner" },

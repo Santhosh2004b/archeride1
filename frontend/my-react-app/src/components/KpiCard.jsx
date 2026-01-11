@@ -11,45 +11,23 @@ const iconMap = {
 };
 
 // overlay color tint based on metric
-const tintMap = {
-  "Total Open": "rgba(214,69,80,0.18)",
-  "In Progress": "rgba(231,167,37,0.18)",
-  "Closed": "rgba(30,168,150,0.18)",
-  "Total Items": "rgba(81,116,147,0.18)",
+const insightMap = {
+  "Total Open": "Critical attention required for new items.",
+  "In Progress": "Active workflows are tracking steadily.",
+  "Closed": "Completion rate is optimal.",
+  "Total Items": "Overall volume is trending upward.",
+  "On Hold": "Pending external validation or inputs."
 };
-
-// demo static table values (replace with API later)
-const sampleBreakdown = [
-  { label: "Critical", count: 9, color: "#E63946" },
-  { label: "High", count: 8, color: "#FB8500" },
-  { label: "Low", count: 3, color: "#FFCA3A" },
-  { label: "Medium", count: 2, color: "#2A9D8F" },
-];
 
 export default function KpiCard({ title, value }) {
   const [display, setDisplay] = useState(0);
-  const [aiText, setAiText] = useState("");
-
-  // AI micro-copy typing
-  useEffect(() => {
-    const full =
-      value === 0
-        ? "AI: stable — no active shifts."
-        : "AI: momentum rising — monitor transitions.";
-    let i = 0;
-    const write = () => {
-      setAiText(full.slice(0, i));
-      i++;
-      if (i <= full.length) requestAnimationFrame(write);
-    };
-    write();
-  }, [value]);
+  const aiText = insightMap[title] || "AI: Data analysis in progress...";
 
   // smooth count-up
   useEffect(() => {
     let current = 0;
     const tick = () => {
-      current += Math.ceil(value / 45);
+      current += Math.ceil(value / 45); // naive increment
       if (current >= value) current = value;
       setDisplay(current);
       if (current < value) requestAnimationFrame(tick);
@@ -59,10 +37,10 @@ export default function KpiCard({ title, value }) {
 
   return (
     <motion.div
-      
-      initial={{ opacity: 0, y: 40 }}
+
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.26, 0.08, 0.25, 1] }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
       style={{
         background: "#fff",
         borderRadius: 16,
@@ -77,7 +55,7 @@ export default function KpiCard({ title, value }) {
       }}
     >
       {/* overlay breakdown */}
-      
+
 
       {/* icon + title */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -90,9 +68,9 @@ export default function KpiCard({ title, value }) {
       {/* animated count */}
       <motion.span
         key={display}
-        initial={{ scale: 0.9, opacity: 0.6 }}
+        initial={{ scale: 0.95, opacity: 0.8 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.45 }}
+        transition={{ duration: 0.3 }}
         style={{
           fontSize: 42,
           fontFamily: "Montserrat",
@@ -116,24 +94,28 @@ export default function KpiCard({ title, value }) {
             value === 0
               ? "#8D99AE"
               : title === "Closed"
-              ? "#1EA896"
-              : title === "In Progress"
-              ? "#E7A725"
-              : "#D64550",
+                ? "#1EA896"
+                : title === "In Progress"
+                  ? "#E7A725"
+                  : "#D64550",
         }}
       />
 
       {/* AI micro-copy */}
-      <span
+      <motion.span
+        initial={{ opacity: 0, x: -5 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
         style={{
           fontSize: 13,
           color: "#517493",
           fontFamily: "Urbanist",
           minHeight: 18,
+          display: "block"
         }}
       >
         {aiText}
-      </span>
+      </motion.span>
     </motion.div>
   );
 }

@@ -6,8 +6,16 @@ import { FiPlus } from "react-icons/fi";
 import { formatDisplayDate } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { appreciationsFormConfig } from "../config/formConfig";
+import { Pen } from "phosphor-react";
 
 const MonitoringAppreciationsPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(appreciationsFormConfig?.fields || []);
+
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +25,7 @@ const MonitoringAppreciationsPage = () => {
   const [filters, setFilters] = useState({
     appreciation_type: "",
     shared_with: "",
-    project_name: "",
+    account: "",
     search: "",
   });
 
@@ -40,8 +48,8 @@ const MonitoringAppreciationsPage = () => {
 
     // 1. Apply select filters
     const selectFilters = { ...filters };
-    const pName = selectFilters.project_name?.trim().toLowerCase();
-    delete selectFilters.project_name;
+    const pName = selectFilters.account?.trim().toLowerCase();
+    delete selectFilters.account;
     delete selectFilters.search;
 
     Object.entries(selectFilters).forEach(([key, value]) => {
@@ -52,10 +60,10 @@ const MonitoringAppreciationsPage = () => {
       }
     });
 
-    // 2. Project Name Filter
+    // 2. Account Filter
     if (pName) {
       filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
+        String(row.account ?? "").toLowerCase().includes(pName)
       );
     }
 
@@ -104,8 +112,25 @@ const MonitoringAppreciationsPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("appreciations");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(appreciationsFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(appreciationsFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
     return () => { };
   }, []);
 
@@ -125,7 +150,7 @@ const MonitoringAppreciationsPage = () => {
     const cleared = {
       appreciation_type: "",
       shared_with: "",
-      project_name: "",
+      account: "",
       search: "",
     };
     setFilters(cleared);
@@ -137,7 +162,9 @@ const MonitoringAppreciationsPage = () => {
 
 
 
-  const columns = rows[0] ? Object.keys(rows[0]) : [];
+  const columns = rows[0]
+    ? Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id")
+    : [];
 
   const appreciationTypes = ["Email", "Call", "Meeting", "Formal Letter", "Survey Feedback", "Verbal"];
   const sharedWithOpts = ["Yes", "No"];
@@ -160,6 +187,16 @@ const MonitoringAppreciationsPage = () => {
           <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Appreciation</h1>
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
+
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
 
       </motion.div>
 
@@ -196,9 +233,9 @@ const MonitoringAppreciationsPage = () => {
 
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleFilterChange}
               className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
             />
@@ -291,8 +328,23 @@ const MonitoringAppreciationsPage = () => {
           </div>
         )}
       </motion.div>
+
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("appreciations", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
 
 export default MonitoringAppreciationsPage;
+

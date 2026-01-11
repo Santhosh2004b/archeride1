@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import BmNotificationsPage from "./pages/BmNotificationsPage";
-import RiskApprovalPage from "./pages/RiskApprovalPage";
+
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -26,6 +26,7 @@ import MonitoringEscalationsPage from "./pages/MonitoringEscalationsPage";
 import ModuleRoute from "./routes/ModuleRoute";
 
 import MonitoringNotificationsPage from "./pages/MonitoringNotificationsPage";
+import UsersMonitoringPage from "./pages/UsersMonitoringPage";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
 import CeremonyLaunchPage from "./pages/CeremonyLaunchPage";
@@ -169,6 +170,16 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/monitoring/users"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <MainLayout>
+                  <UsersMonitoringPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* BM / PM workboards */}
           <Route
@@ -191,16 +202,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/risk-approval"
-            element={
-              <ProtectedRoute allowedRoles={["BM", "PM", "ADMIN"]}>
-                <MainLayout>
-                  <RiskApprovalPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
+
 
           {/* default + 404 */}
           <Route path="/" element={<Navigate to="/landing" replace />} />

@@ -64,6 +64,17 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
   const notif = rows[0];
   if (!notif) throw new Error("Notification not found");
 
+  // 1.1 AUTO-CLOSE any other pending notifications for this same item
+  // (Prevents "ghost" items appearing from previous cycles)
+  await pool.query(`
+    UPDATE notifications
+    SET decision = 'Auto-Closed', decided_at = NOW(), admin_user = $1
+    WHERE module = $2
+      AND item_id = $3
+      AND decision IS NULL
+      AND id != $4
+  `, [adminUser || 'System', notif.module, notif.item_id, notif.id]);
+
   // 2. Apply FINAL status to actual module table
   const FINAL_STATUS =
     decision === "Closed" ? "Approved & Closed" : "On Hold";
@@ -101,29 +112,21 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
 /* ======================================================
    ADMIN – LIST PENDING (ONLY RESOLVED)
 ====================================================== */
-function baseAdminQuery(module, table, titleCol) {
+function baseAdminQuery(module, table, titleCol, extraSelect = "") {
   return `
-    SELECT DISTINCT ON (n.item_id)
-           n.*,
-           t.${titleCol} AS title,
-           
-           COALESCE(t.project_name, p.name) AS project_name,
-           t.status,
-           t.priority
-
+    SELECT DISTINCT ON(n.item_id)
+      n.*,
+      t.${titleCol} AS title,
+      p.name AS project_name,
+      t.status,
+      t.priority
+      ${extraSelect}
     FROM notifications n
     JOIN ${table} t ON t.id = n.item_id
-
-    -- 🔥 fix project lookup
-    LEFT JOIN projects p
-      ON (t.project_id IS NOT NULL AND p.id = t.project_id)
-      OR (t.project_name IS NOT NULL AND p.name = t.project_name)
-
-    -- 🔥 show notifications even if project mapping fails
+    LEFT JOIN projects p ON p.id = t.project_id
     WHERE n.module = '${module}'
       AND n.decision IS NULL
       AND (t.status ILIKE '%resolved%' OR n.status_after = 'Resolved')
-
     ORDER BY n.item_id, n.created_at DESC;
   `;
 }
@@ -153,7 +156,12 @@ export async function listPendingDependencyNotifications() {
 
 export async function listPendingEscalationNotifications() {
   const { rows } = await pool.query(
-    baseAdminQuery("escalation", "escalations", "title")
+    baseAdminQuery(
+      "escalation",
+      "escalations",
+      "title",
+      `, (SELECT json_agg(json_build_object('file_name', ed.file_name, 'file_path', ed.file_path)) FROM escalation_documents ed WHERE ed.escalation_id = t.id) as documents`
+    )
   );
   return rows;
 }
@@ -176,7 +184,7 @@ async function countAdmin(module, table) {
     WHERE n.module = '${module}'
       AND n.decision IS NULL
       AND t.status = 'Resolved'
-  `);
+    `);
   return Number(rows[0].c || 0);
 }
 
@@ -198,23 +206,35 @@ export const countAdminPendingActionNotifications = () =>
 export async function listBmNotificationsByModule(email, module) {
   const sql = `
     SELECT n.*,
-           (n.payload->>'project_name') as project_name,
-           (n.payload->>'priority') as priority,
-           (n.payload->>'risk_title') as risk_title,
-           (n.payload->>'issue_title') as issue_title,
-           (n.payload->>'dependency_title') as dependency_title,
-           (n.payload->>'action_title') as action_title,
-           (n.payload->>'title') as title
+    (n.payload ->> 'manual_project_id') as manual_project_id,
+    (n.payload ->> 'priority') as priority,
+    (n.payload ->> 'risk_title') as risk_title,
+    (n.payload ->> 'issue_title') as issue_title,
+    (n.payload ->> 'dependency_title') as dependency_title,
+    (n.payload ->> 'action_title') as action_title,
+    (n.payload ->> 'title') as title
     FROM notifications n
     WHERE n.bm_user = $1 AND n.module = $2
     ORDER BY n.created_at DESC
-  `;
+    `;
   const { rows } = await pool.query(sql, [email, module]);
   return rows;
 }
 
 export async function listBmRiskNotifications(email) {
-  return listBmNotificationsByModule(email, "risk");
+  const sql = `
+    SELECT n.*,
+    COALESCE(r.manual_project_id, n.payload ->> 'manual_project_id') as manual_project_id,
+    r.priority,
+    r.category,
+    r.risk_title
+    FROM notifications n
+    LEFT JOIN risks r ON r.id = n.item_id
+    WHERE n.bm_user = $1 AND n.module = 'risk'
+    ORDER BY n.created_at DESC
+    `;
+  const { rows } = await pool.query(sql, [email]);
+  return rows;
 }
 
 export async function listBmIssueNotifications(email) {
@@ -238,14 +258,14 @@ export async function listBmActionNotifications(email) {
 ====================================================== */
 export async function countBmNotifications(email) {
   const sql = `
-    SELECT
-      (SELECT COUNT(*) FROM bm_risk_notifications WHERE bm_email=$1 AND is_read=false) +
-      (SELECT COUNT(*) FROM bm_issue_notifications WHERE bm_email=$1 AND is_read=false) +
-      (SELECT COUNT(*) FROM bm_dependency_notifications WHERE bm_email=$1 AND is_read=false) +
-      (SELECT COUNT(*) FROM bm_escalation_notifications WHERE bm_email=$1 AND is_read=false) +
-      (SELECT COUNT(*) FROM bm_action_notifications WHERE bm_email=$1 AND is_read=false)
+  SELECT
+    (SELECT COUNT(*) FROM bm_risk_notifications WHERE bm_email = $1 AND is_read = false) +
+    (SELECT COUNT(*) FROM bm_issue_notifications WHERE bm_email = $1 AND is_read = false) +
+      (SELECT COUNT(*) FROM bm_dependency_notifications WHERE bm_email = $1 AND is_read = false) +
+        (SELECT COUNT(*) FROM bm_escalation_notifications WHERE bm_email = $1 AND is_read = false) +
+          (SELECT COUNT(*) FROM bm_action_notifications WHERE bm_email = $1 AND is_read = false)
     AS c
-  `;
+    `;
   const { rows } = await pool.query(sql, [email]);
   return Number(rows[0].c || 0);
 }
@@ -257,8 +277,8 @@ async function createBmNotification(table, idCol, id, bmEmail, decision, comment
   await pool.query(
     `
     INSERT INTO ${table} (${idCol}, bm_email, decision, comment, created_at, is_read)
-    VALUES ($1,$2,$3,$4,NOW(),false)
-  `,
+  VALUES($1, $2, $3, $4, NOW(), false)
+    `,
     [id, bmEmail, decision, comment]
   );
 }

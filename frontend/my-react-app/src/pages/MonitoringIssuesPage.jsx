@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchIssues } from "../api/issuesApi";
-import { formatDisplayDate } from "../utils/dateFormat";
+import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import { useNavigate } from "react-router-dom";
 import { FiFilter, FiRotateCcw, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
 import { issuesFormConfig } from "../config/formConfig";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { Pen } from "phosphor-react";
 
 /* OPTION ARRAYS */
 const statusOptions = [
@@ -50,6 +53,10 @@ const getStatusMeta = (row) => {
 };
 
 const MonitoringIssuesPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(issuesFormConfig?.fields || []);
+
   const navigate = useNavigate();
   // Re-applies filters and search to the current data when global search Apply is clicked
   const handleGlobalApply = () => {
@@ -90,9 +97,9 @@ const MonitoringIssuesPage = () => {
     Object.entries(filters).forEach(([key, value]) => {
       if (value && value.trim()) {
         const q = value.toLowerCase();
-        if (key === "project_name") {
+        if (key === "account") {
           filtered = filtered.filter((row) =>
-            String(row.project_name ?? "").toLowerCase().includes(q)
+            String(row.account ?? "").toLowerCase().includes(q)
           );
         } else {
           filtered = filtered.filter((row) =>
@@ -111,6 +118,13 @@ const MonitoringIssuesPage = () => {
         )
       );
     }
+
+    // Sort by latest reported_date/last_updated
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.last_updated || a.reported_date || a.created_at || 0);
+      const dateB = new Date(b.last_updated || b.reported_date || b.created_at || 0);
+      return dateB - dateA;
+    });
 
     setRows(filtered);
   };
@@ -134,8 +148,25 @@ const MonitoringIssuesPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("issues");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(issuesFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(issuesFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
     // eslint-disable-next-line
   }, []);
 
@@ -182,6 +213,16 @@ const MonitoringIssuesPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
+
       </motion.div>
 
       {/* =============================
@@ -198,9 +239,9 @@ const MonitoringIssuesPage = () => {
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleChange}
               className="rounded-lg border w-full px-3 py-2 text-xs sm:text-sm pr-9"
             />
@@ -293,7 +334,7 @@ const MonitoringIssuesPage = () => {
                 <tr>
                   <th className="px-4 py-2.5 text-xs font-semibold uppercase w-12">S.No</th>
                   {columns.map(c => (
-                    <th key={c.name} className="px-4 py-2.5 text-xs font-semibold uppercase">{c.label}</th>
+                    <th key={c.name} className="px-4 py-2.5 text-xs font-semibold uppercase">{c.name === "manual_project_id" ? "Project ID" : c.label}</th>
                   ))}
 
                 </tr>
@@ -311,7 +352,7 @@ const MonitoringIssuesPage = () => {
                               <span className={`status-dot ${m.dotClass}`} />{m.label}
                             </span>
                             : c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at")
-                              ? formatDisplayDate(row[c.name], true)
+                              ? formatDateOnly(row[c.name])
                               : String(row[c.name] ?? "")}
                         </td>
                       ))}
@@ -328,8 +369,23 @@ const MonitoringIssuesPage = () => {
           </div>
         )}
       </motion.div>
+
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("issues", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
 
 export default MonitoringIssuesPage;
+

@@ -50,7 +50,7 @@ function AppreciationsPage() {
                   <tr>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Edit</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">ID</th>
-                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project</th>
+                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project ID</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Customer</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Type</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Subject</th>
@@ -72,7 +72,7 @@ function AppreciationsPage() {
                         </button>
                       </td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.appreciation_id}</td>
-                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.project_name}</td>
+                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.manual_project_id}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.customer_name}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.appreciation_type}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.subject}</td>

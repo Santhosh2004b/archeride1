@@ -1,3 +1,4 @@
+// backend/controllers/appreciations.controller.js
 import {
   findAppreciations,
   findAppreciationById,
@@ -5,29 +6,15 @@ import {
   updateAppreciation,
 } from "../models/appreciations.model.js";
 
-import { buildAppreciationFilters } from "../utils/filters.utils.js";
+import { buildAppreciationFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
+import { getAssignedProjects } from "../models/users.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 
-/* ============================
-   GET /api/appreciations
-   ============================ */
 export async function listAppreciations(req, res) {
   try {
     const user = req.user;
-    const filters = buildAppreciationFilters(req.query || {});
-
-    // 🔐 BM / PM → only own
-    if (user.role !== "ADMIN") {
-      filters.whereSql += filters.whereSql
-        ? " AND a.recorded_by = $X"
-        : " WHERE a.recorded_by = $X";
-
-      filters.params.push(user.email);
-      filters.whereSql = filters.whereSql.replace(
-        "$X",
-        `$${filters.params.length}`
-      );
-    }
+    const augmentedQuery = await applyRoleRestrictions(user, req.query || {});
+    const filters = buildAppreciationFilters(augmentedQuery);
 
     const rows = await findAppreciations(filters);
     return sendSuccess(res, rows);
@@ -37,9 +24,6 @@ export async function listAppreciations(req, res) {
   }
 }
 
-/* ============================
-   GET /api/appreciations/:id
-   ============================ */
 export async function getAppreciation(req, res) {
   try {
     const { id } = req.params;
@@ -47,12 +31,12 @@ export async function getAppreciation(req, res) {
 
     if (!row) return sendError(res, 404, "Appreciation not found");
 
-    // 🔐 ownership check
-    if (
-      req.user.role !== "ADMIN" &&
-      row.recorded_by !== req.user.email
-    ) {
-      return sendError(res, 403, "Forbidden");
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(row.project_id)) {
+        return sendError(res, 403, "Forbidden: Not assigned to this project");
+      }
     }
 
     return sendSuccess(res, row);
@@ -62,36 +46,36 @@ export async function getAppreciation(req, res) {
   }
 }
 
-/* ============================
-   POST /api/appreciations
-   ============================ */
 export async function createAppreciationHandler(req, res) {
   try {
-    // 🆔 Auto-generate ID if not provided
     if (!req.body.appreciation_id || req.body.appreciation_id.trim() === "") {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.appreciation_id = await generateEntityId(
         req.user.email,
-        req.body.project_name || "Default",
+        req.body.account || "Default",
         "appreciation"
       );
     }
 
-    const created = await createAppreciation({
+    const payload = {
       ...req.body,
       recorded_by: req.user.email,
+    };
+
+    // Sanitize undefined -> null
+    ["project_id", "project_description", "account"].forEach(f => {
+      if (payload[f] === undefined) payload[f] = null;
     });
 
-    return sendSuccess(res, created, "Appreciation created", 201);
+    const created = await createAppreciation(payload);
+
+    return sendSuccess(res, created, 201);
   } catch (err) {
     console.error("Error creating appreciation", err);
     return sendError(res, 500, "Failed to create appreciation");
   }
 }
 
-/* ============================
-   PUT /api/appreciations/:id
-   ============================ */
 export async function updateAppreciationHandler(req, res) {
   try {
     const { id } = req.params;
@@ -99,13 +83,15 @@ export async function updateAppreciationHandler(req, res) {
     const existing = await findAppreciationById(id);
     if (!existing) return sendError(res, 404, "Appreciation not found");
 
-    // 🔐 ownership check
-    if (
-      req.user.role !== "ADMIN" &&
-      existing.recorded_by !== req.user.email
-    ) {
-      return sendError(res, 403, "Forbidden");
+    /*
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(existing.project_id)) {
+        return sendError(res, 403, "Forbidden: Not assigned to this project");
+      }
     }
+    */
 
     const updated = await updateAppreciation(id, {
       ...req.body,
@@ -115,8 +101,6 @@ export async function updateAppreciationHandler(req, res) {
     return sendSuccess(res, updated);
   } catch (err) {
     console.error("Error updating appreciation:", err);
-    console.error("Request body:", req.body);
-    console.error("Error details:", err.message, err.stack);
     return sendError(res, 500, `Failed to update appreciation: ${err.message}`);
   }
 }

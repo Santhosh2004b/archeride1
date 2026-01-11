@@ -8,14 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null); // string
 
   useEffect(() => {
-    const stored = localStorage.getItem("agpl_auth");
+    const stored = localStorage.getItem("archeride_auth");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setUser(parsed.user || null);
         setToken(parsed.token || null);
       } catch {
-        localStorage.removeItem("agpl_auth");
+        localStorage.removeItem("archeride_auth");
       }
     }
   }, []);
@@ -34,13 +34,13 @@ export const AuthProvider = ({ children }) => {
 
     setUser(authState.user);
     setToken(authState.token);
-    localStorage.setItem("agpl_auth", JSON.stringify(authState));
+    localStorage.setItem("archeride_auth", JSON.stringify(authState));
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem("agpl_auth");
+    localStorage.removeItem("archeride_auth");
   };
 
   return (

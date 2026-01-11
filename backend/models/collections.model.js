@@ -26,21 +26,23 @@ export async function findCollectionsByUser(email) {
   return rows;
 }
 
-export async function findAllCollections() {
+export async function findAllCollections(filters = {}) {
+  const { whereSql, params } = filters;
   const sql = `
     SELECT
-      c.*
+      c.*, c.manual_project_id
     FROM collections c
+    ${whereSql || ""}
     ORDER BY c.invoice_date DESC, c.created_at DESC
   `;
-  const { rows } = await pool.query(sql);
+  const { rows } = await pool.query(sql, params || []);
   return rows;
 }
 
 export async function findCollectionById(id) {
   const sql = `
     SELECT
-      c.*
+      c.*, c.manual_project_id
     FROM collections c
     WHERE c.id = $1
   `;
@@ -55,7 +57,10 @@ export async function createCollection(data) {
   const sql = `
     INSERT INTO collections (
   invoice_id,
-  project_name,
+  manual_project_id,
+  project_id,
+  project_description,
+  account,
   customer_name,
   invoice_date,
   invoice_amount,
@@ -74,7 +79,7 @@ export async function createCollection(data) {
   created_by,
   last_updated
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,now()
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20, $21,now()
 )
 RETURNING *;
 
@@ -82,7 +87,10 @@ RETURNING *;
 
   const params = [
     data.invoice_id,
-    data.project_name,
+    data.manual_project_id || null, // Fixed: manual_project_id is $2
+    data.project_id || null, // $3
+    data.project_description || null, // $4
+    data.account || null,
     data.customer_name,
     data.invoice_date,
     toNumericOrNull(data.invoice_amount),
@@ -112,31 +120,36 @@ export async function updateCollection(id, data) {
   const sql = `
     UPDATE collections SET
       invoice_id = $1,
-      project_name = $2,
-      customer_name = $3,
-      invoice_date = $4,
-      invoice_amount = $5,
-      currency = $6,
-      due_date = $7,
-      status = $8,
-      days_overdue = $9,
-      amount_received = $10,
-      outstanding_amount = $11,
-      last_follow_up_date = $12,
-      next_follow_up_date = $13,
-      payment_status = $14,
-      follow_up_owner = $15,
-      customer_contact = $16,
-      remarks = $17,
+      manual_project_id = $21,
+      project_id = $2,
+      project_description = $3,
+      account = $4,
+      customer_name = $5,
+      invoice_date = $6,
+      invoice_amount = $7,
+      currency = $8,
+      due_date = $9,
+      status = $10,
+      days_overdue = $11,
+      amount_received = $12,
+      outstanding_amount = $13,
+      last_follow_up_date = $14,
+      next_follow_up_date = $15,
+      payment_status = $16,
+      follow_up_owner = $17,
+      customer_contact = $18,
+      remarks = $19,
       last_updated = now(),
       updated_at = now()
-    WHERE id = $18
+    WHERE id = $20
     RETURNING *;
   `;
 
   const params = [
     data.invoice_id,
-    data.project_name,
+    data.project_id,
+    data.project_description || null,
+    data.account || null,
     data.customer_name,
     data.invoice_date,
     toNumericOrNull(data.invoice_amount),
@@ -152,7 +165,8 @@ export async function updateCollection(id, data) {
     data.follow_up_owner || null,
     data.customer_contact || null,
     data.remarks || null,
-    id
+    id,
+    data.manual_project_id // $21
   ];
 
   const { rows } = await pool.query(sql, params);

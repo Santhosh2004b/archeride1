@@ -3,7 +3,7 @@ const tableConfig = {
   risks: {
     columns: [
       { key: "risk_id", label: "Risk ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "status", label: "Status" },
       { key: "priority", label: "Priority" },
       { key: "risk_title", label: "Title" },
@@ -13,7 +13,7 @@ const tableConfig = {
   issues: {
     columns: [
       { key: "issue_id", label: "Issue ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "status", label: "Status" },
       { key: "priority", label: "Priority" },
       { key: "issue_title", label: "Title" },
@@ -23,7 +23,7 @@ const tableConfig = {
   actions: {
     columns: [
       { key: "action_id", label: "Action ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "status", label: "Status" },
       { key: "priority", label: "Priority" },
       { key: "action_title", label: "Title" },
@@ -33,7 +33,7 @@ const tableConfig = {
   dependencies: {
     columns: [
       { key: "dependency_id", label: "Dependency ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "status", label: "Status" },
       { key: "priority", label: "Priority" },
       { key: "dependency_title", label: "Title" },
@@ -43,7 +43,7 @@ const tableConfig = {
   escalations: {
     columns: [
       { key: "escalation_id", label: "Escalation ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "status", label: "Status" },
       { key: "priority", label: "Priority" },
       { key: "title", label: "Title" },
@@ -53,7 +53,7 @@ const tableConfig = {
   appreciations: {
     columns: [
       { key: "appreciation_id", label: "Appreciation ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "customer_name", label: "Customer" },
       { key: "appreciation_type", label: "Type" },
       { key: "subject", label: "Subject" },
@@ -63,7 +63,7 @@ const tableConfig = {
   collections: {
     columns: [
       { key: "invoice_id", label: "Invoice ID" },
-      { key: "project_name", label: "Project" },
+      { key: "account", label: "Account" },
       { key: "customer_name", label: "Customer" },
       { key: "invoice_date", label: "Invoice Date" },
       { key: "invoice_amount", label: "Amount" },
@@ -73,4 +73,5 @@ const tableConfig = {
 };
 
 export default tableConfig;
+
 

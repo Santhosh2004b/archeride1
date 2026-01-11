@@ -1,19 +1,18 @@
 // frontend/my-react-app/src/config/formConfig.js
 
 // Shared Engagement options (use the same IDs you have in projects table)
-// after — add `export`
-// Shared Engagement options (use the same IDs you have in projects table)
 
 export const risksFormConfig = {
   fields: [
     { name: "risk_id", label: "Risk ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "identified_date", label: "Identified Date", type: "date", required: true },
     { name: "identified_by", label: "Identified By", type: "text", required: true },
+    { name: "created_by", label: "Created By", type: "text", required: false, readOnly: true },
+    { name: "created_at", label: "Created At", type: "text", required: false, readOnly: true },
+    { name: "updated_at", label: "Updated At", type: "text", required: false, readOnly: true },
     {
       name: "status",
       label: "Status",
@@ -21,7 +20,7 @@ export const risksFormConfig = {
       required: true,
       options: [
         "Open",
-        "on-holding",
+        "On Hold",
         "Resolved",
         "Cancelled",
       ],
@@ -69,7 +68,9 @@ export const risksFormConfig = {
 export const issuesFormConfig = {
   fields: [
     { name: "issue_id", label: "Issue ID", type: "text", required: false, readOnly: true },
-    { name: "project_name", label: "Project Name", type: "text", required: false },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
     { name: "reported_by", label: "Reported By", type: "text", required: true },
     {
@@ -110,13 +111,9 @@ export const issuesFormConfig = {
 export const actionsFormConfig = {
   fields: [
     { name: "action_id", label: "Action ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-
-
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "created_date", label: "Created Date", type: "date", required: true },
     { name: "created_by", label: "Created By", type: "text", required: true },
     {
@@ -126,7 +123,7 @@ export const actionsFormConfig = {
       required: true,
       options: [
         "Open",
-        "on-holding",
+        "On Hold",
         "Resolved",
         "Cancelled",
       ],
@@ -168,13 +165,9 @@ export const actionsFormConfig = {
 export const dependenciesFormConfig = {
   fields: [
     { name: "dependency_id", label: "Dependency ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-
-
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
     { name: "reported_by", label: "Reported By", type: "text", required: true },
     {
@@ -184,7 +177,7 @@ export const dependenciesFormConfig = {
       required: true,
       options: [
         "Open",
-        "on-holding",
+        "On Hold",
         "Resolved",
         "Cancelled",
       ],
@@ -230,13 +223,9 @@ export const dependenciesFormConfig = {
 export const escalationsFormConfig = {
   fields: [
     { name: "escalation_id", label: "Escalation ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-
-
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
     { name: "reported_by", label: "Reported By", type: "text", required: true },
     {
@@ -246,7 +235,7 @@ export const escalationsFormConfig = {
       required: true,
       options: [
         "Open",
-        "on-holding",
+        "On Hold",
         "Resolved",
         "Cancelled",
       ],
@@ -302,13 +291,9 @@ export const escalationsFormConfig = {
 export const appreciationsFormConfig = {
   fields: [
     { name: "appreciation_id", label: "Appreciation ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-
-
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "received_date", label: "Received Date", type: "date", required: true },
     { name: "recorded_by", label: "Recorded By", type: "text", required: true },
     { name: "customer_name", label: "Customer Name", type: "text", required: true },
@@ -344,13 +329,9 @@ export const appreciationsFormConfig = {
 export const collectionsFormConfig = {
   fields: [
     { name: "invoice_id", label: "Invoice ID", type: "text", required: false, readOnly: true },
-    {
-      name: "project_name",
-      label: "Project Name",
-
-
-      type: "text", required: false,
-    },
+    { name: "manual_project_id", label: "Project ID", type: "text", required: true },
+    { name: "account", label: "Account", type: "text", required: true },
+    { name: "project_description", label: "Project Description", type: "textarea", required: true },
     { name: "customer_name", label: "Customer Name", type: "text", required: true },
     { name: "invoice_date", label: "Invoice Date", type: "date", required: true },
     { name: "invoice_amount", label: "Invoice Amount", type: "text", required: true },
@@ -395,3 +376,4 @@ export const collectionsFormConfig = {
     { name: "last_updated", label: "Last Updated", type: "date", required: true },
   ],
 };
+

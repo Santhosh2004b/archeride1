@@ -14,7 +14,10 @@ export async function findActionsByUser(email) {
     SELECT
       a.id,
       a.action_id,
-      a.project_name,
+      a.manual_project_id,
+      a.project_id,
+      a.project_description,
+      a.account,
       a.created_date,
       a.created_by,
       a.status,
@@ -70,7 +73,10 @@ export async function createAction(data) {
   const sql = `
     INSERT INTO actions (
       action_id,
-      project_name,
+      manual_project_id,
+      project_id,
+      project_description,
+      account,
       created_date,
       created_by,
       status,
@@ -88,14 +94,17 @@ export async function createAction(data) {
       comments
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-      $11,$12,$13,$14,$15,now(),$16
+      $11,$12,$13,$14,$15,$16,$17,$18,now(),$19
     )
     RETURNING *;
   `;
 
   const params = [
     data.action_id,
-    data.project_name,
+    data.manual_project_id || null, // Added manual_project_id
+    data.project_id || null,
+    data.project_description || null,
+    data.account || null,
     data.created_date,
     data.created_by,
     data.status,
@@ -122,30 +131,35 @@ export async function createAction(data) {
   const sql = `
     UPDATE actions SET
       action_id = $1,
-      project_name = $2,
-      created_date = $3,
-      created_by = $4,
-      status = $5,
-      priority = $6,
-      action_title = $7,
-      action_description = $8,
-      action_owner = $9,
-      due_date = $10,
-      completion_date = $11,
-      completion_percent = $12,
-      related_to_type = $13,
-      related_to_id = $14,
-      dependencies = $15,
+      manual_project_id = $20,
+      project_id = $2,
+      project_description = $3,
+      account = $4,
+      created_date = $5,
+      created_by = $6,
+      status = $7,
+      priority = $8,
+      action_title = $9,
+      action_description = $10,
+      action_owner = $11,
+      due_date = $12,
+      completion_date = $13,
+      completion_percent = $14,
+      related_to_type = $15,
+      related_to_id = $16,
+      dependencies = $17,
       last_updated = now(),
-      comments = $16,
+      comments = $18,
       updated_at = now()
-    WHERE id = $17
+    WHERE id = $19
     RETURNING *;
   `;
 
   const params = [
     data.action_id,
-    data.project_name,
+    data.project_id,
+    data.project_description || null,
+    data.account || null,
     data.created_date,
     data.created_by,
     data.status,
@@ -160,23 +174,17 @@ export async function createAction(data) {
     data.related_to_id || null,
     data.dependencies || null,
     data.comments || null,
-    id
+    id,
+    data.manual_project_id // $20
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   // 🔔 ***NOW reachable***
+  // 🔔 Notification handled in controller
   if (String(updated.status).toLowerCase() === "resolved") {
-    await createResolutionNotification({
-      module: "action",
-      itemId: updated.id,
-      itemCode: updated.action_id,
-      statusBefore: data.previous_status || null,
-      statusAfter: "Resolved",
-      payload: updated,
-      bmUser: updated.created_by,
-    });
+    // handled in controller
   }
 
   return updated;

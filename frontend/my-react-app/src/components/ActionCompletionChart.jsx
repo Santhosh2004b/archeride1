@@ -12,7 +12,7 @@ import {
 
 const COLORS = {
   Open: "#EF4444",
-  "on-holding": "#F59E0B",
+  "On Hold": "#F59E0B",
   Resolved: "#10B981",
 };
 
@@ -25,7 +25,7 @@ export default function ActionCompletionChart({ data = null }) {
 
   const chartData = [
     { name: "Open", count: Number(data.Open || 0), fill: COLORS.Open },
-    { name: "On-Holding", count: Number(data["on-holding"] || data.Inholding || 0), fill: COLORS["on-holding"] },
+    { name: "On Hold", count: Number(data["On Hold"] || 0), fill: COLORS["On Hold"] },
     { name: "Resolved", count: Number(data.Resolved || 0), fill: COLORS.Resolved },
   ];
 

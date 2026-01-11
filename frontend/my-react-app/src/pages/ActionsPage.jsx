@@ -51,7 +51,7 @@ function ActionsPage() {
                   <tr>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Edit</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Action ID</th>
-                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project</th>
+                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project ID</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Status</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Priority</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Title</th>
@@ -73,7 +73,7 @@ function ActionsPage() {
                         </button>
                       </td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.action_id}</td>
-                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.project_name}</td>
+                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.manual_project_id}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.status}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.priority}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{a.action_title}</td>

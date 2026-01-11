@@ -6,7 +6,7 @@ import { config } from "dotenv";
 import notificationsRoutes from "./routes/notifications.routes.js";
 import { authMiddleware } from "./middleware/auth.middleware.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
- 
+
 import dependenciesRoutes from "./routes/dependencies.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import risksRoutes from "./routes/risks.routes.js";
@@ -18,6 +18,8 @@ import collectionsRoutes from "./routes/collections.routes.js";
 import metricsRoutes from "./routes/metrics.routes.js";   // ✅ keep this only
 import projectRoutes from "./routes/projects.routes.js"; // 🧩 ADD THIS
 import feedRoutes from "./routes/feed.routes.js";
+import userRoutes from "./routes/users.routes.js";
+import layoutRoutes from "./routes/layout.routes.js";
 
 config();
 
@@ -28,6 +30,7 @@ app.use(cors());
 app.use(json());
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/feed", feedRoutes);
+app.use("/uploads", express.static("uploads"));
 
 // public
 app.get("/api/health", (req, res) => {
@@ -48,6 +51,8 @@ app.use("/api/dependencies", dependenciesRoutes);
 app.use("/api/appreciations", appreciationsRoutes);
 app.use("/api/metrics", metricsRoutes);
 app.use("/api/projects", projectRoutes);  // 🔥 critical
+app.use("/api/users", userRoutes);
+app.use("/api/layout", layoutRoutes);
 
 app.use("/api/metrics", metricsRoutes);
 app.listen(PORT, () => {

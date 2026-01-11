@@ -18,6 +18,16 @@ export function formatDisplayDate(dateStr, useAmPm = false) {
   return `${day}/${month}/${year} ${String(hours).padStart(2, "0")}:${minutes}`;
 }
 
+export function formatDateOnly(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export function formatSaveDate(dateStr) {
   // Always save as DD/MM/YYYY HH:mm (24h)
   return formatDisplayDate(dateStr, false);

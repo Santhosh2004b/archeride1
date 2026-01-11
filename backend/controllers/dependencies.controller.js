@@ -13,27 +13,16 @@ import {
   createBmNotificationForDependencyDecision,
 } from "../models/notifications.model.js";
 
-import { buildDependencyFilters } from "../utils/filters.utils.js";
+import { buildDependencyFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
+import { getAssignedProjects } from "../models/users.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import pool from "../db.js";
 
 export async function listDependencies(req, res) {
   try {
     const user = req.user;
-    const filters = buildDependencyFilters(req.query || {});
-
-    // 🔐 BM / PM → only own dependencies
-    if (user.role !== "ADMIN") {
-      filters.whereSql += filters.whereSql
-        ? " AND d.reported_by = $X"
-        : " WHERE d.reported_by = $X";
-
-      filters.params.push(user.email);
-      filters.whereSql = filters.whereSql.replace(
-        "$X",
-        `$${filters.params.length}`
-      );
-    }
+    const augmentedQuery = await applyRoleRestrictions(user, req.query || {});
+    const filters = buildDependencyFilters(augmentedQuery);
 
     const deps = await findDependencies(filters);
     return sendSuccess(res, deps);
@@ -48,6 +37,10 @@ export async function getDependency(req, res) {
     const { id } = req.params;
     const dep = await findDependencyById(id);
     if (!dep) return sendError(res, 404, "Dependency not found");
+
+    // Access check by project_id disabled
+    return sendSuccess(res, dep);
+
     return sendSuccess(res, dep);
   } catch (err) {
     console.error("Error getting dependency", err);
@@ -62,16 +55,20 @@ export async function createDependencyHandler(req, res) {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.dependency_id = await generateEntityId(
         req.user.email,
-        req.body.project_name || "Default",
+        req.body.account || "Default",
         "dependency"
       );
     }
 
     const payload = {
       ...req.body,
-      project_name: req.body.project_name,
-      reported_by: req.user.email, // 🔐 FORCE OWNER
+      reported_by: req.user.email,
     };
+
+    // Sanitize undefined -> null
+    ["manual_project_id", "project_description", "account"].forEach(f => {
+      if (payload[f] === undefined) payload[f] = null;
+    });
 
     const created = await createDependency(payload);
     return sendSuccess(res, created, 201);
@@ -89,18 +86,14 @@ export async function updateDependencyHandler(req, res) {
 
     const existing = await findDependencyById(id);
     if (!existing) return sendError(res, 404, "Dependency not found");
-    // 🔐 OWNERSHIP CHECK
-    if (req.user.role !== "ADMIN" && existing.reported_by !== req.user.email) {
-      return sendError(res, 403, "Forbidden: Not your dependency");
-    }
+
+    // Access check by project_id disabled
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
 
-    const updated = await updateDependency(id, {
-      ...payload,
-      project_name: payload.project_name,
-    }); if (!updated) return sendError(res, 404, "Dependency not found");
+    const updated = await updateDependency(id, payload);
+    if (!updated) return sendError(res, 404, "Dependency not found");
 
     const normalize = (s) => s?.trim().toLowerCase();
     const becameResolved =
@@ -116,13 +109,12 @@ export async function updateDependencyHandler(req, res) {
         statusBefore: oldStatus,
         statusAfter: newStatus,
         payload: {
-          project_name: existing.project_name, // ✅ FIX
+          account: existing.account, manual_project_id: existing.manual_project_id,
           priority: updated.priority,
           type: updated.type,
           dependency_title: updated.dependency_title,
           reported_date: updated.reported_date,
         },
-
         bmUser: req.user.email,
       });
     }

@@ -1,9 +1,9 @@
 // backend/controllers/escalations.controller.js
-import { buildEscalationFilters } from "../utils/filters.utils.js";
+import { buildEscalationFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
+import { getAssignedProjects } from "../models/users.model.js";
 import {
   findEscalations,
   findEscalationById,
-  findEscalationByUser,   // ✅ ADD THIS
   createEscalation,
   updateEscalation,
 } from "../models/escalations.model.js";
@@ -11,27 +11,15 @@ import {
 import {
   createResolutionNotification,
   decideNotification,
-  createBmNotificationForEscalationDecision,
 } from "../models/notifications.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import pool from "../db.js";
 
 export async function listEscalations(req, res) {
   try {
-    const filters = buildEscalationFilters(req.query);
-
-    // BM / PM → only their own escalations
-    if (req.user.role !== "ADMIN") {
-      filters.whereSql += filters.whereSql
-        ? " AND e.created_by = $X"
-        : " WHERE e.created_by = $X";
-
-      filters.params.push(req.user.id);
-      filters.whereSql = filters.whereSql.replace(
-        "$X",
-        `$${filters.params.length}`
-      );
-    }
+    const user = req.user;
+    const augmentedQuery = await applyRoleRestrictions(user, req.query);
+    const filters = buildEscalationFilters(augmentedQuery);
 
     const rows = await findEscalations(filters);
     return sendSuccess(res, rows);
@@ -41,15 +29,17 @@ export async function listEscalations(req, res) {
   }
 }
 
-
-
 export async function getEscalation(req, res) {
   try {
     const row = await findEscalationById(req.params.id);
     if (!row) return sendError(res, 404, "Escalation not found");
 
-    if (req.user.role !== "ADMIN" && row.created_by !== req.user.id) {
-      return sendError(res, 403, "Access denied");
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(row.project_id)) {
+        return sendError(res, 403, "Access denied: Not assigned to this project");
+      }
     }
 
     return sendSuccess(res, row);
@@ -60,21 +50,27 @@ export async function getEscalation(req, res) {
 
 export async function createEscalationHandler(req, res) {
   try {
-    // 🆔 Auto-generate ID if not provided
     if (!req.body.escalation_id || req.body.escalation_id.trim() === "") {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.escalation_id = await generateEntityId(
         req.user.email,
-        req.body.project_name || "Default",
+        req.body.account || "Default",
         "escalation"
       );
     }
 
+    const payload = {
+      ...req.body,
+      created_by: req.user.id
+    };
+
+    // Sanitize undefined -> null
+    ["project_id", "project_description", "account"].forEach(f => {
+      if (payload[f] === undefined) payload[f] = null;
+    });
+
     const created = await createEscalation(
-      {
-        ...req.body,
-        project_name: req.body.project_name,
-      },
+      payload,
       req.user.id
     );
 
@@ -94,13 +90,21 @@ export async function updateEscalationHandler(req, res) {
     const existing = await findEscalationById(id);
     if (!existing) return sendError(res, 404, "Escalation not found");
 
+    /*
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(existing.project_id)) {
+        return sendError(res, 403, "Forbidden: Not assigned to this project");
+      }
+    }
+    */
+
     const oldStatus = existing.status;
     const newStatus = payload.status;
 
-    const updated = await updateEscalation(id, {
-      ...payload,
-      project_name: payload.project_name,
-    }); if (!updated) return sendError(res, 404, "Escalation not found");
+    const updated = await updateEscalation(id, payload);
+    if (!updated) return sendError(res, 404, "Escalation not found");
 
     const normalize = (s) => s?.trim().toLowerCase();
     const becameResolved =
@@ -115,7 +119,7 @@ export async function updateEscalationHandler(req, res) {
         statusBefore: oldStatus,
         statusAfter: newStatus,
         payload: {
-          project_name: updated.project_name,
+          account: updated.account, project_id: updated.project_id,
           priority: updated.priority,
           category: updated.category,
           title: updated.title,
@@ -131,6 +135,7 @@ export async function updateEscalationHandler(req, res) {
     return sendError(res, 500, "Failed to update escalation");
   }
 }
+
 export async function decideEscalationResolution(req, res) {
   try {
     const { notificationId } = req.params;
@@ -155,3 +160,63 @@ export async function decideEscalationResolution(req, res) {
   }
 }
 
+export async function resolveEscalation(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, resolution_details } = req.body;
+    const files = req.files; // Array of files
+
+    // 1. Validate
+    if (!files || files.length === 0) {
+      return sendError(res, 400, "At least one document is required to resolve.");
+    }
+
+    // 2. Update Escalation Status
+    const existing = await findEscalationById(id);
+    if (!existing) return sendError(res, 404, "Escalation not found");
+
+    const payload = {
+      ...existing,
+      status: "Resolved",
+      resolution_details: resolution_details || existing.resolution_details,
+      previous_status: existing.status
+    };
+
+    const updated = await updateEscalation(id, payload);
+
+    // 3. Save Documents
+    const { createEscalationDocument } = await import("../models/escalations.model.js");
+
+    for (const file of files) {
+      await createEscalationDocument({
+        escalation_id: id,
+        file_name: file.originalname,
+        file_type: file.mimetype,
+        file_path: file.path,
+        uploaded_by: req.user.email
+      });
+    }
+
+    // 4. Send Notification (Wait until docs are uploaded)
+    await createResolutionNotification({
+      module: "escalation",
+      itemId: updated.id,
+      itemCode: updated.escalation_id,
+      statusBefore: existing.status,
+      statusAfter: "Resolved",
+      payload: {
+        title: updated.title,
+        priority: updated.priority,
+        project_id: updated.project_id,
+        account: updated.account
+      },
+      bmUser: req.user.email,
+    });
+
+    return sendSuccess(res, { message: "Escalation resolved and documents submitted." });
+
+  } catch (err) {
+    console.error("Resolve escalation error:", err);
+    return sendError(res, 500, "Failed to resolve escalation");
+  }
+}

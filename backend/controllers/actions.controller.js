@@ -1,3 +1,4 @@
+// backend/controllers/actions.controller.js
 import pool from "../db.js";
 import {
   findActionById,
@@ -5,33 +6,27 @@ import {
   updateAction as updateActionModel,
 } from "../models/actions.model.js";
 
+import { buildActionFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
+import { getAssignedProjects } from "../models/users.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import {
   createResolutionNotification,
   decideNotification,
 } from "../models/notifications.model.js";
 
-/* ============================
-   GET /api/actions
-   ============================ */
 export async function listActions(req, res) {
   try {
     const user = req.user;
+    const augmentedQuery = await applyRoleRestrictions(user, req.query || {});
+    const filters = buildActionFilters(augmentedQuery);
 
-    let sql = `
+    const { whereSql, params } = filters;
+    const sql = `
       SELECT a.*
       FROM actions a
+      ${whereSql || ""}
+      ORDER BY a.created_at DESC NULLS LAST, a.last_updated DESC NULLS LAST
     `;
-
-    const params = [];
-
-    // ADMIN sees all — BM sees own
-    if (user.role !== "ADMIN") {
-      sql += ` WHERE a.created_by = $1 `;
-      params.push(user.email);
-    }
-
-    sql += ` ORDER BY a.created_at DESC NULLS LAST, a.last_updated DESC NULLS LAST`;
 
     const { rows } = await pool.query(sql, params);
     return sendSuccess(res, rows);
@@ -42,10 +37,6 @@ export async function listActions(req, res) {
   }
 }
 
-
-/* ============================
-   GET /api/actions/:id
-   ============================ */
 export async function getAction(req, res) {
   try {
     const action = await findActionById(req.params.id);
@@ -53,122 +44,139 @@ export async function getAction(req, res) {
       return sendError(res, 404, "Action not found");
     }
 
-    // 🔐 Ownership check
-    if (
-      req.user.role !== "ADMIN" &&
-      action.created_by !== req.user.email
-    ) {
-      return sendError(res, 403, "Forbidden");
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(action.project_id)) {
+        return sendError(res, 403, "Forbidden: Not assigned to this project");
+      }
     }
 
     return sendSuccess(res, action);
   } catch (err) {
-    console.error("Error getting action:", err);
+    console.error("Error getting action", err);
     return sendError(res, 500, "Failed to get action");
   }
 }
 
-/* ============================
-   POST /api/actions
-   (BM can ADD MULTIPLE)
-   ============================ */
-export async function createAction(req, res) {
+export async function createActionHandler(req, res) {
   try {
-    // 🧼 sanitize numeric field
-    const cp = req.body.completion_percent;
-    req.body.completion_percent =
-      cp === "" || isNaN(cp) ? null : Number(cp);
-
-    // 🆔 Auto-generate ID if not provided
     if (!req.body.action_id || req.body.action_id.trim() === "") {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.action_id = await generateEntityId(
         req.user.email,
-        req.body.project_name || "Default",
+        req.body.account || "Default",
         "action"
       );
     }
 
-    const created = await createActionModel({
+    const payload = {
       ...req.body,
-      project_name: req.body.project_name,
       created_by: req.user.email,
+    };
+
+    // Sanitize undefined -> null
+    ["project_id", "project_description", "account", "priority", "category"].forEach(f => {
+      if (payload[f] === undefined) payload[f] = null;
     });
 
-    return sendSuccess(res, created, "Action created", 201);
+    // Sanitize numeric fields
+    if (payload.completion_percent) {
+      const parsed = parseFloat(payload.completion_percent);
+      payload.completion_percent = isNaN(parsed) ? null : parsed;
+    } else {
+      payload.completion_percent = null;
+    }
+
+    const created = await createActionModel(payload);
+
+    return sendSuccess(res, created, 201);
   } catch (err) {
-    console.error("Create action error:", err);
+    console.error("Error creating action:", err);
     return sendError(res, 500, "Failed to create action");
   }
 }
 
-/* ============================
-   PUT /api/actions/:id
-   ============================ */
 export async function updateActionHandler(req, res) {
   try {
     const { id } = req.params;
-
-    const cp = req.body.completion_percent;
-    req.body.completion_percent =
-      cp === "" || cp === undefined ? null : Number(cp);
+    const payload = req.body;
 
     const existing = await findActionById(id);
-    if (!existing) {
-      return sendError(res, 404, "Action not found");
+    if (!existing) return sendError(res, 404, "Action not found");
+
+    /*
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getAssignedProjects(req.user.id);
+      const projectIds = assigned.map(p => p.id);
+      if (!projectIds.includes(existing.project_id)) {
+        return sendError(res, 403, "Forbidden: Not assigned to this project");
+      }
+    }
+    */
+
+    const oldStatus = existing.status;
+    const newStatus = payload.status;
+
+    // Sanitize numeric fields
+    if (payload.completion_percent !== undefined) {
+      const parsed = parseFloat(payload.completion_percent);
+      payload.completion_percent = isNaN(parsed) ? null : parsed;
     }
 
-    // 🔐 ownership check
-    if (
-      req.user.role !== "ADMIN" &&
-      existing.created_by !== req.user.email
-    ) {
-      return sendError(res, 403, "Forbidden");
-    }
+    const updated = await updateActionModel(id, payload);
+    if (!updated) return sendError(res, 404, "Action not found");
 
-    await updateActionModel(id, {
-      ...req.body,
-      project_name: req.body.project_name,
-    });
-    const updated = await findActionById(id);
-
-    // 🔔 notify admin on completion
     const normalize = (s) => s?.trim().toLowerCase();
+    const becameResolved =
+      normalize(oldStatus) !== "resolved" &&
+      normalize(newStatus) === "resolved";
 
+    if (becameResolved && req.user?.email) {
+      await createResolutionNotification({
+        module: "action",
+        itemId: updated.id,
+        itemCode: updated.action_id,
+        statusBefore: oldStatus,
+        statusAfter: newStatus,
+        payload: {
+          account: existing.account, project_id: existing.project_id,
+          priority: updated.priority,
+          related_to_type: updated.related_to_type,
+          action_title: updated.action_title,
+          created_date: updated.created_date,
+        },
+        bmUser: req.user.email,
+      });
+    }
 
     return sendSuccess(res, updated);
   } catch (err) {
-    console.error("Update action error:", err);
+    console.error("Error updating action:", err);
     return sendError(res, 500, "Failed to update action");
   }
 }
 
-/* ============================
-   POST /api/actions/decisions/:id
-   ============================ */
 export async function decideActionResolution(req, res) {
   try {
     const { notificationId } = req.params;
     const { decision, comment } = req.body;
+    const adminUser = req.user?.email || null;
 
     if (!decision) {
-      return sendError(res, 400, "Decision is required");
+      return sendError(res, 400, "Decision required");
     }
 
-    const updated = await decideNotification({
+    const decided = await decideNotification({
       id: notificationId,
-      adminUser: req.user.email,
+      adminUser,
       decision,
-      comment: comment || null,
+      comment,
     });
 
-    if (!updated) {
-      return sendError(res, 404, "Notification not found");
-    }
-
-    return sendSuccess(res, updated, "Decision recorded");
+    return sendSuccess(res, decided);
   } catch (err) {
-    console.error("Decision error:", err);
-    return sendError(res, 500, "Failed to record decision");
+    console.error("Action decision failed", err);
+    return sendError(res, 500, "Failed to process decision");
   }
 }

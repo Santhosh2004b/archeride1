@@ -14,7 +14,9 @@ export async function findIssues({ whereSql = "", params = [] } = {}) {
     SELECT
       i.id,
       i.issue_id,
-      i.project_name,
+      i.manual_project_id,
+      i.project_description,
+      i.account,
       i.reported_date,
       i.reported_by,
       i.status,
@@ -31,9 +33,11 @@ export async function findIssues({ whereSql = "", params = [] } = {}) {
       i.root_cause_analysis,
       i.last_updated,
       i.comments,
+      i.reported_by as created_by,
       i.created_at,
       i.updated_at
     FROM issues i
+    -- LEFT JOIN users u ON i.created_by = u.id
     ${whereSql}
     ORDER BY i.reported_date DESC, i.created_at DESC
   `;
@@ -61,7 +65,9 @@ export async function createIssue(data) {
   const sql = `
     INSERT INTO issues (
       issue_id,
-      project_name,
+      manual_project_id,
+      project_description,
+      account,
       reported_date,
       reported_by,
       status,
@@ -79,15 +85,17 @@ export async function createIssue(data) {
       last_updated,
       comments
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-      $11,$12,$13,$14,$15,$16,now(),$17
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,
+      $10,$11,$12,$13,$14,$15,$16,$17,$18,now(),$19
     )
     RETURNING *;
   `;
 
   const params = [
     data.issue_id,
-    data.project_name,
+    data.manual_project_id || null,
+    data.project_description || null,
+    data.account || null,
     data.reported_date,
     data.reported_by,
     data.status,
@@ -116,31 +124,34 @@ export async function updateIssue(id, data) {
   const sql = `
     UPDATE issues SET
       issue_id = $1,
-      project_name = $2,
-      reported_date = $3,
-      reported_by = $4,
-      status = $5,
-      priority = $6,
-      category = $7,
-      issue_title = $8,
-      issue_description = $9,
-      impact_on_project = $10,
-      affected_system = $11,
-      assigned_to = $12,
-      target_resolution_date = $13,
-      actual_resolution_date = $14,
-      resolution_details = $15,
-      root_cause_analysis = $16,
+      manual_project_id = $20,
+      project_description = $2,
+      account = $3,
+      reported_date = $4,
+      reported_by = $5,
+      status = $6,
+      priority = $7,
+      category = $8,
+      issue_title = $9,
+      issue_description = $10,
+      impact_on_project = $11,
+      affected_system = $12,
+      assigned_to = $13,
+      target_resolution_date = $14,
+      actual_resolution_date = $15,
+      resolution_details = $16,
+      root_cause_analysis = $17,
       last_updated = now(),
-      comments = $17,
+      comments = $18,
       updated_at = now()
-    WHERE id = $18
+    WHERE id = $19
     RETURNING *;
   `;
 
   const params = [
     data.issue_id,
-    data.project_name,
+    data.project_description || null,
+    data.account || null,
     data.reported_date,
     data.reported_by,
     data.status,
@@ -156,22 +167,15 @@ export async function updateIssue(id, data) {
     data.resolution_details || null,
     data.root_cause_analysis || null,
     data.comments || null,
-    id
+    id,
+    data.manual_project_id // $20
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (updated && String(updated.status).toLowerCase() === "resolved") {
-    await createResolutionNotification({
-      module: "issue",
-      itemId: updated.id,
-      itemCode: updated.issue_id,
-      statusBefore: data.previous_status || null,
-      statusAfter: "Resolved",
-      payload: updated,
-      bmUser: updated.reported_by,
-    });
+    // Notification handled in controller now
   }
 
   return updated;

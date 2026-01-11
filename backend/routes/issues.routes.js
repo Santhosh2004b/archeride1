@@ -3,7 +3,6 @@ import { Router } from "express";
 import {
   listIssues,
   getIssue,
-  createIssue,
   createIssueHandler,
   updateIssueHandler,
   decideIssueResolution,

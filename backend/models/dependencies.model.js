@@ -15,7 +15,9 @@ export async function findDependencies({ whereSql = "", params = [] } = {}) {
     SELECT
       d.id,
       d.dependency_id,
-      d.project_name,
+      d.manual_project_id, 
+      d.project_description,
+      d.account,
       d.reported_date,
       d.reported_by,
       d.status,
@@ -32,9 +34,11 @@ export async function findDependencies({ whereSql = "", params = [] } = {}) {
       d.contact_details,
       d.last_updated,
       d.comments,
+      d.reported_by as created_by,
       d.created_at,
       d.updated_at
     FROM dependencies d
+    -- LEFT JOIN users u ON d.created_by = u.id
     ${whereSql}
     ORDER BY d.reported_date DESC, d.created_at DESC
   `;
@@ -62,7 +66,9 @@ export async function createDependency(data) {
   const sql = `
     INSERT INTO dependencies (
       dependency_id,
-      project_name,
+      manual_project_id,
+      project_description,
+      account,
       reported_date,
       reported_by,
       status,
@@ -80,15 +86,17 @@ export async function createDependency(data) {
       last_updated,
       comments
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-      $11,$12,$13,$14,$15,$16,now(),$17
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,
+      $10,$11,$12,$13,$14,$15,$16,$17,$18,now(),$19
     )
     RETURNING *;
   `;
 
   const params = [
     data.dependency_id,
-    data.project_name,
+    data.manual_project_id || null,
+    data.project_description || null,
+    data.account || null,
     data.reported_date,
     data.reported_by,
     data.status,
@@ -117,31 +125,34 @@ export async function updateDependency(id, data) {
   const sql = `
     UPDATE dependencies SET
       dependency_id = $1,
-      project_name = $2,
-      reported_date = $3,
-      reported_by = $4,
-      status = $5,
-      priority = $6,
-      type = $7,
-      dependency_title = $8,
-      description = $9,
-      dependent_on = $10,
-      impact_if_not_resolved = $11,
-      required_by_date = $12,
-      current_status = $13,
-      follow_up_date = $14,
-      contact_person = $15,
-      contact_details = $16,
+      manual_project_id = $20,
+      project_description = $2,
+      account = $3,
+      reported_date = $4,
+      reported_by = $5,
+      status = $6,
+      priority = $7,
+      type = $8,
+      dependency_title = $9,
+      description = $10,
+      dependent_on = $11,
+      impact_if_not_resolved = $12,
+      required_by_date = $13,
+      current_status = $14,
+      follow_up_date = $15,
+      contact_person = $16,
+      contact_details = $17,
       last_updated = now(),
-      comments = $17,
+      comments = $18,
       updated_at = now()
-    WHERE id = $18
+    WHERE id = $19
     RETURNING *;
   `;
 
   const params = [
     data.dependency_id,
-    data.project_name,
+    data.project_description || null,
+    data.account || null,
     data.reported_date,
     data.reported_by,
     data.status,
@@ -157,22 +168,15 @@ export async function updateDependency(id, data) {
     data.contact_person || null,
     data.contact_details || null,
     data.comments || null,
-    id
+    id,
+    data.manual_project_id // $19
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (updated && String(updated.status).toLowerCase() === "resolved") {
-    await createResolutionNotification({
-      module: "dependency",
-      itemId: updated.id,
-      itemCode: updated.dependency_id,
-      statusBefore: data.previous_status || null,
-      statusAfter: "Resolved",
-      payload: updated,
-      bmUser: updated.reported_by,
-    });
+    // Notification handled in controller now
   }
 
   return updated;

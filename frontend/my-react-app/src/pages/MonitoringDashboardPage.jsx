@@ -3,39 +3,27 @@ import React, { useEffect, useState } from "react";
 import { fetchDashboardMetrics } from "../api/metricsApi";
 
 import KpiCard from "../components/KpiCard";
-import RiskPie from "../components/DonutChart";
-import PrioritySplitTable from "../components/PrioritySplitTable";
+import GlobalPriorityDonut from "../components/GlobalPriorityDonut";
 import StackedColumnChart from "../components/StackedColumnChart";
-import LineChart from "../components/LineChart";
-import GaugeChart from "../components/GaugeChart";
 import ActionCompletionChart from "../components/ActionCompletionChart";
-import SparklineCard from "../components/SparklineCard";
 import DashboardTable from "../components/DashboardTable";
 import RevealRow from "../components/RevealRow";
-
-const STATUS_BUCKETS = ["Open", "on-holding", "Resolved", "Cancelled"];
-// NOTE: “Approved & Closed” merged into “Resolved” (Option-A decision)
-
-const MODULES = ["Risk", "Issue", "Dependency", "Action", "Collection"];
-
-const normalizeStatus = (raw) => {
-  if (!raw) return "Open";
-  const s = raw.trim().toLowerCase();
-
-  if (s.includes("hold")) return "on-holding";
-  if (s === "approved & closed" || s === "closed" || s === "completed") return "Resolved";
-  if (s === "resolved") return "Resolved";
-  if (s === "cancelled") return "Cancelled";
-  return "Open";
-};
+import TrendMetricCard from "../components/TrendMetricCard"; // [NEW]
+import RiskTendencyChart from "../components/RiskTendencyChart"; // [NEW]
 
 const MonitoringDashboardPage = () => {
+  // Dashboard Global State (for KPIs/Trends that are shared)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Independent Widget State
+  const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
+  const [selectedActionYear, setSelectedActionYear] = useState(new Date().getFullYear());
+
   const [kpis, setKpis] = useState(null);
   const [moduleStatus, setModuleStatus] = useState([]);
   const [trendRisks, setTrendRisks] = useState([]);
-  const [weeklyActionCompletion, setWeeklyActionCompletion] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   const [feeds, setFeeds] = useState({
     risks: [],
     collections: [],
@@ -43,10 +31,8 @@ const MonitoringDashboardPage = () => {
     issues: [],
     actions: []
   });
-  const [pieData, setPieData] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  // New states for weekly action filter
+  // Action / Accident Filter State
   const [selectedActionWeek, setSelectedActionWeek] = useState(null);
   const [availableActionWeeks, setAvailableActionWeeks] = useState([]);
   const [weeklyActionStatus, setWeeklyActionStatus] = useState(null);
@@ -55,15 +41,22 @@ const MonitoringDashboardPage = () => {
   const [selectedActionMonth, setSelectedActionMonth] = useState("");
   const [availableActionMonths, setAvailableActionMonths] = useState([]);
 
-  // Fetch metrics when component mounts or year changes
-  // Fetch metrics when component mounts or year changes
+  // Priority Filter State (For Global Donut Controller)
+  const [selectedPriority, setSelectedPriority] = useState(null);
+
+  // [NEW] Task 2: Module Dropdown for Priority Boxes
+  const [selectedModule, setSelectedModule] = useState("Risk"); // Default to Risk or just first in list
+  const [priorityByModule, setPriorityByModule] = useState({});
+
+  // Fetch metrics when component mounts or state changes
   useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true);
         const res = await fetchDashboardMetrics({
-          year: selectedYear,
-          week_start: selectedActionWeek
+          year: selectedYear,         // Global context for KPIs
+          risk_year: selectedRiskYear,// Specific for Risk Chart
+          week_start: selectedActionWeek,
+          priority: selectedPriority
         });
 
         const data = res?.data || res;
@@ -71,24 +64,21 @@ const MonitoringDashboardPage = () => {
         // ---- KPI ROW ----
         setKpis({
           totalOpen: Number(data.total_open ?? 0),
-          totalInProgress: Number(data.inholding ?? 0),
+          totalInProgress: Number(data.total_on_hold ?? 0),
           totalClosed: Number(data.resolved ?? 0),
           totalItems: Number(data.total_items ?? 0),
           action_completion_percent: Number(data.action_completion_percent ?? 0),
 
           trend_collections: data.trend_collections || [],
           trend_closed: data.trend_closed || [],
-          trend_escalations: data.trend_escalations || []
+          trend_escalations: data.trend_escalations || [],
+          prioritySplit: data.priority_split || []
         });
 
-        // ---- PIE DATA ----
-        const formattedPie = (data.priority_split || []).map(p => ({
-          name: p.priority,
-          value: Number(p.count || p.value || 0),
-        }));
-        setPieData(formattedPie);
+        // ---- PRIORITY BY MODULE (Task 2) ----
+        setPriorityByModule(data.priority_by_module || {});
 
-        // ---- MONTHLY TREND ----
+        // ---- MONTHLY TREND (Now respects risk_year) ----
         const trends = (data.monthly_risk_trend || []).map(t => ({
           month: t.month,
           count: Number(t.count)
@@ -96,7 +86,6 @@ const MonitoringDashboardPage = () => {
         setTrendRisks(trends);
 
         // ---- WEEKLY ACTION COMPLETION ----
-        // NOW STATUS COUNTS
         setWeeklyActionStatus(data.weekly_action_status || null);
 
         // ---- FEEDS ----
@@ -109,7 +98,6 @@ const MonitoringDashboardPage = () => {
         });
 
         // ---- STATUS BY MODULE ----
-        // Use accurate counts from backend instead of building from 6 latest records
         const modStatusData = (data.module_status || []).filter(
           m => m.module !== "Collection"
         );
@@ -120,22 +108,18 @@ const MonitoringDashboardPage = () => {
         setAvailableYears(years);
 
         // ---- AVAILABLE ACTION WEEKS ----
-        // ---- AVAILABLE ACTION WEEKS ----
         const weeks = data.available_action_weeks || [];
         setAvailableActionWeeks(weeks);
 
         // Derive unique months from weeks
-        // Week Label format: "Week X — Month"
-        // But we want "Month Year". 
-        // Best to parse from 'value' (YYYY-MM-DD)
         const monthsSet = new Set();
         const monthOptions = [];
 
         weeks.forEach(w => {
           const d = new Date(w.value);
           if (!isNaN(d.getTime())) {
-            const mStr = d.toLocaleString('default', { month: 'short', year: 'numeric' }); // "Nov 2024"
-            const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; // "2024-11" for sorting/value
+            const mStr = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+            const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
             if (!monthsSet.has(mKey)) {
               monthsSet.add(mKey);
@@ -145,39 +129,44 @@ const MonitoringDashboardPage = () => {
         });
         setAvailableActionMonths(monthOptions);
 
-        // Initial Selection Logic
+        // Initial Selection Logic / Drilldown Helper
+        // Only run this if we have weeks and haven't selected anything yet, or if weeks change significantly
         let currentWeek = selectedActionWeek;
         let currentMonth = selectedActionMonth;
 
-        // If no week selected, use backend default
         if (!currentWeek && data.selected_action_week) {
           currentWeek = data.selected_action_week;
         }
 
-        // Sync Month with Week if needed
         if (currentWeek) {
           const d = new Date(currentWeek);
           if (!isNaN(d.getTime())) {
             const weekMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            // Only update month if it doesn't match current selection or if selection is empty
+            // If the selected week's month doesn't match current month filter, update month filter
             if (!currentMonth || currentMonth !== weekMonthKey) {
               currentMonth = weekMonthKey;
             }
           }
-        } else if (monthOptions.length > 0 && !currentMonth) {
-          // Fallback to first available month
-          currentMonth = monthOptions[0].value;
         }
 
+        // Update states if they changed during initialization logic
         if (currentWeek !== selectedActionWeek) setSelectedActionWeek(currentWeek);
         if (currentMonth !== selectedActionMonth) setSelectedActionMonth(currentMonth);
 
       } finally {
-        setLoading(false);
+        // loading state removed
       }
     };
     load();
-  }, [selectedYear, selectedActionWeek]);
+  }, [selectedYear, selectedRiskYear, selectedActionWeek, selectedPriority, selectedActionMonth]);
+
+
+  // Helper for Priority Boxes
+  const getPriorityCounts = () => {
+    if (!selectedModule || !priorityByModule[selectedModule]) return { Critical: 0, High: 0, Medium: 0, Low: 0 };
+    return priorityByModule[selectedModule];
+  };
+  const pCounts = getPriorityCounts();
 
   if (!kpis) return <div className="flex h-screen items-center justify-center bg-white"><p className="text-lg font-urbanist animate-pulse">Loading dashboard...</p></div>;
 
@@ -193,22 +182,85 @@ const MonitoringDashboardPage = () => {
         fontFamily: "Urbanist"
       }}
     >
-      {/* ROW 1 — KPIs + Donut */}
+      {/* ROW 1 — KPIs + Donut + Priority Boxes */}
       <RevealRow delay={0.0}>
-        <section style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: "24px" }}>
-          <div style={{ display: "flex", gap: "16px", justifyContent: "space-between" }}>
-            <KpiCard title="Total Open" value={kpis.totalOpen} />
-            <KpiCard title="On Hold" value={kpis.totalInProgress} />
-            <KpiCard title="Closed" value={kpis.totalClosed} />
-            <KpiCard title="Total Items" value={kpis.totalItems} />
+        <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+
+          {/* LEFT COLUMN: KPIs + BOXES */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* KPIs */}
+            <div style={{ display: "flex", gap: "16px", justifyContent: "space-between" }}>
+              <KpiCard title="Total Open" value={kpis.totalOpen} />
+              <KpiCard title="On Hold" value={kpis.totalInProgress} />
+              <KpiCard title="Closed" value={kpis.totalClosed} />
+              <KpiCard title="Total Items" value={kpis.totalItems} />
+            </div>
+
+            {/* PRIORITY BOXES (Task 2) */}
+            <div style={{
+              background: "#fff", padding: "20px", borderRadius: 12,
+              boxShadow: "0 6px 16px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", gap: 16
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>Priority Breakdown</h3>
+                <select
+                  value={selectedModule}
+                  onChange={(e) => setSelectedModule(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "1px solid #E5E7EB",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    outline: "none",
+                    cursor: "pointer",
+                    background: "#F9FAFB"
+                  }}
+                >
+                  <option value="Action">Action</option>
+                  <option value="Dependency">Dependency</option>
+                  <option value="Issue">Issue</option>
+                  <option value="Risk">Risk</option>
+                  <option value="Escalation">Escalation</option>
+                </select>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                {/* Critical */}
+                <div style={{ background: "#FEF2F2", padding: 12, borderRadius: 8, border: "1px solid #FEE2E2", textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: "#991B1B", fontWeight: 700, textTransform: "uppercase" }}>Critical</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#DC2626", marginTop: 4 }}>{pCounts.Critical || 0}</div>
+                </div>
+                {/* High */}
+                <div style={{ background: "#FFF7ED", padding: 12, borderRadius: 8, border: "1px solid #FFEDD5", textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: "#9A3412", fontWeight: 700, textTransform: "uppercase" }}>High</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#EA580C", marginTop: 4 }}>{pCounts.High || 0}</div>
+                </div>
+                {/* Medium */}
+                <div style={{ background: "#FFFBEB", padding: 12, borderRadius: 8, border: "1px solid #FEF3C7", textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: "#92400E", fontWeight: 700, textTransform: "uppercase" }}>Medium</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#D97706", marginTop: 4 }}>{pCounts.Medium || 0}</div>
+                </div>
+                {/* Low */}
+                <div style={{ background: "#ECFDF5", padding: 12, borderRadius: 8, border: "1px solid #D1FAE5", textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: "#065F46", fontWeight: 700, textTransform: "uppercase" }}>Low</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#059669", marginTop: 4 }}>{pCounts.Low || 0}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
+          {/* RIGHT COLUMN: DONUT */}
           <div style={{
-            background: "#fff", padding: 20, borderRadius: 12,
-            boxShadow: "0 6px 16px rgba(0,0,0,0.08)"
+            background: "#fff", padding: 0, borderRadius: 12,
+            boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+            overflow: "hidden"
           }}>
-            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Priority Split</h3>
-            <RiskPie data={pieData} />
+            <GlobalPriorityDonut
+              onPrioritySelect={setSelectedPriority}
+              selectedPriority={selectedPriority}
+              data={kpis?.prioritySplit || []}
+            />
           </div>
         </section>
       </RevealRow>
@@ -224,15 +276,15 @@ const MonitoringDashboardPage = () => {
         </section>
       </RevealRow>
 
-      {/* ROW 3 — RISK TREND + WEEKLY ACTION COMPLETION */}
+      {/* ROW 3 — RISK TENDENCY (Task 3) + ACCIDENT STATUS (Task 4) */}
       <RevealRow delay={0.30}>
         <section style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontWeight: 700 }}>Risk Trend</h3>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Risk Tendency</h3>
               <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                value={selectedRiskYear}
+                onChange={(e) => setSelectedRiskYear(Number(e.target.value))}
                 style={{
                   padding: "6px 10px",
                   borderRadius: 6,
@@ -241,8 +293,7 @@ const MonitoringDashboardPage = () => {
                   fontSize: 13,
                   fontWeight: 500,
                   cursor: "pointer",
-                  color: "#374151",
-                  fontFamily: "Urbanist"
+                  color: "#374151"
                 }}
               >
                 {availableYears.map(year => (
@@ -250,17 +301,19 @@ const MonitoringDashboardPage = () => {
                 ))}
               </select>
             </div>
-            <LineChart data={trendRisks} />
+            {/* NEW AREA CHART */}
+            <RiskTendencyChart data={trendRisks} />
           </div>
 
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              {/* RENAMED to Accident Status */}
               <h3 style={{ margin: 0, fontWeight: 700 }}>Action Status (Weekly)</h3>
               <div style={{ display: "flex", gap: 8 }}>
-                {/* YEAR SELECTOR FOR ACTIONS */}
+                {/* YEAR SELECTOR - Local Filter for Accidents */}
                 <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  value={selectedActionYear}
+                  onChange={(e) => setSelectedActionYear(Number(e.target.value))}
                   style={{
                     padding: "6px 10px",
                     borderRadius: 6,
@@ -270,7 +323,6 @@ const MonitoringDashboardPage = () => {
                     fontWeight: 500,
                     cursor: "pointer",
                     color: "#374151",
-                    fontFamily: "Urbanist",
                     maxWidth: 80
                   }}
                 >
@@ -279,74 +331,70 @@ const MonitoringDashboardPage = () => {
                   ))}
                 </select>
                 {/* MONTH SELECTOR */}
-                {availableActionMonths.length > 0 && (
-                  <select
-                    value={selectedActionMonth}
-                    onChange={(e) => {
-                      const newMonth = e.target.value;
-                      setSelectedActionMonth(newMonth);
-                      // Auto-select first week of new month
-                      const relevantWeeks = availableActionWeeks.filter(w => {
-                        const d = new Date(w.value);
-                        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        return mKey === newMonth;
-                      });
-                      if (relevantWeeks.length > 0) {
-                        setSelectedActionWeek(relevantWeeks[0].value);
-                      } else {
-                        setSelectedActionWeek("");
-                      }
-                    }}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                      border: "1px solid #D1D5DB",
-                      backgroundColor: "#fff",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      color: "#374151",
-                      fontFamily: "Urbanist",
-                      maxWidth: 110
-                    }}
-                  >
-                    {availableActionMonths.map(m => (
+                <select
+                  value={selectedActionMonth}
+                  onChange={(e) => {
+                    const newMonth = e.target.value;
+                    setSelectedActionMonth(newMonth);
+                    // Auto-select first week of new month
+                    const relevantWeeks = availableActionWeeks.filter(w => {
+                      const d = new Date(w.value);
+                      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      return mKey === newMonth;
+                    });
+                    if (relevantWeeks.length > 0) {
+                      setSelectedActionWeek(relevantWeeks[0].value);
+                    } else {
+                      setSelectedActionWeek("");
+                    }
+                  }}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "1px solid #D1D5DB",
+                    backgroundColor: "#fff",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    color: "#374151",
+                    maxWidth: 110
+                  }}
+                >
+                  {availableActionMonths.length > 0 ? availableActionMonths
+                    .filter(m => m.value.startsWith(String(selectedActionYear)))
+                    .map(m => (
                       <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                )}
+                    )) : <option>No Months</option>}
+                </select>
 
                 {/* WEEK SELECTOR */}
-                {availableActionWeeks.length > 0 && (
-                  <select
-                    value={selectedActionWeek || ""}
-                    onChange={(e) => setSelectedActionWeek(e.target.value)}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                      border: "1px solid #D1D5DB",
-                      backgroundColor: "#fff",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      color: "#374151",
-                      fontFamily: "Urbanist",
-                      maxWidth: 140
-                    }}
-                  >
-                    {/* Filter weeks by selected month */}
-                    {availableActionWeeks
-                      .filter(w => {
-                        if (!selectedActionMonth) return true;
-                        const d = new Date(w.value);
-                        const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        return mKey === selectedActionMonth;
-                      })
-                      .map(w => (
-                        <option key={w.value} value={w.value}>{w.label}</option>
-                      ))}
-                  </select>
-                )}
+                <select
+                  value={selectedActionWeek || ""}
+                  onChange={(e) => setSelectedActionWeek(e.target.value)}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    border: "1px solid #D1D5DB",
+                    backgroundColor: "#fff",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    color: "#374151",
+                    maxWidth: 140
+                  }}
+                >
+                  {availableActionWeeks.length > 0 ? availableActionWeeks
+                    .filter(w => {
+                      const d = new Date(w.value);
+                      if (d.getFullYear() !== selectedActionYear) return false;
+                      if (!selectedActionMonth) return true;
+                      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      return mKey === selectedActionMonth;
+                    })
+                    .map((w, idx) => (
+                      <option key={w.value} value={w.value}>Week {availableActionWeeks.length - idx}</option>
+                    )) : <option>No Weeks</option>}
+                </select>
               </div>
             </div>
             <ActionCompletionChart data={weeklyActionStatus} />
@@ -354,43 +402,50 @@ const MonitoringDashboardPage = () => {
         </section>
       </RevealRow>
 
-      {/* ROW 4 — SPARKLINES */}
+      {/* ROW 4 — TREND METRICS (Task 5) */}
       <RevealRow delay={0.45}>
         <section style={{
-          display: "flex", gap: 16, background: "#fff", padding: 20,
-          borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)"
+          display: "flex", gap: 16, width: '100%'
         }}>
-          <SparklineCard title="Collections Trend" data={kpis.trend_collections} color="#2A9D8F" />
-          <SparklineCard title="Issues Closed" data={kpis.trend_closed} color="#457B9D" />
-          <SparklineCard title="Escalations" data={kpis.trend_escalations} color="#E63946" />
+          <TrendMetricCard title="Collections Trend" data={kpis.trend_collections} color="#2A9D8F" />
+          <TrendMetricCard title="Issues Closed" data={kpis.trend_closed} color="#457B9D" />
+          <TrendMetricCard title="Escalations" data={kpis.trend_escalations} color="#E63946" />
         </section>
       </RevealRow>
 
-      {/* ROW 5 — TABLE FEEDS */}
+      {/* ROW 5 — TABLE FEEDS (Task 5 - Scrolling) */}
       <RevealRow delay={0.60}>
         <section style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
+
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
             <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Risks</h3>
-            <DashboardTable
-              data={feeds.risks}
-              columns={["risk_id", "risk_title", "priority", "status", "project_name", "identified_date"]}
-            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <DashboardTable
+                data={feeds.risks}
+                columns={["risk_id", "risk_title", "priority", "status", "account", "identified_date"]}
+              />
+            </div>
           </div>
 
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
             <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Collections Due</h3>
-            <DashboardTable
-              data={feeds.collections}
-              columns={["invoice_id", "customer_name", "outstanding_amount", "status", "days_overdue", "project_name"]}
-            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <DashboardTable
+                data={feeds.collections}
+                columns={["invoice_id", "customer_name", "outstanding_amount", "status", "days_overdue", "account"]}
+              />
+            </div>
           </div>
 
           <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
+            {/* Task 5: Showing all items with vertical scrolling - ensured by maxHeight container */}
             <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Issues</h3>
-            <DashboardTable
-              data={feeds.issues}
-              columns={["issue_id", "issue_title", "priority", "status", "project_name", "identified_date"]}
-            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <DashboardTable
+                data={feeds.issues}
+                columns={["issue_id", "issue_title", "priority", "status", "account", "identified_date"]}
+              />
+            </div>
           </div>
         </section>
       </RevealRow>

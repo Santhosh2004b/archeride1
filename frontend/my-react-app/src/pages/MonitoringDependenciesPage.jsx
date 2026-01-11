@@ -3,13 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchDependencies } from "../api/dependenciesApi";
-import { formatDisplayDate } from "../utils/dateFormat";
+import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 
 import { useNavigate } from "react-router-dom";
 import { FiFilter, FiSearch, FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { dependenciesFormConfig } from "../config/formConfig";
+import { Pen } from "phosphor-react";
 
 /* STATUS META (unchanged) */
 const getStatusMeta = (row) => {
@@ -37,6 +41,10 @@ function cleanParams(params) {
 }
 /* MAIN */
 const MonitoringDependenciesPage = () => {
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(dependenciesFormConfig?.fields || []);
+
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +53,7 @@ const MonitoringDependenciesPage = () => {
 
   // master filter set
   const [filters, setFilters] = useState({
-    project_name: "",
+    account: "",
     status: "",
     priority: "",
     type: "",
@@ -67,10 +75,17 @@ const MonitoringDependenciesPage = () => {
   const applyFiltersAndSearch = (data) => {
     let filtered = [...data];
 
-    // 1. Apply select filters
+    // 1. Account Filter
+    const pName = filters.account?.trim().toLowerCase();
+    if (pName) {
+      filtered = filtered.filter((row) =>
+        String(row.account ?? "").toLowerCase().includes(pName)
+      );
+    }
+
+    // 2. Select Filters
     const selectFilters = { ...filters };
-    const pName = selectFilters.project_name?.trim().toLowerCase();
-    delete selectFilters.project_name;
+    delete selectFilters.account;
     delete selectFilters.search;
 
     Object.entries(selectFilters).forEach(([key, value]) => {
@@ -80,13 +95,6 @@ const MonitoringDependenciesPage = () => {
         );
       }
     });
-
-    // 2. Project Name Filter
-    if (pName) {
-      filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
-      );
-    }
 
     // 3. Global Search
     if (globalSearch.trim()) {
@@ -98,8 +106,12 @@ const MonitoringDependenciesPage = () => {
       );
     }
 
-    // Sort by latest updated
-    filtered.sort((a, b) => new Date(b.last_updated || b.updated_at || b.created_at || 0) - new Date(a.last_updated || a.updated_at || a.created_at || 0));
+    // Sort by latest reported_date/last_updated
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.last_updated || a.reported_date || a.created_at || 0);
+      const dateB = new Date(b.last_updated || b.reported_date || b.created_at || 0);
+      return dateB - dateA;
+    });
 
     setRows(filtered);
   };
@@ -112,7 +124,8 @@ const MonitoringDependenciesPage = () => {
       q.search = ""; // Don't send search to backend
 
       let res = await fetchDependencies(q);
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      const data = (res && res.data) ? res.data : res;
+      const list = Array.isArray(data) ? data : [];
 
       setAllRows(list);
       applyFiltersAndSearch(list);
@@ -126,8 +139,25 @@ const MonitoringDependenciesPage = () => {
     }
   };
 
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("dependencies");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(dependenciesFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(dependenciesFormConfig?.fields || []);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadLayout();
   }, []);
 
   // Re-filter when filters or search change (live)
@@ -147,7 +177,7 @@ const MonitoringDependenciesPage = () => {
 
   const handleClear = () => {
     const cleared = {
-      project_name: "",
+      account: "",
       status: "",
       priority: "",
       type: "",
@@ -162,12 +192,8 @@ const MonitoringDependenciesPage = () => {
     setGlobalSearch("");
   };
 
-
-
   /* TABLE COLS */
-  const columns = rows[0]
-    ? ["status", ...Object.keys(rows[0]).filter((c) => c !== "status")]
-    : [];
+  const columns = dependenciesFormConfig?.fields || [];
 
   return (
     <motion.div
@@ -188,6 +214,16 @@ const MonitoringDependenciesPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
+
       </motion.div>
 
       {/* ROW 1 — main filters */}
@@ -204,9 +240,9 @@ const MonitoringDependenciesPage = () => {
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleChange}
               className="rounded-lg border w-full px-3 py-2 text-xs sm:text-sm pr-9"
             />
@@ -298,7 +334,7 @@ const MonitoringDependenciesPage = () => {
                 <tr>
                   <th className="px-4 py-2.5 text-xs font-semibold uppercase w-12">S.No</th>
                   {columns.map((c) => (
-                    <th key={c} className="px-4 py-2.5 text-xs font-semibold uppercase">{c}</th>
+                    <th key={c.name} className="px-4 py-2.5 text-xs font-semibold uppercase">{c.name === "manual_project_id" ? "Project ID" : c.label}</th>
                   ))}
 
                 </tr>
@@ -310,14 +346,14 @@ const MonitoringDependenciesPage = () => {
                     <tr key={row.id} className={`${m?.rowClass || ""} border-b`}>
                       <td className="px-4 py-2 whitespace-nowrap font-semibold w-12">{idx + 1}</td>
                       {columns.map((c) => (
-                        <td key={c} className="px-4 py-2 whitespace-nowrap">
-                          {c.toLowerCase() === "status" && m
+                        <td key={c.name} className="px-4 py-2 whitespace-nowrap">
+                          {c.name.toLowerCase() === "status" && m
                             ? <span className="inline-flex items-center gap-2">
                               <span className={`status-dot ${m.dotClass}`} />{m.label}
                             </span>
-                            : c.toLowerCase().includes("date") || c.toLowerCase().includes("_at")
-                              ? formatDisplayDate(row[c], true)
-                              : String(row[c] ?? "")}
+                            : (c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at"))
+                              ? formatDateOnly(row[c.name])
+                              : String(row[c.name] ?? "")}
                         </td>
                       ))}
 
@@ -337,6 +373,20 @@ const MonitoringDependenciesPage = () => {
           </div>
         )}
       </motion.div>
+
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("dependencies", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };

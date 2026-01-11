@@ -16,15 +16,16 @@ export default function useMonitoringExport(moduleKey, rows) {
       const safeUser =
         (user?.email || user?.username || "anonymous").replace(/[@.]/g, "_");
 
+      const workboardName = moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1);
       window.__EXPORT_DATA__[moduleKey] = {
         rows,
-        fileName: `monitoring_${moduleKey}_${safeUser}`,
+        fileName: `${workboardName}_Workboard_Data`,
       };
     }
 
     // 🔥 THE IMPORTANT PART 🔥
     // **React thinks cleanup returns something called destroy**
     // so we explicitly return a NO-OP function
-    return () => {}; // <- prevents destroy(runtimeValue)
+    return () => { }; // <- prevents destroy(runtimeValue)
   }, [moduleKey, rows, user]);
 }

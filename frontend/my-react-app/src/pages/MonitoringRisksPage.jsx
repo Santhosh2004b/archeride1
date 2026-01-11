@@ -1,15 +1,19 @@
 // ---------------- MODIFIED MonitoringRisksPage.jsx (as requested) ----------------
 
 import React, { useEffect, useState } from "react";
-import { formatDisplayDate } from "../utils/dateFormat";
+import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
 import { motion } from "framer-motion";
 import { fetchRisks } from "../api/risksApi";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { risksFormConfig } from "../config/formConfig";
 
 import { useNavigate } from "react-router-dom";
 import { FiSearch, FiFilter, FiX, FiPlus, FiRotateCcw } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import { Pen } from "phosphor-react";
 
 /* ===================================================
    STATUS → UI META (unchanged)
@@ -38,9 +42,13 @@ const MonitoringRisksPage = () => {
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]); // Store unfiltered data
 
+  // Layout Builder state
+  const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
+  const [layoutFields, setLayoutFields] = useState(risksFormConfig?.fields || []);
+
   // only fields you requested
   const [filters, setFilters] = useState({
-    project_name: "",
+    account: "",
     status: "",
     priority: "",
     category: "",
@@ -79,12 +87,20 @@ const MonitoringRisksPage = () => {
   const applyFiltersAndSearch = (data) => {
     let filtered = [...data];
 
-    // 1. Apply Select Filters
-    const activeFilters = { ...filters };
-    const pName = activeFilters.project_name?.trim().toLowerCase();
-    delete activeFilters.project_name;
+    // 1. Account Filter
+    const pName = filters.account?.trim().toLowerCase();
+    if (pName) {
+      filtered = filtered.filter((row) =>
+        String(row.account ?? "").toLowerCase().includes(pName)
+      );
+    }
 
-    Object.entries(activeFilters).forEach(([key, value]) => {
+    // 2. Select Filters
+    const selectFilters = { ...filters };
+    delete selectFilters.account;
+    delete selectFilters.search;
+
+    Object.entries(selectFilters).forEach(([key, value]) => {
       if (value) {
         filtered = filtered.filter((row) =>
           String(row[key] ?? "").toLowerCase() === String(value).toLowerCase()
@@ -92,14 +108,7 @@ const MonitoringRisksPage = () => {
       }
     });
 
-    // 2. Apply Project Name Filter
-    if (pName) {
-      filtered = filtered.filter((row) =>
-        String(row.project_name ?? "").toLowerCase().includes(pName)
-      );
-    }
-
-    // 3. Apply Global Search
+    // 3. Global Search
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
       filtered = filtered.filter((row) =>
@@ -109,12 +118,35 @@ const MonitoringRisksPage = () => {
       );
     }
 
+    // Sort by latest identified_date/last_updated
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.last_updated || a.identified_date || a.created_at || 0);
+      const dateB = new Date(b.last_updated || b.identified_date || b.created_at || 0);
+      return dateB - dateA;
+    });
+
     setRows(filtered);
   };
 
   useEffect(() => {
     loadData();
+    loadLayout();
   }, []);
+
+  // Load layout configuration
+  const loadLayout = async () => {
+    try {
+      const serverLayout = await getLayoutApi("risks");
+      if (serverLayout && Array.isArray(serverLayout)) {
+        setLayoutFields(serverLayout);
+      } else {
+        setLayoutFields(risksFormConfig?.fields || []);
+      }
+    } catch (err) {
+      console.warn("No custom layout found, using default");
+      setLayoutFields(risksFormConfig?.fields || []);
+    }
+  };
 
   // Re-filter when filters or global search change (live)
   useEffect(() => {
@@ -130,7 +162,7 @@ const MonitoringRisksPage = () => {
 
   const handleClear = () => {
     const cleared = {
-      project_name: "",
+      account: "",
       status: "",
       priority: "",
       category: "",
@@ -154,9 +186,7 @@ const MonitoringRisksPage = () => {
   /* ======================================================
      TABLE COLUMNS
   ====================================================== */
-  const columns = rows[0]
-    ? ["project_name", "status", ...Object.keys(rows[0]).filter((c) => !["project_name", "status"].includes(c))]
-    : [];
+  const columns = risksFormConfig?.fields || [];
 
   const cfg = filterConfig.risks.fields;
 
@@ -179,6 +209,16 @@ const MonitoringRisksPage = () => {
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
+        {/* Customize Form Button */}
+        <button
+          onClick={() => setShowLayoutBuilder(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+          title="Customize Form Layout"
+        >
+          <Pen size={18} weight="bold" />
+          Customize Form
+        </button>
+
       </motion.div>
 
       {/* ======================================================
@@ -192,13 +232,13 @@ const MonitoringRisksPage = () => {
       >
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 flex-1">
-          {/* project_name with filter icon */}
+          {/* account with filter icon */}
           <div className="relative">
             <input
               type="text"
-              name="project_name"
-              placeholder="Project Name"
-              value={filters.project_name}
+              name="account"
+              placeholder="Account"
+              value={filters.account}
               onChange={handleFilterChange}
               className="w-full rounded-lg border px-3 py-2 text-xs sm:text-sm pr-8 font-urbanist"
             />
@@ -206,7 +246,7 @@ const MonitoringRisksPage = () => {
           </div>
 
           {/* other filters */}
-          {cfg.filter((f) => f.name !== "project_name").map((f) => (
+          {cfg.filter((f) => f.name !== "account").map((f) => (
             f.type === "select" && (
               <select
                 key={f.name}
@@ -289,7 +329,9 @@ const MonitoringRisksPage = () => {
               <tr>
                 <th className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase w-12">S.No</th>
                 {columns.map((c) => (
-                  <th key={c} className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase">{c}</th>
+                  <th key={c.name} className="px-4 py-2.5 text-xs font-semibold text-brandMuted uppercase">
+                    {c.name === "manual_project_id" ? "Project ID" : c.label}
+                  </th>
                 ))}
 
               </tr>
@@ -301,16 +343,16 @@ const MonitoringRisksPage = () => {
                   <tr key={row.id} className={`${meta?.rowClass || ""} border-b`}>
                     <td className="px-4 py-2 whitespace-nowrap font-semibold text-brandMuted w-12">{idx + 1}</td>
                     {columns.map((c) => (
-                      <td key={c} className="px-4 py-2 whitespace-nowrap">
-                        {c.toLowerCase() === "status" && meta ? (
+                      <td key={c.name} className="px-4 py-2 whitespace-nowrap">
+                        {c.name.toLowerCase() === "status" && meta ? (
                           <span className="inline-flex items-center gap-2">
                             <span className={`status-dot ${meta.dotClass}`} />
                             {meta.label}
                           </span>
-                        ) : c.toLowerCase().includes("date") || c.toLowerCase().includes("_at") ? (
-                          formatDisplayDate(row[c], true)
+                        ) : c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at") ? (
+                          formatDateOnly(row[c.name])
                         ) : (
-                          String(row[c] ?? "")
+                          String(row[c.name] ?? "")
                         )}
                       </td>
                     ))}
@@ -330,8 +372,22 @@ const MonitoringRisksPage = () => {
           </table>
         )}
       </motion.div>
+
+      {/* Layout Builder Modal */}
+      {showLayoutBuilder && (
+        <LayoutBuilder
+          fields={layoutFields}
+          onClose={() => setShowLayoutBuilder(false)}
+          onSave={async (newLayout) => {
+            await saveLayoutApi("risks", newLayout);
+            setLayoutFields(newLayout);
+            setShowLayoutBuilder(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
 
 export default MonitoringRisksPage;
+

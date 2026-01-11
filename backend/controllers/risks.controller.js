@@ -1,11 +1,6 @@
 // backend/controllers/risks.controller.js
-import { buildRiskFilters } from "../utils/filters.utils.js";
-function toYYYYMMDD(date) {
-  if (!date) return null;
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
-}
+import { buildRiskFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
+import { getAssignedProjects } from "../models/users.model.js";
 import {
   findRisks,
   findRiskById,
@@ -14,29 +9,23 @@ import {
 } from "../models/risks.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
-import { updateRiskStatus } from "../models/risks.model.js";
-import pool from "../db.js";   // ✅ ADD THIS LINE
-
 import { decideNotification } from "../models/notifications.model.js";
+
+function toYYYYMMDD(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
 /* ============================
    LIST RISKS (BM vs ADMIN)
    ============================ */
 export async function listRisks(req, res) {
   try {
     const user = req.user;
-    const filters = buildRiskFilters(req.query);
-
-    // 🔐 BM / PM → only own risks
-    if (user.role !== "ADMIN") {
-      filters.whereSql += filters.whereSql
-        ? " AND r.created_by = $X"
-        : " WHERE r.created_by = $X";
-      filters.params.push(user.id);
-      filters.whereSql = filters.whereSql.replace(
-        "$X",
-        `$${filters.params.length}`
-      );
-    }
+    const augmentedQuery = await applyRoleRestrictions(user, req.query);
+    const filters = buildRiskFilters(augmentedQuery);
 
     const rows = await findRisks(filters);
     return sendSuccess(res, rows);
@@ -54,10 +43,9 @@ export async function getRisk(req, res) {
     const risk = await findRiskById(req.params.id);
     if (!risk) return sendError(res, 404, "Risk not found");
 
-    // 🔐 Ownership check
-    if (req.user.role !== "ADMIN" && risk.created_by !== req.user.id) {
-      return sendError(res, 403, "Forbidden");
-    }
+    // 🔐 Project access check
+    // Access check by project_id disabled
+    return sendSuccess(res, risk);
 
     return sendSuccess(res, risk);
   } catch (err) {
@@ -75,7 +63,7 @@ export async function createRiskHandler(req, res) {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.risk_id = await generateEntityId(
         req.user.email,
-        req.body.project_name || "Default",
+        req.body.account || "Default",
         "risk"
       );
     }
@@ -88,15 +76,26 @@ export async function createRiskHandler(req, res) {
     ];
     const payload = {
       ...req.body,
-      project_name: req.body.project_name,
       created_by: req.user.id,
+      identified_by: req.body.identified_by || req.user.email, // Default to current user
     };
     dateFields.forEach((field) => {
-      if (payload[field]) payload[field] = toYYYYMMDD(payload[field]);
-      else payload[field] = null;
+      if (payload[field]) {
+        payload[field] = toYYYYMMDD(payload[field]);
+      } else {
+        // Default identified_date to NOW if missing (required by DB)
+        if (field === "identified_date") {
+          payload[field] = toYYYYMMDD(new Date());
+        } else {
+          payload[field] = null;
+        }
+      }
     });
     // Allow null for all optional fields
     [
+      "manual_project_id",
+      "project_description",
+      "account",
       "risk_score",
       "mitigation_strategy",
       "mitigation_owner",
@@ -128,9 +127,8 @@ export async function updateRiskHandler(req, res) {
       return sendError(res, 404, "Risk not found");
     }
 
-    if (req.user.role !== "ADMIN" && existing.created_by !== req.user.id) {
-      return sendError(res, 403, "Forbidden");
-    }
+    // 🔐 Project access check for update
+    // Access check by project_id disabled
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
@@ -142,7 +140,6 @@ export async function updateRiskHandler(req, res) {
 
     const updated = await updateRisk(id, {
       ...payload,
-      project_name: payload.project_name,
     });
 
 
@@ -155,7 +152,7 @@ export async function updateRiskHandler(req, res) {
         statusBefore: oldStatus,
         statusAfter: newStatus,
         payload: {
-          project_name: existing.project_name,
+          account: existing.account, manual_project_id: existing.manual_project_id,
           priority: updated.priority,
           category: updated.category,
           risk_title: updated.risk_title,
@@ -171,6 +168,7 @@ export async function updateRiskHandler(req, res) {
     return sendError(res, 500, "Failed to update risk");
   }
 }
+
 export async function decideRiskResolution(req, res) {
   try {
     const { notificationId } = req.params;
@@ -194,4 +192,3 @@ export async function decideRiskResolution(req, res) {
     return sendError(res, 500, "Failed to process decision");
   }
 }
-

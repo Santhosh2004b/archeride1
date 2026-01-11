@@ -4,8 +4,10 @@ import {
   getEscalation,
   createEscalationHandler,
   updateEscalationHandler,
-  decideEscalationResolution,  // ✅ ADD THIS
+  decideEscalationResolution,
+  resolveEscalation
 } from "../controllers/escalations.controller.js";
+import upload from "../config/multer.config.js";
 
 const router = Router();
 router.get("/", listEscalations);
@@ -13,5 +15,6 @@ router.get("/:id", getEscalation);
 router.post("/", createEscalationHandler);
 router.put("/:id", updateEscalationHandler);
 router.post("/decisions/:notificationId", decideEscalationResolution);
+router.post("/:id/resolve", upload.array("documents", 5), resolveEscalation);
 
 export default router;

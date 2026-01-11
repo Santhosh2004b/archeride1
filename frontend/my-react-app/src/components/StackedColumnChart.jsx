@@ -4,11 +4,11 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
-const STATUS_ORDER = ["Open", "Inholding", "Resolved", "Cancelled", "Approved & Closed"];
+const STATUS_ORDER = ["Open", "On Hold", "Resolved", "Cancelled", "Approved & Closed"];
 
 const COLORS = {
   Open: "#E63946",
-  Inholding: "#FB8500",
+  "On Hold": "#FB8500",
   Resolved: "#457B9D",
   Cancelled: "#8D99AE",
   "Approved & Closed": "#1EA896",

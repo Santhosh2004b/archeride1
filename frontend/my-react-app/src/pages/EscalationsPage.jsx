@@ -50,7 +50,7 @@ function EscalationsPage() {
                   <tr>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Edit</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">ID</th>
-                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project</th>
+                    <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Project ID</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Status</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Priority</th>
                     <th className="px-3 sm:px-4 py-2.5 text-[11px] sm:text-xs font-semibold text-brandMuted uppercase tracking-wide whitespace-nowrap">Title</th>
@@ -72,7 +72,7 @@ function EscalationsPage() {
                         </button>
                       </td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.escalation_id}</td>
-                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.project_name}</td>
+                      <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.manual_project_id}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.status}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.priority}</td>
                       <td className="px-3 sm:px-4 py-2 text-[11px] sm:text-sm whitespace-nowrap">{e.title}</td>

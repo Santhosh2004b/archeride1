@@ -12,8 +12,10 @@ export async function findAppreciations({ whereSql = "", params = [] } = {}) {
     SELECT
       a.id,
       a.appreciation_id,
-      a.project_name,
-
+      a.manual_project_id,
+      a.project_id,
+      a.project_description,
+      a.account,
       a.received_date,
       a.recorded_by,
       a.customer_name,
@@ -22,20 +24,16 @@ export async function findAppreciations({ whereSql = "", params = [] } = {}) {
       a.subject,
       a.details,
       a.team_members_recognized,
-
       CASE
         WHEN a.team_members_recognized IS NULL OR a.team_members_recognized = ''
         THEN 0
         ELSE array_length(string_to_array(a.team_members_recognized, ','), 1)
       END AS team_members_count,
-
       a.shared_with_team,
       a.follow_up_action,
       a.comments,
-
       a.created_at,
       a.updated_at
-
     FROM appreciations a
     ${whereSql}
     ORDER BY a.received_date DESC, a.created_at DESC
@@ -52,8 +50,10 @@ export async function findAppreciationById(id) {
     SELECT
       a.id,
       a.appreciation_id,
-      a.project_name,
-
+      a.manual_project_id,
+      a.project_id,
+      a.project_description,
+      a.account,
       a.received_date,
       a.recorded_by,
       a.customer_name,
@@ -62,19 +62,16 @@ export async function findAppreciationById(id) {
       a.subject,
       a.details,
       a.team_members_recognized,
-
       CASE
         WHEN a.team_members_recognized IS NULL OR a.team_members_recognized = ''
         THEN 0
         ELSE array_length(string_to_array(a.team_members_recognized, ','), 1)
       END AS team_members_count,
-
       a.shared_with_team,
       a.follow_up_action,
       a.comments,
       a.created_at,
       a.updated_at
-
     FROM appreciations a
     WHERE a.id = $1
   `;
@@ -89,7 +86,10 @@ export async function createAppreciation(data) {
   const sql = `
    INSERT INTO appreciations (
   appreciation_id,
-  project_name,
+  manual_project_id,
+  project_id,
+  project_description,
+  account,
   received_date,
   recorded_by,
   customer_name,
@@ -104,32 +104,37 @@ export async function createAppreciation(data) {
   comments
 ) VALUES (
   $1::text,
-  $2::text,
-  $3::date,
+  $16::text,
+  $2::uuid,
+  $3::text,
   $4::text,
-  $5::text,
+  $5::date,
   $6::text,
   $7::text,
   $8::text,
   $9::text,
   $10::text,
-  $11::boolean,
+  $11::text,
   $12::text,
+  $13::boolean,
+  $14::text,
   now(),
-  $13::text
+  $15::text
 )
 RETURNING *,
   CASE
-    WHEN $10::text IS NULL OR $10::text = ''
+    WHEN $12::text IS NULL OR $12::text = ''
     THEN 0
-    ELSE array_length(string_to_array($10::text, ','), 1)
+    ELSE array_length(string_to_array($12::text, ','), 1)
   END as team_members_count;
 
   `;
 
   const params = [
     data.appreciation_id,
-    data.project_name,
+    (data.project_id && data.project_id !== "") ? data.project_id : null,
+    data.project_description || null,
+    data.account || null,
     data.received_date,
     data.recorded_by,
     data.customer_name,
@@ -140,7 +145,8 @@ RETURNING *,
     data.team_members_recognized || null,
     data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
-    data.comments || null
+    data.comments || null,
+    data.manual_project_id // $16
   ];
 
   const { rows } = await pool.query(sql, params);
@@ -154,32 +160,37 @@ export async function updateAppreciation(id, data) {
   const sql = `
     UPDATE appreciations SET
       appreciation_id = $1::text,
-      project_name = $2::text,
-      received_date = $3::date,
-      recorded_by = $4::text,
-      customer_name = $5::text,
-      customer_contact = $6::text,
-      appreciation_type = $7::text,
-      subject = $8::text,
-      details = $9::text,
-      team_members_recognized = $10::text,
+      manual_project_id = $16::text,
+      project_id = $2::uuid,
+      project_description = $3::text,
+      account = $4::text,
+      received_date = $5::date,
+      recorded_by = $6::text,
+      customer_name = $7::text,
+      customer_contact = $8::text,
+      appreciation_type = $9::text,
+      subject = $10::text,
+      details = $11::text,
+      team_members_recognized = $12::text,
       team_members_count = CASE
-        WHEN $10::text IS NULL OR $10::text = ''
+        WHEN $12::text IS NULL OR $12::text = ''
         THEN 0
-        ELSE array_length(string_to_array($10::text, ','), 1)
+        ELSE array_length(string_to_array($12::text, ','), 1)
       END,
-      shared_with_team = $11::boolean,
-      follow_up_action = $12::text,
+      shared_with_team = $13::boolean,
+      follow_up_action = $14::text,
       last_updated = now(),
-      comments = $13::text,
+      comments = $15::text,
       updated_at = now()
-    WHERE id = $14::uuid
+    WHERE id = $17::uuid
     RETURNING *;
   `;
 
   const params = [
     data.appreciation_id,
-    data.project_name,
+    (data.project_id && data.project_id !== "") ? data.project_id : null,
+    data.project_description || null,
+    data.account || null,
     data.received_date,
     data.recorded_by,
     data.customer_name,
@@ -191,7 +202,8 @@ export async function updateAppreciation(id, data) {
     data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
     data.comments || null,
-    id
+    data.manual_project_id, // $16
+    id // $17
   ];
 
   const { rows } = await pool.query(sql, params);

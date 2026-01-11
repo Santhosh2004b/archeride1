@@ -13,7 +13,16 @@ export function exportToExcel({ rows, fileName }) {
   const normalizedRows = rows.map((row) => {
     const obj = {};
     columns.forEach((key) => {
-      obj[key] = row[key] ?? "";
+      const val = row[key];
+      if (Array.isArray(val)) {
+        // e.g. documents: [{file_name: 'a.pdf'}, {file_name: 'b.pdf'}]
+        // map to string
+        obj[key] = val.map(v => v.file_name || v.name || JSON.stringify(v)).join(", ");
+      } else if (typeof val === 'object' && val !== null) {
+        obj[key] = JSON.stringify(val);
+      } else {
+        obj[key] = val ?? "";
+      }
     });
     return obj;
   });

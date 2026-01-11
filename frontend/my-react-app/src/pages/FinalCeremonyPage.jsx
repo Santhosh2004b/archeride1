@@ -88,7 +88,7 @@ const FinalCeremonyPage = () => {
 
                 {/* Final CTA */}
                 <div className="mt-32 pb-20 animate-fade-in" style={{ animationDelay: '2.5s' }}>
-                    <p className="text-white/60 mb-10 font-light italic tracking-widest uppercase text-sm">Step into the future of ArcheRIDE</p>
+                    <p className="text-white/60 mb-10 font-light italic tracking-widest uppercase text-sm">Step into the future of Arche.RIDE</p>
                     <button onClick={handleFinish} className="intro-btn px-20 py-6 text-xl font-black tracking-[0.2em] hover:scale-105 transition-all shadow-xl">
                         Complete Ceremony
                     </button>

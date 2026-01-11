@@ -2,11 +2,11 @@
 // Phase-6 — Added scroll, S.No column, sorting by last_updated DESC
 
 import React, { useMemo } from "react";
-import { formatDisplayDate } from "../utils/dateFormat";
+import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
 
 const STATUS_COLORS = {
   Open: "#E63946",        // red
-  Inholding: "#FB8500",   // orange
+  "On Hold": "#FB8500",   // orange
   "In Progress": "#FB8500", // orange (alt)
   Resolved: "#457B9D",    // blue
   "Approved & Closed": "#1EA896", // teal
@@ -139,24 +139,23 @@ const DashboardTable = ({ data = [], columns = [] }) => {
                   <td
                     key={col}
                     style={{
-                      padding: "8px 10px", // slightly more compact
-                      whiteSpace: "normal", // allow wrap to fit content
+                      padding: "8px 10px",
+                      whiteSpace: "normal",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      maxWidth: 160, // Limit width to prevent blowout
-                      minWidth: 100, // Ensure readability
-                      color:
-                        row.status === "Overdue" || row.priority === "High" || row.priority === "Critical"
-                          ? "#E63946"
-                          : "#1A1A1A",
-                      fontSize: 12, // consistent with header
+                      maxWidth: 160,
+                      minWidth: 100,
+                      color: "#1A1A1A", // Default text color
+                      fontSize: 12,
                       lineHeight: "1.4",
                     }}
                     title={String(row[col] ?? "")}
                   >
-                    {col.toLowerCase().includes("date") || col.toLowerCase().includes("_at")
-                      ? formatDisplayDate(row[col], true)
-                      : (row[col] ?? "-")}
+                    {col.toLowerCase().includes("date") && !col.toLowerCase().includes("at")
+                      ? formatDateOnly(row[col]) // Use date only for date fields
+                      : col.toLowerCase().includes("_at")
+                        ? formatDisplayDate(row[col], true) // Keep timestamps for system fields
+                        : (row[col] ?? "-")}
                   </td>
                 ))}
               </tr>
