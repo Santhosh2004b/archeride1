@@ -8,6 +8,7 @@ import EscalationResolutionModal from "../components/EscalationResolutionModal";
 import LayoutBuilder from "../components/LayoutBuilder";
 import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
 import { Pen, SlidersHorizontal } from "phosphor-react";
+import SuccessNotification from "../components/SuccessNotification";
 
 const toDateInputValue = (value) => {
   if (!value) return "";
@@ -58,6 +59,7 @@ const WorkboardPage = ({
   const [projectSearch, setProjectSearch] = useState("");
   const [projectResults, setProjectResults] = useState([]);
   const [showResolutionModal, setShowResolutionModal] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
 
   // Layout Builder State
   const [layoutFields, setLayoutFields] = useState([]);
@@ -159,6 +161,13 @@ const WorkboardPage = ({
 
       setEditingId(null);
       setFormData({});
+
+      // Reload data to ensure new record appears in list
+      await loadData();
+
+      // Trigger Success Notification
+      setShowSuccessNotification(true);
+
       // Navigate back to view mode. The useEffect on editId=null will trigger loadData()
       navigate(`${location.pathname}?mode=view`);
     } catch (err) {
@@ -300,11 +309,7 @@ const WorkboardPage = ({
           className="px-8 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded hover:bg-gray-800 transition-all shadow-sm hover:shadow-md transform active:scale-95 flex items-center gap-2"
         >
           <span>ADD NEW</span>
-          {rows.length > 0 && (
-            <span className="bg-white text-black px-1.5 py-0.5 rounded-full text-[10px] min-w-[20px] text-center">
-              {rows.length}
-            </span>
-          )}
+
         </button>
       </header>
 
@@ -499,6 +504,10 @@ const WorkboardPage = ({
           loadData();
           navigate(`/modules/${moduleKey}`);
         }}
+      />
+      <SuccessNotification
+        isOpen={showSuccessNotification}
+        onClose={() => setShowSuccessNotification(false)}
       />
       {
         showLayoutBuilder && (

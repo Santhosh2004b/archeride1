@@ -5,15 +5,20 @@ import { fetchDashboardMetrics } from "../api/metricsApi";
 import KpiCard from "../components/KpiCard";
 import GlobalPriorityDonut from "../components/GlobalPriorityDonut";
 import StackedColumnChart from "../components/StackedColumnChart";
-import ActionCompletionChart from "../components/ActionCompletionChart";
 import DashboardTable from "../components/DashboardTable";
 import RevealRow from "../components/RevealRow";
 import TrendMetricCard from "../components/TrendMetricCard"; // [NEW]
-import RiskTendencyChart from "../components/RiskTendencyChart"; // [NEW]
+import SystemAnalytics from "../components/SystemAnalytics"; // [NEW]
+
 
 const MonitoringDashboardPage = () => {
   // Dashboard Global State (for KPIs/Trends that are shared)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Isolated state for System Analytics section
+  const [analyticsYear, setAnalyticsYear] = useState(new Date().getFullYear());
+  const [analyticsTrendCreated, setAnalyticsTrendCreated] = useState([]);
+  const [analyticsTrendClosed, setAnalyticsTrendClosed] = useState([]);
 
   // Independent Widget State
   const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
@@ -160,6 +165,21 @@ const MonitoringDashboardPage = () => {
     load();
   }, [selectedYear, selectedRiskYear, selectedActionWeek, selectedPriority, selectedActionMonth]);
 
+  // Fetch isolated data for System Analytics when its specific year changes
+  useEffect(() => {
+    const loadAnalyticsData = async () => {
+      try {
+        const res = await fetchDashboardMetrics({ year: analyticsYear });
+        const data = res?.data || res;
+        setAnalyticsTrendCreated(data.trend_created || []);
+        setAnalyticsTrendClosed(data.trend_closed || []);
+      } catch (error) {
+        console.error("Failed to load analytics data", error);
+      }
+    };
+    loadAnalyticsData();
+  }, [analyticsYear]);
+
 
   // Helper for Priority Boxes
   const getPriorityCounts = () => {
@@ -276,131 +296,7 @@ const MonitoringDashboardPage = () => {
         </section>
       </RevealRow>
 
-      {/* ROW 3 — RISK TENDENCY (Task 3) + ACCIDENT STATUS (Task 4) */}
-      <RevealRow delay={0.30}>
-        <section style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
-          <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontWeight: 700 }}>Risk Tendency</h3>
-              <select
-                value={selectedRiskYear}
-                onChange={(e) => setSelectedRiskYear(Number(e.target.value))}
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 6,
-                  border: "1px solid #D1D5DB",
-                  backgroundColor: "#fff",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  color: "#374151"
-                }}
-              >
-                {availableYears.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-            {/* NEW AREA CHART */}
-            <RiskTendencyChart data={trendRisks} />
-          </div>
 
-          <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              {/* RENAMED to Accident Status */}
-              <h3 style={{ margin: 0, fontWeight: 700 }}>Action Status (Weekly)</h3>
-              <div style={{ display: "flex", gap: 8 }}>
-                {/* YEAR SELECTOR - Local Filter for Accidents */}
-                <select
-                  value={selectedActionYear}
-                  onChange={(e) => setSelectedActionYear(Number(e.target.value))}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    border: "1px solid #D1D5DB",
-                    backgroundColor: "#fff",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    color: "#374151",
-                    maxWidth: 80
-                  }}
-                >
-                  {availableYears.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                {/* MONTH SELECTOR */}
-                <select
-                  value={selectedActionMonth}
-                  onChange={(e) => {
-                    const newMonth = e.target.value;
-                    setSelectedActionMonth(newMonth);
-                    // Auto-select first week of new month
-                    const relevantWeeks = availableActionWeeks.filter(w => {
-                      const d = new Date(w.value);
-                      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                      return mKey === newMonth;
-                    });
-                    if (relevantWeeks.length > 0) {
-                      setSelectedActionWeek(relevantWeeks[0].value);
-                    } else {
-                      setSelectedActionWeek("");
-                    }
-                  }}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    border: "1px solid #D1D5DB",
-                    backgroundColor: "#fff",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    color: "#374151",
-                    maxWidth: 110
-                  }}
-                >
-                  {availableActionMonths.length > 0 ? availableActionMonths
-                    .filter(m => m.value.startsWith(String(selectedActionYear)))
-                    .map(m => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    )) : <option>No Months</option>}
-                </select>
-
-                {/* WEEK SELECTOR */}
-                <select
-                  value={selectedActionWeek || ""}
-                  onChange={(e) => setSelectedActionWeek(e.target.value)}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    border: "1px solid #D1D5DB",
-                    backgroundColor: "#fff",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    color: "#374151",
-                    maxWidth: 140
-                  }}
-                >
-                  {availableActionWeeks.length > 0 ? availableActionWeeks
-                    .filter(w => {
-                      const d = new Date(w.value);
-                      if (d.getFullYear() !== selectedActionYear) return false;
-                      if (!selectedActionMonth) return true;
-                      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                      return mKey === selectedActionMonth;
-                    })
-                    .map((w, idx) => (
-                      <option key={w.value} value={w.value}>Week {availableActionWeeks.length - idx}</option>
-                    )) : <option>No Weeks</option>}
-                </select>
-              </div>
-            </div>
-            <ActionCompletionChart data={weeklyActionStatus} />
-          </div>
-        </section>
-      </RevealRow>
 
       {/* ROW 4 — TREND METRICS (Task 5) */}
       <RevealRow delay={0.45}>
@@ -411,6 +307,21 @@ const MonitoringDashboardPage = () => {
           <TrendMetricCard title="Issues Closed" data={kpis.trend_closed} color="#457B9D" />
           <TrendMetricCard title="Escalations" data={kpis.trend_escalations} color="#E63946" />
         </section>
+      </RevealRow>
+
+      {/* ROW 4.5 — SYSTEM ANALYTICS (New) */}
+      <RevealRow delay={0.55}>
+        <SystemAnalytics
+          kpis={kpis}
+          feeds={feeds}
+          moduleStatus={moduleStatus}
+          trendRisks={trendRisks}
+          trendCreated={analyticsTrendCreated}
+          trendClosed={analyticsTrendClosed}
+          matrixYear={analyticsYear}
+          setMatrixYear={setAnalyticsYear}
+          availableYears={availableYears}
+        />
       </RevealRow>
 
       {/* ROW 5 — TABLE FEEDS (Task 5 - Scrolling) */}

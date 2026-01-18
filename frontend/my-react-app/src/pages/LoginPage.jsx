@@ -8,8 +8,8 @@ import loginVideo from "../assets/login-hero.mp4";
 import "../styles/LoginPage.css";
 
 function LoginPage() {
-  const [email, setEmail] = useState("bm@example.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -39,7 +39,7 @@ function LoginPage() {
       if (role === "ADMIN") {
         navigate("/monitoring", { replace: true });
       } else if (role === "BM" || role === "PM") {
-        navigate("/modules/risks?mode=edit", { replace: true });
+        navigate("/modules/risks?mode=view", { replace: true });
       } else {
         setError("Your role is not authorized for this portal.");
         navigate("/login", { replace: true });
@@ -110,6 +110,7 @@ function LoginPage() {
           )}
 
           <form
+            autoComplete="off"
             onSubmit={handleSubmit}
             className={`space-y-6 rounded-2xl shadow-2xl border px-8 py-10 transition-all duration-700 backdrop-blur-xl ${theme === "dark"
               ? "bg-[#050509]/60 border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
@@ -120,6 +121,7 @@ function LoginPage() {
             <div className="space-y-2">
               <label className={`block text-[10px] font-bold uppercase tracking-widest ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Email</label>
               <input
+                autoComplete="off"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -135,6 +137,7 @@ function LoginPage() {
               <label className={`block text-[10px] font-bold uppercase tracking-widest ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Password</label>
               <div className="relative">
                 <input
+                  autoComplete="new-password"
                   type={showPass ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

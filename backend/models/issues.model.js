@@ -39,7 +39,7 @@ export async function findIssues({ whereSql = "", params = [] } = {}) {
     FROM issues i
     -- LEFT JOIN users u ON i.created_by = u.id
     ${whereSql}
-    ORDER BY i.reported_date DESC, i.created_at DESC
+    ORDER BY i.created_at DESC, i.reported_date DESC
   `;
   const { rows } = await pool.query(sql, params);
   return rows;

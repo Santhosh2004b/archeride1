@@ -40,7 +40,7 @@ export async function findDependencies({ whereSql = "", params = [] } = {}) {
     FROM dependencies d
     -- LEFT JOIN users u ON d.created_by = u.id
     ${whereSql}
-    ORDER BY d.reported_date DESC, d.created_at DESC
+    ORDER BY d.created_at DESC, d.reported_date DESC
   `;
   const { rows } = await pool.query(sql, params);
   return rows;

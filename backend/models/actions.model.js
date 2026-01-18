@@ -32,7 +32,7 @@ export async function findActionsByUser(email) {
       a.updated_at
     FROM actions a
     WHERE a.created_by = $1
-    ORDER BY a.created_at DESC
+    ORDER BY a.created_at DESC, a.created_date DESC
   `;
   const { rows } = await pool.query(sql, [email]);
   return rows;

@@ -98,9 +98,9 @@ const MainLayout = ({ children }) => {
     // BM / PM: modules (edit)
     if (user.role === "BM" || user.role === "PM") {
       if (item.key === "dashboard") {
-        navigate("/modules/risks?mode=edit");
+        navigate("/modules/risks?mode=view");
       } else {
-        navigate(`/modules/${item.key}?mode=edit`);
+        navigate(`/modules/${item.key}?mode=view`);
       }
       return;
     }

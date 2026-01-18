@@ -182,7 +182,18 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
                     </>
                 )}
             </div>
-        </div>
+
+            {/* INSTRUCTION TEXT */}
+            {
+                !loading && chartData.length > 0 && (
+                    <div className="mt-4 text-center">
+                        <p className="text-[10px] text-gray-400 font-urbanist italic">
+                            Click on specific priority levels (Low, High, etc.) to filter and track their contribution to the overall total.
+                        </p>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

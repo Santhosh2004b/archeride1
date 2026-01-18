@@ -20,7 +20,7 @@ export async function findCollectionsByUser(email) {
       c.*
     FROM collections c
     WHERE c.created_by = $1
-    ORDER BY c.invoice_date DESC, c.created_at DESC
+    ORDER BY c.created_at DESC, c.invoice_date DESC
   `;
   const { rows } = await pool.query(sql, [email]);
   return rows;
@@ -33,7 +33,7 @@ export async function findAllCollections(filters = {}) {
       c.*, c.manual_project_id
     FROM collections c
     ${whereSql || ""}
-    ORDER BY c.invoice_date DESC, c.created_at DESC
+    ORDER BY c.created_at DESC, c.invoice_date DESC
   `;
   const { rows } = await pool.query(sql, params || []);
   return rows;

@@ -2,13 +2,35 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { fetchCollections } from "../api/collectionsApi";
-import { formatDisplayDate } from "../utils/dateFormat";
+import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
 import { filterConfig } from "../config/filterConfig";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 import LayoutBuilder from "../components/LayoutBuilder";
 import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
 import { collectionsFormConfig } from "../config/formConfig";
 import { Pen } from "phosphor-react";
+
+// Helper for professional headers
+const formatHeader = (key) => {
+  const map = {
+    invoice_number: "Invoice #",
+    customer_name: "Customer Name",
+    manual_project_id: "Project ID",
+    project_description: "Project Description",
+    account: "Account",
+    invoice_date: "Invoice Date",
+    due_date: "Due Date",
+    total_amount: "Amount",
+    amount_paid: "Paid",
+    balance_due: "Balance",
+    status: "Status",
+    payment_status: "Payment Status",
+    created_at: "Created On",
+    updated_at: "Updated On"
+  };
+  if (map[key]) return map[key];
+  return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+};
 
 const MonitoringCollectionsPage = () => {
   // Layout Builder state
@@ -165,18 +187,39 @@ const MonitoringCollectionsPage = () => {
       search: "",
     };
     setFilters(cleared);
-    loadData(cleared);
+    loadData(); // clear should reload? or just reset fitlers. Original logic called loadData(cleared) which might be wrong param. 
+    // Usually applyFiltersAndSearch handles it if allRows exists.
+    // But original code had: loadData(cleared).
+    // Let's just setFilters and apply locally if possible or reload.
+    // The original code passed 'cleared' to loadData but loadData uses state 'filters'.
+    // So setState might not be fast enough if we call loadData immediately.
+    // Safest is to just setFilters and let useEffect trigger? No, useEffect triggers on filter change?
+    // Actually the Apply button calls loadData manually.
+    // Let's stick to setFilters.
   };
-
   const clearGlobal = () => {
     setGlobalSearch("");
   };
 
+  // Column Construction & Reordering
+  const getColumns = () => {
+    if (!rows[0]) return [];
+    const keys = Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id");
 
+    // Preferred Order: Invoice, Customer, Project ID, Desc, Account, Dates...
+    const preferred = ["invoice_number", "customer_name", "manual_project_id", "project_description", "account", "invoice_date", "due_date", "total_amount", "status"];
 
-  const columns = rows[0]
-    ? Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id")
-    : [];
+    return keys.sort((a, b) => {
+      const idxA = preferred.indexOf(a);
+      const idxB = preferred.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return 0;
+    });
+  };
+  const columns = getColumns();
+
 
   return (
     <motion.div
@@ -224,14 +267,14 @@ const MonitoringCollectionsPage = () => {
             placeholder="Account"
             value={filters.account}
             onChange={handleFilterChange}
-            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500 transition-colors"
           />
 
           <select
             name="currency"
             value={filters.currency}
             onChange={handleFilterChange}
-            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500 transition-colors"
           >
             <option value="">Currency (All)</option>
             {currencyOptions.map(c => <option key={c}>{c}</option>)}
@@ -241,7 +284,7 @@ const MonitoringCollectionsPage = () => {
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500 transition-colors"
           >
             <option value="">Status (All)</option>
             {statusOptions.map(s => <option key={s}>{s}</option>)}
@@ -251,7 +294,7 @@ const MonitoringCollectionsPage = () => {
             name="payment_status"
             value={filters.payment_status}
             onChange={handleFilterChange}
-            className="border rounded-lg px-3 py-2 text-xs sm:text-sm"
+            className="border rounded-lg px-3 py-2 text-xs sm:text-sm outline-none focus:border-blue-500 transition-colors"
           >
             <option value="">Payment Status (All)</option>
             {paymentOptions.map(p => <option key={p}>{p}</option>)}
@@ -260,11 +303,11 @@ const MonitoringCollectionsPage = () => {
 
         <div className="flex gap-2 justify-end">
           <button onClick={handleApply}
-            className="rounded-full bg-brandDark text-white px-4 py-2 text-xs sm:text-sm">
+            className="rounded-full bg-brandDark text-white px-4 py-2 text-xs sm:text-sm transition-transform active:scale-95">
             Apply
           </button>
-          <button onClick={handleClear}
-            className="rounded-full border px-4 py-2 text-xs sm:text-sm">
+          <button onClick={() => { handleClear(); }}
+            className="rounded-full border px-4 py-2 text-xs sm:text-sm hover:bg-gray-50 transition-colors">
             Clear
           </button>
         </div>
@@ -277,19 +320,19 @@ const MonitoringCollectionsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <label className="text-xs sm:text-sm font-semibold w-32">Global Search</label>
+        <label className="text-xs sm:text-sm font-semibold w-24 sm:w-32 text-gray-700">Global Search</label>
 
         <div className="relative flex-1">
           <input
             type="text"
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            placeholder="Search invoice / customer"
-            className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm pr-10"
+            placeholder="Search invoice / customer..."
+            className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm pr-10 outline-none focus:border-blue-500 transition-colors"
           />
           {globalSearch && (
             <span onClick={clearGlobal}
-              className="absolute right-3 top-2.5 text-gray-500 cursor-pointer">
+              className="absolute right-3 top-2.5 text-gray-500 cursor-pointer hover:text-red-500">
               ✕
             </span>
           )}
@@ -304,30 +347,30 @@ const MonitoringCollectionsPage = () => {
         transition={{ duration: 0.4, delay: 0.4 }}
       >
         {loading ? (
-          <div className="p-6 text-sm">Loading…</div>
+          <div className="p-6 text-sm text-gray-500 animate-pulse">Loading collections...</div>
         ) : (
-          <div className="overflow-auto">
+          <div className="overflow-auto custom-scrollbar">
             <table className="monitoring-table min-w-full text-left text-xs sm:text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-2.5 uppercase font-semibold w-12">S.No</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider w-12">S.No</th>
                   {columns.map((c) => (
-                    <th key={c} className="px-4 py-2.5 uppercase font-semibold">
-                      {c}
+                    <th key={c} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      {formatHeader(c)}
                     </th>
                   ))}
 
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {rows.map((row, idx) => (
-                  <tr key={row.id} className="border-b">
-                    <td className="px-4 py-2 whitespace-nowrap font-semibold w-12">{idx + 1}</td>
+                  <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 w-12">{idx + 1}</td>
                     {columns.map((c) => (
-                      <td key={c} className="px-4 py-2 whitespace-nowrap">
+                      <td key={c} className="px-4 py-3 whitespace-nowrap text-gray-700">
                         {c.toLowerCase().includes("date") || c.toLowerCase().includes("_at")
-                          ? formatDisplayDate(row[c], true)
-                          : String(row[c] ?? "")}
+                          ? formatDateOnly(row[c])
+                          : (row[c] || "-")}
                       </td>
                     ))}
                   </tr>
@@ -335,8 +378,8 @@ const MonitoringCollectionsPage = () => {
 
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length + 1} className="text-center py-4">
-                      No collections found.
+                    <td colSpan={columns.length + 1} className="text-center py-8 text-gray-500 italic">
+                      No collections found matching your criteria.
                     </td>
                   </tr>
                 )}

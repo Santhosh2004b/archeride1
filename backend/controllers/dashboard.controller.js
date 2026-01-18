@@ -229,11 +229,9 @@ export async function getDashboardMetrics(req, res) {
     // Dependencies
     const latest_dependencies = (await pool.query(`SELECT dependency_id, dependency_title, priority, status, updated_at FROM dependencies ${latestWhere} ORDER BY updated_at DESC`, latestParams)).rows;
 
-    // Collections
-    let latest_collections = [];
-    if (!priorityParam) {
-      latest_collections = (await pool.query(`SELECT invoice_id, customer_name, outstanding_amount, status, days_overdue, account, updated_at FROM collections ORDER BY updated_at DESC`)).rows;
-    }
+    // Collections - ALWAYS FETCH (Task 5 requirement: Show regardless of priority)
+    const latest_collections = (await pool.query(`SELECT invoice_id, customer_name, outstanding_amount, status, days_overdue, account, updated_at FROM collections ORDER BY updated_at DESC`)).rows;
+
 
     // ---------------------------------------------------------
     // ACTION (ACCIDENT) STATUS & WEEKLY STATUS LOGIC
@@ -365,6 +363,35 @@ export async function getDashboardMetrics(req, res) {
       trend_closed = Array(12).fill({ value: 0 });
     }
 
+    // Trend Created (Aggregated from all - for Resolution Efficiency Matrix)
+    let trend_created = [];
+    try {
+      const res = await pool.query(`
+        SELECT EXTRACT(MONTH FROM created_date)::INT as m, COUNT(*) as c
+        FROM (
+          SELECT identified_date as created_date FROM risks WHERE identified_date IS NOT NULL
+          UNION ALL SELECT reported_date as created_date FROM issues WHERE reported_date IS NOT NULL
+          UNION ALL SELECT created_date FROM actions WHERE created_date IS NOT NULL
+          UNION ALL SELECT reported_date as created_date FROM dependencies WHERE reported_date IS NOT NULL
+          UNION ALL SELECT reported_date as created_date FROM escalations WHERE reported_date IS NOT NULL
+          UNION ALL SELECT invoice_date as created_date FROM collections WHERE invoice_date IS NOT NULL
+        ) as t
+        WHERE EXTRACT(YEAR FROM created_date) = $1
+        GROUP BY m
+        ORDER BY m ASC
+      `, [selectedYear]);
+
+      const counts = [];
+      for (let i = 1; i <= 12; i++) {
+        const found = res.rows.find(r => r.m === i);
+        counts.push({ value: found ? Number(found.c) : 0 });
+      }
+      trend_created = counts;
+    } catch (e) {
+      console.error("Trend created error", e);
+      trend_created = Array(12).fill({ value: 0 });
+    }
+
     return res.json({
       total_open: total_open,
       total_on_hold: total_on_hold,
@@ -377,6 +404,7 @@ export async function getDashboardMetrics(req, res) {
       selected_year: selectedYear,
       trend_collections,
       trend_closed,
+      trend_created, // [NEW]
       trend_escalations,
       action_completion_percent,
       weekly_action_status,

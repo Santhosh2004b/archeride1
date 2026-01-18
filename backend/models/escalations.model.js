@@ -45,7 +45,7 @@ export async function findEscalations({ whereSql = "", params = [] } = {}) {
       ) as documents
     FROM escalations e
     ${whereSql}
-    ORDER BY e.reported_date DESC, e.created_at DESC
+    ORDER BY e.created_at DESC, e.reported_date DESC
   `;
   const { rows } = await pool.query(sql, params);
   return rows;

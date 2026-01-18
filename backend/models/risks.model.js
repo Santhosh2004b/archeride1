@@ -39,7 +39,7 @@ export async function findRisks({ whereSql = "", params = [] } = {}) {
     FROM risks r
     LEFT JOIN users u ON r.created_by = u.id
     ${whereSql}
-    ORDER BY r.identified_date DESC, r.created_at DESC
+    ORDER BY r.created_at DESC, r.identified_date DESC
   `;
 
   const { rows } = await pool.query(sql, params);

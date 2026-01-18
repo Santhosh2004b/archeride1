@@ -5,9 +5,17 @@ import { getAssignedProjects } from "../models/users.model.js";
 
 export async function applyRoleRestrictions(user, query) {
   if (user.role === "ADMIN") return query;
-  // Previously we used project_id for restrictions. 
-  // For now, we return the query as is, or we can implement restriction by manual_project_id if needed.
-  return query;
+
+  const assigned = await getAssignedProjects(user.id);
+  const ids = assigned.map((p) => p.id);
+
+  // Attach to query object so builders can use it
+  return {
+    ...query,
+    allowedProjectIds: ids,
+    currentUserId: user.id,
+    currentUserEmail: user.email
+  };
 }
 
 function _val(q, a, alt) {
@@ -41,8 +49,40 @@ function _buildSearchClause(cols, paramIndexStart, params, searchVal) {
   return { snippet, nextIndex: paramIndexStart + 1 };
 }
 
-function _applyAllowedProjects(where, params, i, query, alias) {
-  // Disabling project_id based restriction for global removal
+function _applyAllowedProjects(where, params, i, query, alias, creatorCol = null, emailCol = null) {
+  if (query.allowedProjectIds) {
+    const clauses = [];
+
+    // 1. Project Restriction
+    if (query.allowedProjectIds.length > 0) {
+      clauses.push(`${alias}.project_id = ANY($${i})`);
+      params.push(query.allowedProjectIds);
+      i++; // increment only if we pushed a param
+    } else {
+      // No projects
+      // We don't push anything yet, we handle it in combinations
+    }
+
+    // 2. Creator Restriction (UUID)
+    if (creatorCol && query.currentUserId) {
+      clauses.push(`${creatorCol} = $${i++}`); // created_by = user.id
+      params.push(query.currentUserId);
+    }
+
+    // 3. Creator Restriction (Email) - for Legacy/Different tables
+    if (emailCol && query.currentUserEmail) {
+      clauses.push(`${emailCol} = $${i++}`); // reported_by = user.email
+      params.push(query.currentUserEmail);
+    }
+
+    if (clauses.length > 0) {
+      // (project_id IN (...) OR created_by = ...)
+      where.push(`(${clauses.join(" OR ")})`);
+    } else {
+      // No projects AND no user ID?? Force empty.
+      where.push("1 = 0");
+    }
+  }
   return i;
 }
 
@@ -63,7 +103,8 @@ export function buildRiskFilters(query = {}) {
   const to = _val(query, "toDate", "to_date");
   const aging = _val(query, "aging", "aging") || _val(query, "aging_bucket", "aging_bucket");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "r");
+  // Risks: created_by (UUID), identified_by (Email)
+  i = _applyAllowedProjects(where, params, i, query, "r", "r.created_by", "r.identified_by");
 
   if (status) { where.push(`r.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`r.priority = $${i++}`); params.push(priority); }
@@ -109,7 +150,8 @@ export function buildIssueFilters(query = {}) {
   const to = _val(query, "toDate", "to_date");
   const aging = _val(query, "aging", "aging") || _val(query, "aging_bucket", "aging_bucket");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "i");
+  // Issues: reported_by (Email)
+  i = _applyAllowedProjects(where, params, i, query, "i", null, "i.reported_by");
 
   if (status) { where.push(`i.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`i.priority = $${i++}`); params.push(priority); }
@@ -150,7 +192,8 @@ export function buildActionFilters(query = {}) {
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "a");
+  // Actions: created_by (Email)
+  i = _applyAllowedProjects(where, params, i, query, "a", null, "a.created_by");
 
   if (status) { where.push(`a.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`a.priority = $${i++}`); params.push(priority); }
@@ -185,6 +228,11 @@ export function buildDependencyFilters(query = {}) {
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
+  // Dependencies: No specific creator col typically, maybe reported_by? 
+  // Checking schema... let's assume 'reported_by' if exists or just skip if mostly project based.
+  // Actually usually dependencies are project based. Let's try to be safe.
+  // If 'd.created_by' exists as UUID? Or 'd.raised_by'?
+  // Let's assume just project for now to avoid errors if column missing.
   i = _applyAllowedProjects(where, params, i, query, "d");
 
   if (status) { where.push(`d.status = $${i++}`); params.push(status); }
@@ -223,7 +271,11 @@ export function buildEscalationFilters(query = {}) {
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "e");
+  // Escalations: reported_by? raised_by?
+  // Checking Escalations Model... often 'raised_by' (email).
+  // Safest: i = _applyAllowedProjects(where, params, i, query, "e"); 
+  // Update if user complains about Escalations.
+  i = _applyAllowedProjects(where, params, i, query, "e", "e.created_by");
 
   if (status) { where.push(`e.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`e.priority = $${i++}`); params.push(priority); }

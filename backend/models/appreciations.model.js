@@ -36,7 +36,7 @@ export async function findAppreciations({ whereSql = "", params = [] } = {}) {
       a.updated_at
     FROM appreciations a
     ${whereSql}
-    ORDER BY a.received_date DESC, a.created_at DESC
+    ORDER BY a.created_at DESC, a.received_date DESC
   `;
   const { rows } = await pool.query(sql, params);
   return rows;
