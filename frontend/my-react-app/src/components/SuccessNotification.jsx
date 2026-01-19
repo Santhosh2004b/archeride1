@@ -1,40 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkle, Check } from 'phosphor-react';
-
-const QUOTES = [
-    "Excellence has been recorded.",
-    "Your vision is secured.",
-    "Another milestone achieved.",
-    "Data successfully archived.",
-    "Your impact is now logged.",
-    "Seamlessly saved to the core.",
-    "Precision locked in.",
-    "Greatness is in the details.",
-    "Update captured perfectly."
-];
+import { Check } from 'phosphor-react';
 
 const SuccessNotification = ({ isOpen, onClose }) => {
-    const [quote, setQuote] = useState("");
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
-            // Pick a random quote
-            setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
-
             // Show immediately
             // Small delay to allow render before opacity transition
             requestAnimationFrame(() => setVisible(true));
 
-            // Schedule fade out
+            // Schedule fade out (Fast!)
             const fadeTimer = setTimeout(() => {
                 setVisible(false);
-            }, 4500); // Start fading out at 4.5s
+            }, 1000); // Start fading out at 1.0s
 
             // Schedule close (unmount/hide)
             const closeTimer = setTimeout(() => {
                 onClose();
-            }, 5000); // Fully gone at 5s
+            }, 1500); // Fully gone at 1.5s
 
             return () => {
                 clearTimeout(fadeTimer);
@@ -53,27 +37,18 @@ const SuccessNotification = ({ isOpen, onClose }) => {
             ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
         `}
         >
-            <div className="bg-[#1a1a1a] text-white px-8 py-4 rounded-xl shadow-2xl flex items-center gap-5 border border-gray-800 relative overflow-hidden group">
+            <div className="bg-[#1a1a1a] text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4 border border-gray-800 relative overflow-hidden">
 
-                {/* Animated Background Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer" />
-
-                <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-2.5 rounded-lg shadow-lg">
-                    <Sparkle size={24} weight="fill" className="text-white animate-pulse" />
+                {/* Green Check Icon */}
+                <div className="bg-green-500 p-1.5 rounded-full shadow-lg flex items-center justify-center">
+                    <Check size={16} weight="bold" className="text-white" />
                 </div>
 
                 <div className="flex flex-col">
-                    <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400 mb-1 font-urbanist">
-                        System Update
-                    </h4>
-                    <p className="text-lg font-marcellus font-medium text-white tracking-wide leading-none pb-1">
-                        {quote}
+                    <p className="text-sm font-bold font-urbanist text-white tracking-wide leading-none">
+                        Successfully Saved
                     </p>
                 </div>
-
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-8 h-8 rounded-bl-full bg-white/5" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 rounded-tr-full bg-blue-500/10" />
             </div>
         </div>
     );

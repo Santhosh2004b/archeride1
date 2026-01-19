@@ -9,8 +9,7 @@ import { createResolutionNotification } from "../models/notifications.model.js";
 /* ============================
    LIST ESCALATIONS
    ============================ */
-export async function findEscalations({ whereSql = "", params = [] } = {}) {
-  const sql = `
+const sql = `
     SELECT
       e.id,
       e.escalation_id,
@@ -35,7 +34,7 @@ export async function findEscalations({ whereSql = "", params = [] } = {}) {
       e.preventive_actions,
       e.last_updated,
       e.comments,
-      e.created_by,
+      u.email as created_by,
       e.created_at,
       e.updated_at,
       (
@@ -44,11 +43,12 @@ export async function findEscalations({ whereSql = "", params = [] } = {}) {
         WHERE ed.escalation_id = e.id
       ) as documents
     FROM escalations e
+    LEFT JOIN users u ON e.created_by = u.id
     ${whereSql}
     ORDER BY e.created_at DESC, e.reported_date DESC
   `;
-  const { rows } = await pool.query(sql, params);
-  return rows;
+const { rows } = await pool.query(sql, params);
+return rows;
 }
 
 /* ============================
@@ -56,13 +56,14 @@ export async function findEscalations({ whereSql = "", params = [] } = {}) {
    ============================ */
 export async function findEscalationById(id) {
   const sql = `
-    SELECT e.*,
+    SELECT e.*, u.email as created_by,
       (
         SELECT json_agg(json_build_object('id', ed.id, 'file_name', ed.file_name, 'file_path', ed.file_path, 'uploaded_by', ed.uploaded_by, 'uploaded_at', ed.uploaded_at))
         FROM escalation_documents ed
         WHERE ed.escalation_id = e.id
       ) as documents
     FROM escalations e
+    LEFT JOIN users u ON e.created_by = u.id
     WHERE e.id = $1
   `;
   const { rows } = await pool.query(sql, [id]);

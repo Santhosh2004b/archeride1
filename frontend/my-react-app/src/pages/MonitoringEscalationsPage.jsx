@@ -185,11 +185,38 @@ const MonitoringEscalationsPage = () => {
 
 
   /* COLUMNS */
-  const columns = rows[0]
-    ? ["status", ...Object.keys(rows[0]).filter(c =>
+  const getSortedColumns = () => {
+    if (!rows[0]) return [];
+
+    // Always start with Status
+    const keys = Object.keys(rows[0]).filter(c =>
       c !== "status" && c !== "id" && c !== "project_id"
-    )]
-    : [];
+    );
+
+    const preferred = ["escalation_id", "created_by", "reported_by", "manual_project_id", "title", "account"];
+    const creatorKeys = ["created_by", "reported_by"];
+
+    const sorted = keys.sort((a, b) => {
+      // 1. Exact match in preferred list
+      const idxA = preferred.indexOf(a);
+      const idxB = preferred.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+
+      // 2. Creator keys if not in preferred (fallback)
+      const isCreatorA = creatorKeys.includes(a);
+      const isCreatorB = creatorKeys.includes(b);
+      if (isCreatorA && !isCreatorB) return -1;
+      if (!isCreatorA && isCreatorB) return 1;
+
+      return 0;
+    });
+
+    return ["status", ...sorted];
+  };
+
+  const columns = getSortedColumns();
 
   return (
     <motion.div

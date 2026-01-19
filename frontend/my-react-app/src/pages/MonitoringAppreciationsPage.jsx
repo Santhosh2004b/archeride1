@@ -122,8 +122,8 @@ const MonitoringAppreciationsPage = () => {
     if (!rows[0]) return [];
     const keys = Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id");
 
-    // Preferred Order: ID, Project ID, Desc, Account, Date...
-    const preferred = ["appreciation_id", "manual_project_id", "project_description", "account", "received_date"];
+    // Preferred Order: ID, Creator, Project ID, Desc, Account, Date...
+    const preferred = ["appreciation_id", "recorded_by", "manual_project_id", "project_description", "account", "received_date"];
 
     return keys.sort((a, b) => {
       const idxA = preferred.indexOf(a);

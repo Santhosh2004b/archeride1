@@ -117,8 +117,6 @@ export async function updateIssueHandler(req, res) {
     const existing = await findIssueById(id);
     if (!existing) return sendError(res, 404, "Issue not found");
 
-    // Access check by project_id disabled
-
     const payload = { ...req.body };
     payload.reported_date = payload.reported_date || payload.identified_date || existing.reported_date;
 
@@ -131,7 +129,35 @@ export async function updateIssueHandler(req, res) {
     delete payload.identified_date;
     delete payload.identified_by;
 
+    const oldStatus = existing.status;
+    const newStatus = payload.status;
+
     const updated = await updateIssueModel(id, payload);
+
+    // Notification Logic for "Resolved" status
+    const normalize = (s) => s?.trim().toLowerCase();
+    const becameResolved =
+      normalize(oldStatus) !== "resolved" &&
+      normalize(newStatus) === "resolved";
+
+    if (becameResolved && req.user?.email) {
+      await createResolutionNotification({
+        module: "issue",
+        itemId: updated.id,
+        itemCode: updated.issue_id,
+        statusBefore: oldStatus,
+        statusAfter: newStatus,
+        payload: {
+          account: existing.account, manual_project_id: existing.manual_project_id,
+          priority: updated.priority,
+          category: updated.category,
+          issue_title: updated.issue_title,
+          reported_date: updated.reported_date,
+        },
+        bmUser: req.user.email,
+      });
+    }
+
     return sendSuccess(res, updated);
   } catch (err) {
     console.error("Error updating issue", err);

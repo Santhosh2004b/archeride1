@@ -271,7 +271,44 @@ const WorkboardPage = ({
   }, [editId]);
 
   const columnsToHide = ["id", "project_id", "created_at", "updated_at"];
-  const columns = rows[0] ? Object.keys(rows[0]).filter(c => !columnsToHide.includes(c)) : [];
+
+  const getSortedColumns = () => {
+    if (!rows[0]) return [];
+
+    const keys = Object.keys(rows[0]).filter(c => !columnsToHide.includes(c));
+
+    // Sort implementation:
+    // 1. Module ID (e.g. risk_id, issue_id)
+    // 2. Creator (created_by, reported_by, recorded_by)
+    // 3. Project ID (manual_project_id)
+    // 4. Others
+
+    const creatorKeys = ["created_by", "reported_by", "recorded_by", "raised_by"];
+
+    return keys.sort((a, b) => {
+      // Rule 1: Module ID comes first (ends with _id but not project_id/manual_project_id, or is specific known IDs)
+      const isIdA = a.endsWith("_id") && !a.includes("project_id");
+      const isIdB = b.endsWith("_id") && !b.includes("project_id");
+
+      if (isIdA && !isIdB) return -1;
+      if (!isIdA && isIdB) return 1;
+
+      // Rule 2: Creator comes second
+      const isCreatorA = creatorKeys.includes(a);
+      const isCreatorB = creatorKeys.includes(b);
+
+      if (isCreatorA && !isCreatorB) return -1;
+      if (!isCreatorA && isCreatorB) return 1;
+
+      // Rule 3: Manual Project ID comes third (optional, but good practice)
+      if (a === "manual_project_id" && b !== "manual_project_id") return -1;
+      if (a !== "manual_project_id" && b === "manual_project_id") return 1;
+
+      return 0; // Keep original order for others
+    });
+  };
+
+  const columns = getSortedColumns();
 
   return (
     <div className="p-8 text-brandDark">
@@ -322,9 +359,9 @@ const WorkboardPage = ({
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50 border-b">
-                    <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Actions</th>
                     {columns.map(col => (
-                      <th key={col} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">
+                      <th key={col} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
                         {col === "manual_project_id" ? "Project ID" : col.replace(/_/g, ' ')}
                       </th>
                     ))}
@@ -335,7 +372,7 @@ const WorkboardPage = ({
                     const rowId = row.id || row.issue_id || row.risk_id || row.action_id || row.dependency_id || row.escalation_id || row.appreciation_id || row.collection_id;
                     return (
                       <tr key={rowId} className={`${getStatusRowClass(row.status || row.current_status)} border-b hover:bg-opacity-80 transition-colors text-sm`}>
-                        <td className="px-6 py-3 font-medium">
+                        <td className="px-6 py-3 font-medium whitespace-nowrap">
                           <button
                             onClick={() => navigate(`${location.pathname}?mode=edit&id=${rowId}`)}
                             className="text-blue-600 hover:underline"
@@ -347,7 +384,7 @@ const WorkboardPage = ({
                           const val = row[col];
                           const isDate = col.toLowerCase().includes('date') || col.toLowerCase().includes('_at');
                           return (
-                            <td key={col} className="px-6 py-3">
+                            <td key={col} className="px-6 py-3 whitespace-nowrap">
                               <span>{isDate ? formatDateOnly(val) : String(val ?? '-')}</span>
                             </td>
                           );

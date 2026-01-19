@@ -19,14 +19,23 @@ export async function generateEntityId(userEmail, projectName, entityType) {
 
         const prefix = prefixMap[entityType.toLowerCase()] || "GEN";
 
-        // 2. Get User Code
-        const userRes = await client.query('SELECT id, user_code FROM users WHERE email = $1', [userEmail]);
+        // 2. Get User Code (Keeping for userId retrieval, but not using user_code in ID)
+        const userRes = await client.query('SELECT id FROM users WHERE email = $1', [userEmail]);
         if (userRes.rows.length === 0) {
             throw new Error(`User not found: ${userEmail}`);
         }
-        const { id: userId, user_code: userCode } = userRes.rows[0];
+        const { id: userId } = userRes.rows[0];
 
-        // 3. Get and Increment Sequence
+        // 3. Extract Account Code (First 3 chars, Uppercase)
+        // If account is missing/null, fallback to "GEN" or similar? User said "ACCOUNT STARTING 3LETTERS"
+        // Let's use "GEN" if null, or extract from accountName
+        let accountCode = "GEN";
+        if (projectName && typeof projectName === 'string' && projectName.trim().length > 0) {
+            accountCode = projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
+            if (accountCode.length < 3) accountCode = accountCode.padEnd(3, 'X');
+        }
+
+        // 4. Get and Increment Sequence (User-Specific)
         const seqRes = await client.query(`
             INSERT INTO user_entity_sequences (user_id, entity_type, last_value)
             VALUES ($1, $2, 1)
@@ -38,7 +47,7 @@ export async function generateEntityId(userEmail, projectName, entityType) {
         const nextVal = seqRes.rows[0].last_value;
         const paddedVal = String(nextVal).padStart(3, '0');
 
-        const generatedId = `${prefix}-${userCode}-${paddedVal}`; // e.g., RSK-BM1-001
+        const generatedId = `${prefix}-${accountCode}-${paddedVal}`; // e.g., RSK-ROX-001
 
         await client.query('COMMIT');
 

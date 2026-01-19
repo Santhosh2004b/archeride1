@@ -233,7 +233,7 @@ export function buildDependencyFilters(query = {}) {
   // Actually usually dependencies are project based. Let's try to be safe.
   // If 'd.created_by' exists as UUID? Or 'd.raised_by'?
   // Let's assume just project for now to avoid errors if column missing.
-  i = _applyAllowedProjects(where, params, i, query, "d");
+  i = _applyAllowedProjects(where, params, i, query, "d", null, "d.reported_by");
 
   if (status) { where.push(`d.status = $${i++}`); params.push(status); }
   if (priority) { where.push(`d.priority = $${i++}`); params.push(priority); }
@@ -310,7 +310,7 @@ export function buildAppreciationFilters(query = {}) {
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "a");
+  i = _applyAllowedProjects(where, params, i, query, "a", null, "a.recorded_by");
 
   if (manualProjectId) { where.push(`a.manual_project_id = $${i++}`); params.push(manualProjectId); }
   if (account) { where.push(`a.account ILIKE $${i++}`); params.push(`%${account}%`); }
@@ -340,7 +340,7 @@ export function buildCollectionFilters(query = {}) {
   const from = _val(query, "fromDate", "from_date");
   const to = _val(query, "toDate", "to_date");
   const search = _val(query, "search", "search");
-  i = _applyAllowedProjects(where, params, i, query, "c");
+  i = _applyAllowedProjects(where, params, i, query, "c", null, "c.created_by");
 
   if (status) { where.push(`c.status = $${i++}`); params.push(status); }
   if (manualProjectId) { where.push(`c.manual_project_id = $${i++}`); params.push(manualProjectId); }
