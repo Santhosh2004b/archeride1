@@ -1,13 +1,13 @@
-import pool from "./config/db.config.js"; // Standard path in this project seems to be config/db.config.js or just db.js, let's check
+import pool from "./config/db.config.js"; 
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Check imports in run_normalization.js it used "./db.js". 
-// But controllers use "../config/db.config.js".
-// Let's assume "./db.js" is a wrapper or alias. 
-// Actually, run_normalization.js is in backend root.
-// I'll use the same import as run_normalization.js if I place this in backend root.
+
+
+
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

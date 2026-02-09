@@ -1,23 +1,23 @@
-/* eslint-disable react/prop-types */
+
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchPrioritySplit } from "../api/metricsApi";
 
-// Executive Palette
+
 const COLORS = {
-    Critical: "#DC2626", // Red-600 (Agile Red)
-    High: "#EA580C",     // Orange-600
-    Medium: "#D97706",   // Amber-600
-    Low: "#059669",      // Emerald-600
-    Normal: "#2563EB",   // Blue-600
+    Critical: "#DC2626",
+    High: "#EA580C",
+    Medium: "#D97706",
+    Low: "#059669",
+    Normal: "#2563EB",
 };
-const DEFAULT_COLOR = "#94A3B8"; // Slate-400
+const DEFAULT_COLOR = "#94A3B8";
 
 const getColor = (priority) => {
     if (!priority) return DEFAULT_COLOR;
-    // Try exact match
+
     if (COLORS[priority]) return COLORS[priority];
-    // Try formatting (e.g. "high" -> "High")
+
     const formatted = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
     return COLORS[formatted] || DEFAULT_COLOR;
 };
@@ -36,7 +36,7 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
         const load = async () => {
             setLoading(true);
             try {
-                // If no external data passed, try to fetch
+
                 const res = await fetchPrioritySplit('all');
                 if (res?.success) {
                     setData(res.data || []);
@@ -56,9 +56,9 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
     const chartData = data.filter(d => d.count > 0);
     const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
 
-    // Determine center text
+
     const activeLabel = hovered || selectedPriority || "Total Items";
-    // Find active count
+
     let activeCount = totalCount;
     if (activeLabel !== "Total Items") {
         const item = chartData.find(d => d.priority === activeLabel);
@@ -67,7 +67,7 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
 
     const handleSliceClick = (entry) => {
         if (onPrioritySelect) {
-            // Toggle: if clicking same priority, deselect
+
             if (selectedPriority === entry.priority) {
                 onPrioritySelect(null);
             } else {
@@ -94,9 +94,9 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
                     </div>
                 ) : (
                     <>
-                        {/* LEFT: DONUT CHART */}
+                        { }
                         <div className="w-1/2 h-[220px] relative">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
                                         data={chartData}
@@ -139,7 +139,7 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            {/* Center Active Text */}
+                            { }
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none transition-all duration-300">
                                 <span className={`block text-3xl font-bold font-montserrat ${selectedPriority && selectedPriority === activeLabel ? "text-red-600 scale-110" : "text-gray-800"}`}>
                                     {activeCount}
@@ -150,7 +150,7 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
                             </div>
                         </div>
 
-                        {/* RIGHT: CUSTOM LEGEND TABLE */}
+                        { }
                         <div className="w-1/2 pl-4 flex flex-col justify-center space-y-2">
                             {chartData.map((item, idx) => {
                                 const isSelected = selectedPriority === item.priority;
@@ -183,7 +183,7 @@ const GlobalPriorityDonut = ({ onPrioritySelect, selectedPriority, data: externa
                 )}
             </div>
 
-            {/* INSTRUCTION TEXT */}
+            { }
             {
                 !loading && chartData.length > 0 && (
                     <div className="mt-4 text-center">

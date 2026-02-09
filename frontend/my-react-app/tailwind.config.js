@@ -8,8 +8,9 @@ module.exports = {
         brandMuted: "#7E8287",  // small headers
       },
       fontFamily: {
-        urbanist: ["Urbanist", "system-ui", "sans-serif"],    // small header
-        marcellus: ["Marcellus", "Georgia", "serif"],         // large titles
+        lato: ["Lato", "sans-serif"],
+        urbanist: ["Lato", "sans-serif"],
+        marcellus: ["Lato", "sans-serif"],
       },
     },
   },

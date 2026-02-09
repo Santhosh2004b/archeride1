@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { fetchBmNotifications } from "../api/notificationsApi";
 import { formatDisplayDate } from "../utils/dateFormat";
+import TruncatedCell from "../components/TruncatedCell";
 
 const MODULES = [
   { key: "risk", label: "Risk" },
@@ -8,7 +9,7 @@ const MODULES = [
   { key: "dependency", label: "Dependency" },
   { key: "escalation", label: "Escalation" },
   { key: "action", label: "Action" },
-  /* Removed Appreciation and Collection as requested */
+
 ];
 
 const COLUMN_CONFIG = {
@@ -54,20 +55,20 @@ const COLUMN_CONFIG = {
   ],
 };
 
-/* Helper to safely extract value from item or its payload */
+
 const getValue = (item, key) => {
-  // Check in root first (useful for flattened results from model)
+
   if (item[key] !== undefined && item[key] !== null && item[key] !== "") {
     return item[key];
   }
 
-  // Check in payload snapshot
+
   const p = item.payload || {};
   const val = p[key];
 
   if (val !== undefined && val !== null && val !== "") return val;
 
-  // Fallbacks for specific IDs or common naming mismatches
+
   if (key.endsWith("_id")) return p.id || item.item_code || "-";
   if (key.includes("title")) return p.title || p.risk_title || p.issue_title || p.dependency_title || p.action_title || "-";
   if (key === "description") return p.description || p.risk_description || p.issue_description || p.action_description || "-";
@@ -83,7 +84,7 @@ const BmNotificationsPage = () => {
 
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
-  const load = async (module = selectedModule) => {
+  const load = useCallback(async (module = selectedModule) => {
     try {
       setLoading(true);
       const data = await fetchBmNotifications(module);
@@ -93,17 +94,17 @@ const BmNotificationsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedModule]);
 
   useEffect(() => {
     load(selectedModule);
-  }, [selectedModule]);
+  }, [selectedModule, load]);
 
   const columns = COLUMN_CONFIG[selectedModule] || [];
 
   return (
     <div className="p-8">
-      <h2 className="text-3xl font-montserrat font-bold mb-2">BM Notifications</h2>
+      <h2 className="text-3xl font-montserrat font-bold mb-2">Notification</h2>
       <p className="text-sm text-gray-500 mb-8 font-urbanist">
         Track status changes and history across all modules.
       </p>
@@ -151,7 +152,7 @@ const BmNotificationsPage = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((n) => {
-                  // Special handling for Status Change column which combines before/after
+
                   const statusChange = (
                     <div className="flex flex-col text-xs">
                       <span className="text-gray-400 line-through">{n.status_before || "OPEN"}</span>
@@ -174,7 +175,9 @@ const BmNotificationsPage = () => {
                               <span className={`text-[10px] font-bold uppercase ${n.decision === 'Closed' ? 'text-green-600' : 'text-orange-600'}`}>
                                 {n.decision === 'Closed' ? 'Approved' : n.decision}
                               </span>
-                              <span className="text-xs text-gray-500 line-clamp-1 italic">{n.comment || "No comment."}</span>
+                              <div className="text-xs text-gray-500 italic">
+                                <TruncatedCell content={n.comment || "No comment."} />
+                              </div>
                             </div>
                           ) : (
                             <span className="text-xs text-blue-500 font-bold animate-pulse uppercase tracking-tight">Pending Admin Review</span>
@@ -182,21 +185,19 @@ const BmNotificationsPage = () => {
                         </td>
                         {columns.map((col) => {
                           const val = getValue(n, col.key);
-                          let displayVal = val;
-
-                          if (col.isDate && val !== "-") {
-                            displayVal = formatDisplayDate(val, true);
-                          }
-
                           return (
-                            <td key={col.key} className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0">
-                              {displayVal}
+                            <td key={col.key} className="px-6 py-4 text-sm text-gray-700 border-r border-gray-100 last:border-r-0 max-w-[200px]">
+                              {col.isDate && val !== "-" ? (
+                                formatDisplayDate(val, true)
+                              ) : (
+                                <TruncatedCell content={String(val)} />
+                              )}
                             </td>
                           );
                         })}
                       </tr>
 
-                      {/* Expansion Row */}
+                      { }
                       {expandedId === n.id && (
                         <tr className="bg-gray-50/80 animate-fadeIn">
                           <td colSpan={columns.length + 2} className="px-8 py-6">
@@ -207,7 +208,7 @@ const BmNotificationsPage = () => {
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Status Section */}
+                                { }
                                 <div className="space-y-4">
                                   <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                                     <span className="block text-[10px] font-bold text-blue-400 uppercase mb-2">Governance Status</span>
@@ -232,7 +233,7 @@ const BmNotificationsPage = () => {
                                   )}
                                 </div>
 
-                                {/* Payload Section */}
+                                { }
                                 <div className="lg:col-span-2">
                                   <span className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-widest">Full Record Data</span>
                                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs text-gray-600">

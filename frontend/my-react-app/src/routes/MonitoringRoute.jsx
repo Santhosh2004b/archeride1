@@ -1,4 +1,4 @@
-//  frontend/my-react-app/src/routes/MonitoringRoute.jsx
+
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
@@ -20,7 +20,6 @@ const MonitoringRoute = () => (
         <Route path="appreciations" element={<ModuleListPage moduleKey="appreciations" mode="view" />} />
         <Route path="/monitoring/notifications" element={<MonitoringNotificationsPage />} />
 
-        <Route path="collections" element={<ModuleListPage moduleKey="collections" mode="view" />} />
         <Route path="*" element={<Navigate to="" replace />} />
       </Routes>
     </MainLayout>

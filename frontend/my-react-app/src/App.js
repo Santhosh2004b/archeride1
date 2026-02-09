@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/App.js
+
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
@@ -13,7 +13,6 @@ import ActionsPage from "./pages/ActionsPage";
 import DependenciesPage from "./pages/DependenciesPage";
 import AppreciationsPage from "./pages/AppreciationsPage";
 import EscalationsPage from "./pages/EscalationsPage";
-import CollectionsPage from "./pages/CollectionsPage";
 import DashboardPage from "./pages/DashboardPage";
 import MonitoringDashboardPage from "./pages/MonitoringDashboardPage";
 import MonitoringRisksPage from "./pages/MonitoringRisksPage";
@@ -21,7 +20,6 @@ import MonitoringIssuesPage from "./pages/MonitoringIssuesPage";
 import MonitoringDependenciesPage from "./pages/MonitoringDependenciesPage";
 import MonitoringActionsPage from "./pages/MonitoringActionsPage";
 import MonitoringAppreciationsPage from "./pages/MonitoringAppreciationsPage";
-import MonitoringCollectionsPage from "./pages/MonitoringCollectionsPage";
 import MonitoringEscalationsPage from "./pages/MonitoringEscalationsPage";
 import ModuleRoute from "./routes/ModuleRoute";
 
@@ -55,7 +53,7 @@ function App() {
       <audio ref={audioRef} src="/assets/Awards_Ceremony_Grand_Opening.mp3" preload="auto" />
       <Router>
         <Routes>
-          {/* public */}
+          {}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/ceremony" element={<CeremonyLaunchPage />} />
@@ -67,9 +65,8 @@ function App() {
           <Route path="/dependencies" element={<DependenciesPage />} />
           <Route path="/appreciations" element={<AppreciationsPage />} />
           <Route path="/escalations" element={<EscalationsPage />} />
-          <Route path="/collections" element={<CollectionsPage />} />
 
-          {/* protected dashboard */}
+          {}
           <Route
             path="/dashboard"
             element={
@@ -79,7 +76,7 @@ function App() {
             }
           />
 
-          {/* monitoring (ADMIN only) */}
+          {}
           <Route
             path="/monitoring"
             element={
@@ -151,16 +148,6 @@ function App() {
             }
           />
           <Route
-            path="/monitoring/collections"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <MainLayout>
-                  <MonitoringCollectionsPage />
-                </MainLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/monitoring/notifications"
             element={
               <ProtectedRoute allowedRoles={["ADMIN"]}>
@@ -181,7 +168,7 @@ function App() {
             }
           />
 
-          {/* BM / PM workboards */}
+          {}
           <Route
             path="/modules/:moduleKey"
             element={
@@ -204,7 +191,7 @@ function App() {
           />
 
 
-          {/* default + 404 */}
+          {}
           <Route path="/" element={<Navigate to="/landing" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
@@ -212,5 +199,4 @@ function App() {
     </AuthProvider>
   );
 }
-
 export default App;

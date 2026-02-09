@@ -2,31 +2,31 @@ import React from "react";
 import { filterConfig } from "../config/filterConfig";
 import { RxMagnifyingGlass } from "react-icons/rx";
 
-// Temporary placeholder for the clear icon
+
 const RxCross2 = () => <span className="text-lg font-bold">×</span>;
 
 const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
-  const cfg = filterConfig[moduleKey]?.fields || []; // Get filter configuration for the module
+  const cfg = filterConfig[moduleKey]?.fields || []; 
 
-  // Handle filter value change
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     const updated = { ...filters, [name]: value };
     setFilters(updated);
   };
 
-  // Clear a specific filter field
+  
   const handleClearField = (name) => {
     const updated = { ...filters, [name]: "" };
     setFilters(updated);
-    onApply(updated); // Apply filters after clearing
+    onApply(updated); 
   };
 
-  // Clear all filters
+  
   const handleClearAll = () => {
     const reset = Object.fromEntries(cfg.map((f) => [f.name, ""]));
     setFilters(reset);
-    onApply(reset); // Apply filters after clearing all
+    onApply(reset); 
   };
 
   return (
@@ -35,7 +35,7 @@ const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
         {cfg.map((f) => {
           const value = filters[f.name] ?? "";
 
-          // Render dropdown (select) fields
+          
           if (f.type === "select") {
             return (
               <select
@@ -55,7 +55,7 @@ const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
             );
           }
 
-          // Render date fields
+          
           if (f.type === "date") {
             return (
               <input
@@ -69,7 +69,7 @@ const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
             );
           }
 
-          // Render text and search fields
+          
           return (
             <div key={f.name} className="relative">
               <input
@@ -80,11 +80,11 @@ const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
                 onChange={handleChange}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
               />
-              {/* Search icon for the search field */}
+              {}
               {f.name === "search" && (
                 <RxMagnifyingGlass className="absolute right-8 top-2.5 text-gray-500" />
               )}
-              {/* Clear icon for fields with values */}
+              {}
               {value && (
                 <RxCross2
                   onClick={() => handleClearField(f.name)}
@@ -96,7 +96,7 @@ const MonitoringFilters = ({ moduleKey, filters, setFilters, onApply }) => {
         })}
       </div>
 
-      {/* Action buttons */}
+      {}
       <div className="flex gap-2 justify-end">
         <button
           onClick={() => onApply(filters)}

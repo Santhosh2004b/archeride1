@@ -1,4 +1,4 @@
-// src/api/escalationsApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 function sanitizeStatus(payload = {}) {
   if (!payload.status) return payload;
@@ -60,7 +60,7 @@ export async function updateEscalationApi(id, payload) {
   return handleResponse(res);
 }
 
-// ADMIN decision for escalation
+
 export async function decideEscalationNotification(notificationId, decision, comment) {
   const res = await fetch(
     `${BASE_URL}/escalations/decisions/${notificationId}`,
@@ -77,7 +77,7 @@ export async function decideEscalationNotification(notificationId, decision, com
 }
 
 export async function resolveEscalationApi(id, formData) {
-  // NOTE: do NOT set Content-Type to application/json, browser sets multipart boundary
+  
   const { Authorization } = authHeaders();
   const res = await fetch(`${BASE_URL}/escalations/${id}/resolve`, {
     method: "POST",

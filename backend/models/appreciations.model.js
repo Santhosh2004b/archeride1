@@ -1,12 +1,8 @@
-// backend/models/appreciations.model.js
+
 import pool from "../db.js";
 
-/* ==========================================================
-   APPRECIATIONS MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ========================================================== */
-/* ============================
-   LIST (ROLE AWARE, UI READY)
-   ============================ */
+
+
 export async function findAppreciations({ whereSql = "", params = [] } = {}) {
   const sql = `
     SELECT
@@ -42,9 +38,7 @@ export async function findAppreciations({ whereSql = "", params = [] } = {}) {
   return rows;
 }
 
-/* ============================
-   GET BY ID
-   ============================ */
+
 export async function findAppreciationById(id) {
   const sql = `
     SELECT
@@ -79,9 +73,7 @@ export async function findAppreciationById(id) {
   return rows[0];
 }
 
-/* ============================
-   CREATE
-   ============================ */
+
 export async function createAppreciation(data) {
   const sql = `
    INSERT INTO appreciations (
@@ -146,16 +138,14 @@ RETURNING *,
     data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
     data.comments || null,
-    data.manual_project_id // $16
+    data.manual_project_id 
   ];
 
   const { rows } = await pool.query(sql, params);
   return rows[0];
 }
 
-/* ============================
-   UPDATE
-   ============================ */
+
 export async function updateAppreciation(id, data) {
   const sql = `
     UPDATE appreciations SET
@@ -202,17 +192,15 @@ export async function updateAppreciation(id, data) {
     data.shared_with_team === 'Yes' || data.shared_with_team === true,
     data.follow_up_action || null,
     data.comments || null,
-    data.manual_project_id, // $16
-    id // $17
+    data.manual_project_id, 
+    id 
   ];
 
   const { rows } = await pool.query(sql, params);
   return rows[0];
 }
 
-/* ============================
-   COUNT
-   ============================ */
+
 export async function countAll() {
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS c FROM appreciations"

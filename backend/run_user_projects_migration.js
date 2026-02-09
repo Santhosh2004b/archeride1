@@ -1,4 +1,4 @@
-// backend/run_user_projects_migration.js
+
 import pool from "./db.js";
 import fs from "fs";
 import path from "path";

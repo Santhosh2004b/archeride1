@@ -1,8 +1,6 @@
 import db from "../db.js";
 
-/* ============================
-   FIND USER BY EMAIL
-   ============================ */
+
 export async function findByEmail(email) {
   const result = await db.query(
     `SELECT *
@@ -15,23 +13,19 @@ export async function findByEmail(email) {
   return result.rows[0] || null;
 }
 
-/* ============================
-   CREATE USER
-   ============================ */
+
 export async function createUser({ name, email, password_hash, role }) {
   const result = await db.query(
-    `INSERT INTO users (name, email, password_hash, role)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, name, email, role, is_active`,
+    `INSERT INTO users (name, email, password_hash, role, password_updated_at)
+     VALUES ($1, $2, $3, $4, NOW())
+     RETURNING id, name, email, role, is_active, password_updated_at`,
     [name, email, password_hash, role]
   );
 
   return result.rows[0];
 }
 
-/* ============================
-   LIST ALL USERS
-   ============================ */
+
 export async function listAllUsers() {
   const result = await db.query(
     `SELECT id, name, email, role, is_active, created_at
@@ -41,9 +35,7 @@ export async function listAllUsers() {
   return result.rows;
 }
 
-/* ============================
-   PROJECT ASSIGNMENTS
-   ============================ */
+
 export async function getAssignedProjects(userId) {
   const result = await db.query(
     `SELECT p.id, p.name, p.account
@@ -60,10 +52,10 @@ export async function assignProjects(userId, projectIds) {
   try {
     await client.query("BEGIN");
 
-    // Remove existing assignments
+    
     await client.query(`DELETE FROM user_projects WHERE user_id = $1`, [userId]);
 
-    // Add new assignments
+    
     if (projectIds && projectIds.length > 0) {
       for (const pid of projectIds) {
         await client.query(
@@ -80,4 +72,16 @@ export async function assignProjects(userId, projectIds) {
   } finally {
     client.release();
   }
+}
+
+
+export async function updatePassword(userId, newPasswordHash) {
+  const result = await db.query(
+    `UPDATE users 
+     SET password_hash = $1, password_updated_at = NOW(), updated_at = NOW() 
+     WHERE id = $2 
+     RETURNING id, email`,
+    [newPasswordHash, userId]
+  );
+  return result.rows[0];
 }

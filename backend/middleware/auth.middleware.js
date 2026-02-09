@@ -1,14 +1,20 @@
-// backend/middleware/auth.middleware.js
+
 import jwt from "jsonwebtoken";
 import { config } from "dotenv";
+import * as usersModel from "../models/users.model.js"; 
 
 config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 
-export function authMiddleware(req, res, next) {
+export async function authMiddleware(req, res, next) {
+  
+  const path = req.path.toLowerCase();
+  if (path.includes("/login") || path.includes("/auth/login")) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization || req.headers.Authorization;
-  console.log("AUTH HEADER =", authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -16,47 +22,46 @@ export function authMiddleware(req, res, next) {
 
   const token = authHeader.replace("Bearer ", "").trim();
 
-  // DEV SHORTCUT: accept fake-token-* from frontend
+  
   if (token.startsWith("fake-token-")) {
-    // 5. Query DB for a valid user to use as "BM"
-    // This prevents foreign key violations in tables like risks/issues
-    import("../db.js").then(async ({ default: pool }) => {
-      try {
-        // Just grab the first user
-        const { rows } = await pool.query("SELECT id, email, name, role FROM users LIMIT 1");
-        if (rows.length === 0) {
-          return res.status(500).json({
-            success: false,
-            message: "Dev Error: No users found in database. Please seed at least one user."
-          });
-        }
+    const devUser = {
+      id: 'dev-id', 
+      email: 'dev@arche.global',
+      role: 'ADMIN',
+      name: 'Dev User'
+    };
 
-        const dbUser = rows[0];
-        req.user = {
-          id: dbUser.id,
-          email: dbUser.email,
-          role: dbUser.role || "BM",
-          name: dbUser.name || "Dev User",
-        };
-        return next();
-      } catch (dbErr) {
-        console.error("Auth Middleware DB Error", dbErr);
-        return res.status(500).json({ success: false, message: "Auth DB Error" });
-      }
-    });
-    return; // Stop execution here, let the promise chain handle next()
+    
+    
+    req.user = devUser;
+    return next();
   }
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    console.log("AUTH PAYLOAD =", payload);
-    req.user = {
-      id: payload.id,
-      email: payload.email,
-      role: payload.role,
-      name: payload.name,
-    };
+
+    
+    try {
+      const dbUser = await usersModel.findByEmail(payload.email);
+      console.log(`[AuthMiddleware] Token Email: ${payload.email} | DB Role: ${dbUser?.role}`);
+
+      if (dbUser) {
+        req.user = {
+          id: dbUser.id,
+          email: dbUser.email,
+          role: dbUser.role,
+          name: dbUser.name,
+        };
+      } else {
+        
+        req.user = payload;
+      }
+    } catch (dbErr) {
+      console.error("[AuthMiddleware] DB Refresh Error", dbErr);
+      req.user = payload;
+    }
     next();
+
   } catch (err) {
     console.error("JWT verify error", err);
     return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -64,7 +69,10 @@ export function authMiddleware(req, res, next) {
 }
 
 export function requireAdmin(req, res, next) {
+  
+  
   if (!req.user || String(req.user.role).toUpperCase() !== "ADMIN") {
+    console.warn(`[RequireAdmin] Failed. User: ${req.user?.email}, Role: ${req.user?.role}`);
     return res.status(403).json({ success: false, message: "Forbidden: Admin access required" });
   }
   next();

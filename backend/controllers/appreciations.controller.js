@@ -1,4 +1,4 @@
-// backend/controllers/appreciations.controller.js
+
 import {
   findAppreciations,
   findAppreciationById,
@@ -62,7 +62,7 @@ export async function createAppreciationHandler(req, res) {
       recorded_by: req.user.email,
     };
 
-    // Sanitize undefined -> null
+    
     ["project_id", "project_description", "account"].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
@@ -83,15 +83,7 @@ export async function updateAppreciationHandler(req, res) {
     const existing = await findAppreciationById(id);
     if (!existing) return sendError(res, 404, "Appreciation not found");
 
-    /*
-    if (req.user.role !== "ADMIN") {
-      const assigned = await getAssignedProjects(req.user.id);
-      const projectIds = assigned.map(p => p.id);
-      if (!projectIds.includes(existing.project_id)) {
-        return sendError(res, 403, "Forbidden: Not assigned to this project");
-      }
-    }
-    */
+    
 
     const updated = await updateAppreciation(id, {
       ...req.body,

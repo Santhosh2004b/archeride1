@@ -1,30 +1,30 @@
-// stagger bar-rise
+
 import React, { useMemo } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
-const STATUS_ORDER = ["Open", "On Hold", "Resolved", "Cancelled", "Approved & Closed"];
+const STATUS_ORDER = ["Open", "In Progress", "Resolved", "Cancelled", "Approved & Closed"];
 
 const COLORS = {
   Open: "#E63946",
-  "On Hold": "#FB8500",
+  "In Progress": "#FB8500",
   Resolved: "#457B9D",
   Cancelled: "#8D99AE",
   "Approved & Closed": "#1EA896",
 };
 
 export default function StackedColumnChart({ data = [] }) {
-  // 📌 hooks must always run — no early return before this line
 
-  // sort modules alphabetically
+
+
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) =>
       String(a.module || "").localeCompare(String(b.module || ""))
     );
   }, [data]);
 
-  // grab & order status keys
+
   const statusKeys = useMemo(() => {
     const keys = [...new Set(sortedData.flatMap(row =>
       Object.keys(row).filter(k => k !== "module")
@@ -37,20 +37,7 @@ export default function StackedColumnChart({ data = [] }) {
     });
   }, [sortedData]);
 
-  // max stacked value for autoscale
-  const maxValue = useMemo(() => {
-    let max = 0;
-    sortedData.forEach(row => {
-      let sum = 0;
-      statusKeys.forEach(key => {
-        sum += Number(row[key] || 0);
-      });
-      max = Math.max(max, sum);
-    });
-    return max;
-  }, [sortedData, statusKeys]);
 
-  // 📌 now return conditionally
   if (!data.length) {
     return (
       <div style={{ padding: 20, color: "#999" }}>
@@ -61,7 +48,7 @@ export default function StackedColumnChart({ data = [] }) {
 
   return (
     <div style={{ width: "100%", height: 480, display: "flex", flexDirection: "column" }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart
           data={sortedData}
           margin={{ top: 20, right: 40, left: 40, bottom: 20 }}

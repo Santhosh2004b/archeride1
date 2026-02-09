@@ -1,4 +1,4 @@
-// backend/routes/actions.routes.js
+
 import { Router } from "express";
 import {
   listActions,

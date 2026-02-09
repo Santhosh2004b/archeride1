@@ -3,7 +3,7 @@ import pool from './db.js';
 
 async function test() {
     try {
-        // Get a BM user
+        
         const userRes = await pool.query("SELECT email FROM users WHERE role = 'BM' LIMIT 1");
         if (userRes.rows.length === 0) {
             console.log('No BM user found to test with.');

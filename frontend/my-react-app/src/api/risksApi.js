@@ -1,4 +1,4 @@
-// src/api/risksApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 function sanitizeStatus(payload = {}) {
   if (!payload.status) return payload;

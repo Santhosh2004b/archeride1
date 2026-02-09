@@ -1,4 +1,4 @@
-// Utility for consistent date formatting (DD/MM/YYYY HH:mm, 24h or AM/PM)
+
 
 export function formatDisplayDate(dateStr, useAmPm = false) {
   if (!dateStr) return "-";
@@ -29,6 +29,6 @@ export function formatDateOnly(dateStr) {
 }
 
 export function formatSaveDate(dateStr) {
-  // Always save as DD/MM/YYYY HH:mm (24h)
+  
   return formatDisplayDate(dateStr, false);
 }

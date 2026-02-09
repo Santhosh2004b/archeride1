@@ -15,6 +15,6 @@ router.get("/:id", getEscalation);
 router.post("/", createEscalationHandler);
 router.put("/:id", updateEscalationHandler);
 router.post("/decisions/:notificationId", decideEscalationResolution);
-router.post("/:id/resolve", upload.array("documents", 5), resolveEscalation);
+router.post("/:id/resolve", upload.array("documents", 3), resolveEscalation);
 
 export default router;

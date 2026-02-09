@@ -14,7 +14,7 @@ async function migrate() {
     try {
         for (const table of tables) {
             console.log(`Adding manual_project_id to ${table}...`);
-            // Add column if not exists
+            
             await pool.query(`
         ALTER TABLE ${table} 
         ADD COLUMN IF NOT EXISTS manual_project_id TEXT;

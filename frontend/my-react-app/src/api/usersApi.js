@@ -2,7 +2,7 @@ import axios from "axios";
 import { BASE_URL } from "./http";
 
 const getAuthHeaders = () => {
-    const stored = localStorage.getItem("archeride_auth");
+    const stored = localStorage.getItem("ARCHERIDE_AUTH");
     if (!stored) return {};
     const { token } = JSON.parse(stored);
     return { Authorization: `Bearer ${token}` };

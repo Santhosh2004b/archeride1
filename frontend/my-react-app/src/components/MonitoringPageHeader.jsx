@@ -1,4 +1,4 @@
-// src/components/MonitoringPageHeader.jsx
+
 import React from "react";
 import { motion } from "framer-motion";
 import { FiFilter, FiRotateCcw } from "react-icons/fi";
@@ -12,7 +12,7 @@ const MonitoringPageHeader = ({
 }) => {
   return (
     <>
-      {/* Animated Header */}
+      {}
       <motion.div 
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
@@ -32,7 +32,7 @@ const MonitoringPageHeader = ({
         )}
       </motion.div>
 
-      {/* Animated Filter Controls */}
+      {}
       <motion.div 
         className="flex gap-2 justify-end"
         initial={{ opacity: 0, scale: 0.8 }}

@@ -1,4 +1,4 @@
-// src/api/actionsApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 function sanitizeStatus(payload = {}) {
   if (!payload.status) return payload;
@@ -59,7 +59,7 @@ export async function updateActionApi(id, payload) {
   return handleResponse(res);
 }
 
-// ADMIN decision for action
+
 export async function decideActionNotification(notificationId, decision, comment) {
   const res = await fetch(`${BASE_URL}/actions/decisions/${notificationId}`, {
     method: "POST",

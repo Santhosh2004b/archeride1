@@ -1,4 +1,4 @@
-// Action Completion Weekly Horizontal Bar Chart
+
 import React, { useState, useMemo } from "react";
 import {
   BarChart as RBarChart,
@@ -17,10 +17,7 @@ const STATUS_COLORS = {
   Resolved: "#457B9D",
 };
 
-/**
- * Generate week ranges for the last 8 weeks
- * Returns array like: ["24-MON-DEC-2025", "31-MON-DEC-2025", ...]
- */
+
 function generateWeekRanges() {
   const today = new Date();
   const weeks = [];
@@ -45,29 +42,29 @@ export default function HorizontalBarChart({ data = [] }) {
   const weeks = useMemo(() => generateWeekRanges(), []);
   const [selectedWeek, setSelectedWeek] = useState(weeks[0]?.label || "");
 
-  // Parse selected week to get date range
+  
   const weekDateRange = useMemo(() => {
     const selected = weeks.find(w => w.label === selectedWeek);
     if (!selected) return { start: new Date(), end: new Date() };
 
     const start = new Date(selected.startDate);
     const end = new Date(start);
-    end.setDate(end.getDate() + 6); // 7-day range
+    end.setDate(end.getDate() + 6); 
 
     return { start, end };
   }, [selectedWeek, weeks]);
 
-  // Build 7-day chart data for selected week
+  
   const chartData = useMemo(() => {
     const days = [];
     const current = new Date(weekDateRange.start);
 
     for (let i = 0; i < 7; i++) {
-      const dateStr = current.toISOString().split("T")[0]; // YYYY-MM-DD
+      const dateStr = current.toISOString().split("T")[0]; 
       const dayName = DAYS_SHORT[current.getDay() || 0];
       const dayNum = current.getDate();
 
-      // Find data for this date
+      
       const dayData = data.find(d => {
         if (!d.date) return false;
         return d.date.substring(0, 10) === dateStr;
@@ -84,13 +81,13 @@ export default function HorizontalBarChart({ data = [] }) {
       current.setDate(current.getDate() + 1);
     }
 
-    // Sort latest first
+    
     return days.reverse();
   }, [weekDateRange, data]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Week Selector */}
+      {}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <label
           style={{
@@ -126,7 +123,7 @@ export default function HorizontalBarChart({ data = [] }) {
         </select>
       </div>
 
-      {/* Horizontal Bar Chart */}
+      {}
       <ResponsiveContainer width="100%" height={280}>
         <RBarChart
           data={chartData}

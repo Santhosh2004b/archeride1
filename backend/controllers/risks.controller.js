@@ -1,4 +1,4 @@
-// backend/controllers/risks.controller.js
+
 import { buildRiskFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
 import { getAssignedProjects } from "../models/users.model.js";
 import {
@@ -18,9 +18,7 @@ function toYYYYMMDD(date) {
   return d.toISOString().slice(0, 10);
 }
 
-/* ============================
-   LIST RISKS (BM vs ADMIN)
-   ============================ */
+
 export async function listRisks(req, res) {
   try {
     const user = req.user;
@@ -35,16 +33,14 @@ export async function listRisks(req, res) {
   }
 }
 
-/* ============================
-   GET RISK
-   ============================ */
+
 export async function getRisk(req, res) {
   try {
     const risk = await findRiskById(req.params.id);
     if (!risk) return sendError(res, 404, "Risk not found");
 
-    // 🔐 Project access check
-    // Access check by project_id disabled
+
+
     return sendSuccess(res, risk);
 
     return sendSuccess(res, risk);
@@ -53,12 +49,10 @@ export async function getRisk(req, res) {
   }
 }
 
-/* ============================
-   CREATE RISK
-   ============================ */
+
 export async function createRiskHandler(req, res) {
   try {
-    // 🆔 Auto-generate ID if not provided
+
     if (!req.body.risk_id || req.body.risk_id.trim() === "") {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.risk_id = await generateEntityId(
@@ -68,7 +62,7 @@ export async function createRiskHandler(req, res) {
       );
     }
 
-    // Format all date fields as YYYY-MM-DD
+
     const dateFields = [
       "identified_date",
       "target_mitigation_date",
@@ -77,13 +71,13 @@ export async function createRiskHandler(req, res) {
     const payload = {
       ...req.body,
       created_by: req.user.id,
-      identified_by: req.body.identified_by || req.user.email, // Default to current user
+      identified_by: req.body.identified_by || req.user.email,
     };
     dateFields.forEach((field) => {
       if (payload[field]) {
         payload[field] = toYYYYMMDD(payload[field]);
       } else {
-        // Default identified_date to NOW if missing (required by DB)
+
         if (field === "identified_date") {
           payload[field] = toYYYYMMDD(new Date());
         } else {
@@ -91,7 +85,7 @@ export async function createRiskHandler(req, res) {
         }
       }
     });
-    // Allow null for all optional fields
+
     [
       "manual_project_id",
       "project_description",
@@ -99,8 +93,7 @@ export async function createRiskHandler(req, res) {
       "risk_score",
       "mitigation_strategy",
       "mitigation_owner",
-      "current_status",
-      "comments"
+      "current_status"
     ].forEach((field) => {
       if (payload[field] === undefined) payload[field] = null;
     });
@@ -113,9 +106,7 @@ export async function createRiskHandler(req, res) {
 }
 
 
-/* ============================
-   UPDATE RISK
-   ============================ */
+
 
 export async function updateRiskHandler(req, res) {
   try {
@@ -127,8 +118,8 @@ export async function updateRiskHandler(req, res) {
       return sendError(res, 404, "Risk not found");
     }
 
-    // 🔐 Project access check for update
-    // Access check by project_id disabled
+
+
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
@@ -143,7 +134,7 @@ export async function updateRiskHandler(req, res) {
     });
 
 
-    // ✅ USE existing.project_name (safe)
+
     if (becameResolved && req.user?.email) {
       await createResolutionNotification({
         module: "risk",

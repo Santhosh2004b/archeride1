@@ -1,4 +1,4 @@
-// COMPONENT SAFE VERSION — prevents controls.start() crash on remount
+
 import { motion, useAnimation } from "framer-motion";
 import { useEffect } from "react";
 

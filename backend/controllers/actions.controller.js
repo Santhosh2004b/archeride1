@@ -1,4 +1,4 @@
-// backend/controllers/actions.controller.js
+
 import pool from "../db.js";
 import {
   findActionById,
@@ -75,12 +75,12 @@ export async function createActionHandler(req, res) {
       created_by: req.user.email,
     };
 
-    // Sanitize undefined -> null
+    
     ["project_id", "project_description", "account", "priority", "category"].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
 
-    // Sanitize numeric fields
+    
     if (payload.completion_percent) {
       const parsed = parseFloat(payload.completion_percent);
       payload.completion_percent = isNaN(parsed) ? null : parsed;
@@ -105,20 +105,12 @@ export async function updateActionHandler(req, res) {
     const existing = await findActionById(id);
     if (!existing) return sendError(res, 404, "Action not found");
 
-    /*
-    if (req.user.role !== "ADMIN") {
-      const assigned = await getAssignedProjects(req.user.id);
-      const projectIds = assigned.map(p => p.id);
-      if (!projectIds.includes(existing.project_id)) {
-        return sendError(res, 403, "Forbidden: Not assigned to this project");
-      }
-    }
-    */
+    
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
 
-    // Sanitize numeric fields
+    
     if (payload.completion_percent !== undefined) {
       const parsed = parseFloat(payload.completion_percent);
       payload.completion_percent = isNaN(parsed) ? null : parsed;

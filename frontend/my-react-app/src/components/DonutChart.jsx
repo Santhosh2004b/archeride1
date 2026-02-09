@@ -1,4 +1,4 @@
-// filepath: src/components/DonutChart.jsx
+
 import React from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
@@ -9,7 +9,7 @@ export default function DonutChart({ data = [] }) {
 
   const total = data.reduce((acc, d) => acc + Number(d.value), 0);
 
-  // Safe division
+  
   const getPercent = (val) => {
     if (total === 0) return 0;
     return ((Number(val) / total) * 100).toFixed(1);
@@ -17,7 +17,7 @@ export default function DonutChart({ data = [] }) {
 
   return (
     <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
-      {/* donut chart */}
+      {}
       <div style={{ position: "relative" }}>
         <PieChart width={300} height={260}>
           <Pie
@@ -39,7 +39,7 @@ export default function DonutChart({ data = [] }) {
           />
         </PieChart>
 
-        {/* total count in center */}
+        {}
         <div
           style={{
             position: "absolute",
@@ -72,7 +72,7 @@ export default function DonutChart({ data = [] }) {
         </div>
       </div>
 
-      {/* priority breakdown table */}
+      {}
       <div
         style={{
           background: "#f9fafb",
@@ -130,7 +130,7 @@ export default function DonutChart({ data = [] }) {
           </div>
         ))}
 
-        {/* total row */}
+        {}
         <div
           style={{
             display: "flex",

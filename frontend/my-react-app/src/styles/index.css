@@ -10,6 +10,14 @@
   --text-muted: #7e8287;
   --font-header: "Urbanist", sans-serif;
   --font-title: "Marcellus", serif;
+
+  
+  --white: #efe;
+  --blackish: #23252f;
+  --black-light: #3d3b36;
+  --black-dark: #1c1c1c;
+  --beige-sand-light: #f9eedc;
+  --beige-sand-dark: #d6bb9a;
 }
 
 body {
@@ -29,7 +37,9 @@ body {
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
+html,
+body,
+#root {
   @apply h-full bg-gray-50 text-brandDark font-urbanist;
 }
 
@@ -46,12 +56,14 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-/* === Hero text fade-in from left === */
+
+
 @keyframes fadeInLeftFast {
   0% {
     opacity: 0;
     transform: translateX(-24px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -63,10 +75,12 @@ code {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   40% {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -90,20 +104,23 @@ code {
   animation-delay: 0.45s;
 }
 
-/* === Login / Get started button animation === */
-/* start: black bg + white text, end: white bg + black text */
+
+
 @keyframes ctaSwapOnce {
   0% {
     background-color: #000;
     color: #fff;
   }
+
   55% {
     background-color: #000;
     color: #fff;
   }
+
   100% {
     background-color: #ffffff;
-    color: #111827; /* gray-900 style */
+    color: #111827;
+    
   }
 }
 
@@ -113,33 +130,36 @@ code {
   animation: ctaSwapOnce 1.2s ease-out forwards;
 }
 
-/* keep hover states nice after animation */
+
 .cta-animate:hover {
   background-color: #000;
   color: #ffffff;
 }
 
-/* === Years card: subtle fade-in === */
+
 .years-card {
   opacity: 0;
   animation: fadeInLeftSlow 1.2s ease-out forwards;
   animation-delay: 0.6s;
 }
 
-/* === Hero image fade in/out loop === */
+
 @keyframes heroImageFadeCycle {
   0% {
     opacity: 0;
     transform: scale(1.02);
   }
+
   15% {
     opacity: 1;
     transform: scale(1);
   }
+
   85% {
     opacity: 1;
     transform: scale(1);
   }
+
   100% {
     opacity: 0;
     transform: scale(1.02);
@@ -149,4 +169,37 @@ code {
 .hero-image-fade {
   opacity: 0;
   animation: heroImageFadeCycle 6s ease-in-out forwards;
+}
+
+
+.pop-text {
+  font-family: "Poppins", sans-serif;
+  font-size: inherit;
+  letter-spacing: 5px;
+  
+  font-weight: bold;
+  color: inherit;
+}
+
+.pop-text span {
+  display: inline-block;
+  animation: pop 0.4s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

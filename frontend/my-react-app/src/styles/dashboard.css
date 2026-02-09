@@ -1,4 +1,4 @@
-/* frontend/my-react-app/src/styles/layout.css */
+
 
 :root {
   --bg-body: #f4f4f4;
@@ -22,14 +22,14 @@ body {
   color: var(--text-main);
 }
 
-/* root grid: header 20%, body 80% */
+
 .app-root {
   display: grid;
   grid-template-rows: 20vh 80vh;
   height: 100vh;
 }
 
-/* header */
+
 .app-header {
   display: flex;
   align-items: center;
@@ -103,7 +103,7 @@ body {
   font-weight: 600;
 }
 
-/* body: sidebar 30% + content 70% */
+
 .app-body {
   display: grid;
   grid-template-columns: 30% 70%;

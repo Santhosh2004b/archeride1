@@ -6,17 +6,19 @@ export function exportToExcel({ rows, fileName }) {
     return;
   }
 
-  // ✅ Use EXACT columns shown in UI
-  const columns = Object.keys(rows[0]);
+  
+  
+  const excludedColumns = ["id", "project_id", "created_at", "updated_at"];
+  const columns = Object.keys(rows[0]).filter(key => !excludedColumns.includes(key));
 
-  // ✅ Normalize rows using only visible columns
+  
   const normalizedRows = rows.map((row) => {
     const obj = {};
     columns.forEach((key) => {
       const val = row[key];
       if (Array.isArray(val)) {
-        // e.g. documents: [{file_name: 'a.pdf'}, {file_name: 'b.pdf'}]
-        // map to string
+        
+        
         obj[key] = val.map(v => v.file_name || v.name || JSON.stringify(v)).join(", ");
       } else if (typeof val === 'object' && val !== null) {
         obj[key] = JSON.stringify(val);
@@ -27,26 +29,26 @@ export function exportToExcel({ rows, fileName }) {
     return obj;
   });
 
-  // 📄 Create worksheet
+  
   const worksheet = XLSX.utils.json_to_sheet(normalizedRows, {
     header: columns,
   });
 
   const range = XLSX.utils.decode_range(worksheet["!ref"]);
 
-  // 🎨 Style HEADER
+  
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const addr = XLSX.utils.encode_cell({ r: 0, c: C });
     if (!worksheet[addr]) continue;
 
     worksheet[addr].s = {
-      fill: { fgColor: { rgb: "FFFF00" } }, // Yellow
-      font: { bold: true, color: { rgb: "000000" } }, // Black text
+      fill: { fgColor: { rgb: "FFFF00" } }, 
+      font: { bold: true, color: { rgb: "000000" } }, 
       alignment: { horizontal: "center", vertical: "center" },
     };
   }
 
-  // 📐 Auto width
+  
   worksheet["!cols"] = columns.map(() => ({ wch: 22 }));
 
   const workbook = XLSX.utils.book_new();

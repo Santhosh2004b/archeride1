@@ -1,4 +1,4 @@
-// sweep ease-in-out
+
 import React from "react";
 import { motion } from "framer-motion";
 

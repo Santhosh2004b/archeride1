@@ -1,7 +1,5 @@
-// ---------------- MODIFIED MonitoringRisksPage.jsx (as requested) ----------------
-
 import React, { useEffect, useState } from "react";
-import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
+import { formatDateOnly } from "../utils/dateFormat";
 import { motion } from "framer-motion";
 import { fetchRisks } from "../api/risksApi";
 import { filterConfig } from "../config/filterConfig";
@@ -9,22 +7,20 @@ import useMonitoringExport from "../hooks/useMonitoringExport";
 import LayoutBuilder from "../components/LayoutBuilder";
 import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
 import { risksFormConfig } from "../config/formConfig";
-
-import { useNavigate } from "react-router-dom";
-import { FiSearch, FiFilter, FiX, FiPlus, FiRotateCcw } from "react-icons/fi";
+// useNavigate removed as unused
+import { FiSearch, FiFilter, FiRotateCcw } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
-import { Pen } from "phosphor-react";
+import { Pen, DownloadSimple } from "phosphor-react";
+import TruncatedCell from "../components/TruncatedCell";
+import { exportToExcel } from "../utils/exportToExcel";
 
-/* ===================================================
-   STATUS → UI META (unchanged)
-====================================================== */
 const getStatusMeta = (row) => {
   const raw = row.status || row.Status || row.current_status;
   if (!raw) return null;
 
   const s = String(raw).toLowerCase();
   const map = {
-    open: { rowClass: "status-open", dotClass: "dot-open", label: "Open" },
+    open: { rowClass: "status-resolved", dotClass: "dot-resolved", label: "Resolved" }, // Open -> Resolved (Status Normalization Rule 3)
     "in progress": { rowClass: "status-inprogress", dotClass: "dot-inprogress", label: "In Progress" },
     "on hold": { rowClass: "status-onhold", dotClass: "dot-onhold", label: "On Hold" },
     resolved: { rowClass: "status-resolved", dotClass: "dot-resolved", label: "Resolved" },
@@ -35,18 +31,19 @@ const getStatusMeta = (row) => {
 };
 
 const MonitoringRisksPage = () => {
-  const navigate = useNavigate();
+  // navigate removed
   const [rows, setRows] = useState([]);
   useMonitoringExport("risks", rows);
 
   const [loading, setLoading] = useState(false);
-  const [allRows, setAllRows] = useState([]); // Store unfiltered data
+  const [allRows, setAllRows] = useState([]);
 
-  // Layout Builder state
+
   const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
   const [layoutFields, setLayoutFields] = useState(risksFormConfig?.fields || []);
 
-  // only fields you requested
+  const [showToast, setShowToast] = useState(false);
+
   const [filters, setFilters] = useState({
     account: "",
     status: "",
@@ -56,38 +53,17 @@ const MonitoringRisksPage = () => {
     impact: "",
   });
 
-  // second row global search
+
   const [globalSearch, setGlobalSearch] = useState("");
 
-  /* ======================================================
-     LOAD DATA (initial load only)
-  ====================================================== */
-  const loadData = async () => {
-    try {
-      setLoading(true);
+  // ...
 
-      const res = await fetchRisks(filters);
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+  // ...
 
-      setAllRows(list);
-      applyFiltersAndSearch(list);
-    } catch (err) {
-      console.error("Failed to load risks", err);
-      alert("Failed to load risks");
-      setAllRows([]);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ======================================================
-     APPLY FILTERS + LIVE SEARCH (matches to top)
-  ====================================================== */
-  const applyFiltersAndSearch = (data) => {
+  const applyFiltersAndSearch = React.useCallback((data) => {
     let filtered = [...data];
 
-    // 1. Account Filter
+
     const pName = filters.account?.trim().toLowerCase();
     if (pName) {
       filtered = filtered.filter((row) =>
@@ -95,7 +71,7 @@ const MonitoringRisksPage = () => {
       );
     }
 
-    // 2. Select Filters
+
     const selectFilters = { ...filters };
     delete selectFilters.account;
     delete selectFilters.search;
@@ -108,7 +84,7 @@ const MonitoringRisksPage = () => {
       }
     });
 
-    // 3. Global Search
+
     if (globalSearch.trim()) {
       const q = globalSearch.toLowerCase();
       filtered = filtered.filter((row) =>
@@ -118,7 +94,7 @@ const MonitoringRisksPage = () => {
       );
     }
 
-    // Sort by latest identified_date/last_updated
+
     filtered.sort((a, b) => {
       const dateA = new Date(a.last_updated || a.identified_date || a.created_at || 0);
       const dateB = new Date(b.last_updated || b.identified_date || b.created_at || 0);
@@ -126,19 +102,33 @@ const MonitoringRisksPage = () => {
     });
 
     setRows(filtered);
+  }, [filters, globalSearch]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetchRisks();
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      setAllRows(data);
+      applyFiltersAndSearch(data);
+    } catch (err) {
+      console.error("Failed to load risks", err);
+      alert("Failed to load risks");
+      setAllRows([]);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    loadData();
-    loadLayout();
-  }, []);
 
-  // Load layout configuration
   const loadLayout = async () => {
     try {
       const serverLayout = await getLayoutApi("risks");
       if (serverLayout && Array.isArray(serverLayout)) {
-        setLayoutFields(serverLayout);
+        const filtered = serverLayout.filter(f => f.name?.toLowerCase() !== "comments");
+        setLayoutFields(filtered);
       } else {
         setLayoutFields(risksFormConfig?.fields || []);
       }
@@ -148,16 +138,20 @@ const MonitoringRisksPage = () => {
     }
   };
 
-  // Re-filter when filters or global search change (live)
+
+  useEffect(() => {
+    loadData();
+    loadLayout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (allRows.length > 0) {
       applyFiltersAndSearch(allRows);
     }
-  }, [filters, globalSearch]);
+  }, [filters, globalSearch, allRows, applyFiltersAndSearch]);
 
-  /* ======================================================
-     FILTER ACTIONS
-  ====================================================== */
+
   const handleApply = () => loadData();
 
   const handleClear = () => {
@@ -183,21 +177,42 @@ const MonitoringRisksPage = () => {
 
 
 
-  /* ======================================================
-     TABLE COLUMNS
-  ====================================================== */
+
   const columns = risksFormConfig?.fields || [];
 
   const cfg = filterConfig.risks.fields;
 
+  const handleExport = () => {
+    const exportData = window.__EXPORT_DATA__?.["risks"];
+
+    if (!exportData || !exportData.rows?.length) {
+      alert(`No data available to export for risks`);
+      return;
+    }
+
+    exportToExcel(exportData);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
     <motion.div
-      className="min-h-[calc(100vh-80px)] flex flex-col gap-3 bg-brandBg p-3 sm:p-5"
+      className="min-h-[calc(100vh-80px)] flex flex-col gap-3 bg-brandBg p-3 sm:p-5 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* Animated Header */}
+      {/* Export Toast */}
+      {showToast && (
+        <div className="absolute top-4 right-1/2 translate-x-1/2 z-50
+                      rounded-md bg-green-600 px-3 py-1.5
+                      text-xs text-white shadow-lg
+                      animate-fade">
+          ✅ Downloaded successfully
+        </div>
+      )}
+
+      { }
       <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
@@ -205,25 +220,37 @@ const MonitoringRisksPage = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Risk</h1>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Risks</h1>
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
-        {/* Customize Form Button */}
-        <button
-          onClick={() => setShowLayoutBuilder(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-          title="Customize Form Layout"
-        >
-          <Pen size={18} weight="bold" />
-          Customize Form
-        </button>
+        { }
+        <div className="flex gap-2">
+          {/* Export Button Near Customize Form */}
+          {rows.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExport}
+              className="rounded-full h-10 w-10 flex items-center justify-center border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+              title="Export to Excel"
+            >
+              <DownloadSimple size={20} weight="duotone" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowLayoutBuilder(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+            title="Customize Form Layout"
+          >
+            <Pen size={18} weight="bold" />
+            Customize Form
+          </button>
+        </div>
 
       </motion.div>
 
-      {/* ======================================================
-          ROW 1 — filters + icon buttons
-      ====================================================== */}
+      { }
       <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-3 py-3 flex flex-col lg:flex-row gap-2 lg:items-end"
         initial={{ opacity: 0, y: 10 }}
@@ -232,7 +259,7 @@ const MonitoringRisksPage = () => {
       >
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 flex-1">
-          {/* account with filter icon */}
+          { }
           <div className="relative">
             <input
               type="text"
@@ -245,7 +272,7 @@ const MonitoringRisksPage = () => {
             <FiFilter className="absolute right-3 top-2.5 text-gray-500" />
           </div>
 
-          {/* other filters */}
+          { }
           {cfg.filter((f) => f.name !== "account").map((f) => (
             f.type === "select" && (
               <select
@@ -264,7 +291,7 @@ const MonitoringRisksPage = () => {
           ))}
         </div>
 
-        {/* apply + clear */}
+        { }
         <div className="flex gap-2 justify-end">
           <button
             onClick={handleApply}
@@ -283,9 +310,7 @@ const MonitoringRisksPage = () => {
         </div>
       </motion.div>
 
-      {/* ======================================================
-          ROW 2 — global search
-      ====================================================== */}
+      { }
       <motion.div
         className="bg-white border border-gray-200 rounded-xl shadow-sm px-3 py-2 flex items-center gap-2"
         initial={{ opacity: 0, y: 10 }}
@@ -311,9 +336,7 @@ const MonitoringRisksPage = () => {
         </div>
       </motion.div>
 
-      {/* ======================================================
-          TABLE
-      ====================================================== */}
+      { }
       <motion.div
         className="flex-1 rounded-xl bg-white border border-gray-200 shadow-sm overflow-auto"
         initial={{ opacity: 0, y: 10 }}
@@ -343,7 +366,7 @@ const MonitoringRisksPage = () => {
                   <tr key={row.id} className={`${meta?.rowClass || ""} border-b`}>
                     <td className="px-4 py-2 whitespace-nowrap font-semibold text-brandMuted w-12">{idx + 1}</td>
                     {columns.map((c) => (
-                      <td key={c.name} className="px-4 py-2 whitespace-nowrap">
+                      <td key={c.name} className="px-6 py-4 min-w-[180px] align-top text-gray-700 leading-relaxed">
                         {c.name.toLowerCase() === "status" && meta ? (
                           <span className="inline-flex items-center gap-2">
                             <span className={`status-dot ${meta.dotClass}`} />
@@ -352,15 +375,13 @@ const MonitoringRisksPage = () => {
                         ) : c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at") ? (
                           formatDateOnly(row[c.name])
                         ) : (
-                          String(row[c.name] ?? "")
+                          <TruncatedCell content={String(row[c.name] ?? "")} />
                         )}
                       </td>
                     ))}
-
                   </tr>
                 );
               })}
-
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={columns.length + 1} className="px-4 py-4 text-center text-sm text-brandMuted">
@@ -373,7 +394,7 @@ const MonitoringRisksPage = () => {
         )}
       </motion.div>
 
-      {/* Layout Builder Modal */}
+      { }
       {showLayoutBuilder && (
         <LayoutBuilder
           fields={layoutFields}
@@ -390,4 +411,3 @@ const MonitoringRisksPage = () => {
 };
 
 export default MonitoringRisksPage;
-

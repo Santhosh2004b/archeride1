@@ -1,4 +1,4 @@
-// backend/controllers/dependencies.controller.js
+
 import {
   findDependencies,
   findDependencyById,
@@ -38,7 +38,7 @@ export async function getDependency(req, res) {
     const dep = await findDependencyById(id);
     if (!dep) return sendError(res, 404, "Dependency not found");
 
-    // Access check by project_id disabled
+    
     return sendSuccess(res, dep);
 
     return sendSuccess(res, dep);
@@ -50,7 +50,7 @@ export async function getDependency(req, res) {
 
 export async function createDependencyHandler(req, res) {
   try {
-    // 🆔 Auto-generate ID if not provided
+    
     if (!req.body.dependency_id || req.body.dependency_id.trim() === "") {
       const { generateEntityId } = await import("../utils/idGenerator.js");
       req.body.dependency_id = await generateEntityId(
@@ -65,7 +65,7 @@ export async function createDependencyHandler(req, res) {
       reported_by: req.user.email,
     };
 
-    // Sanitize undefined -> null
+    
     ["manual_project_id", "project_description", "account"].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
@@ -78,7 +78,7 @@ export async function createDependencyHandler(req, res) {
   }
 }
 
-// BM updates a dependency; create notification if it becomes Completed
+
 export async function updateDependencyHandler(req, res) {
   try {
     const { id } = req.params;
@@ -87,7 +87,7 @@ export async function updateDependencyHandler(req, res) {
     const existing = await findDependencyById(id);
     if (!existing) return sendError(res, 404, "Dependency not found");
 
-    // Access check by project_id disabled
+    
 
     const oldStatus = existing.status;
     const newStatus = payload.status;

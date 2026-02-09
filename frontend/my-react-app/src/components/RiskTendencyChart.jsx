@@ -1,4 +1,4 @@
-// src/components/RiskTendencyChart.jsx
+
 import React from 'react';
 import {
     AreaChart,
@@ -15,10 +15,7 @@ const RiskTendencyChart = ({ data, color = '#E63946' }) => {
 
     return (
         <div style={{ width: '100%', height: 320 }}>
-            {/* 
-          Using Recharts AreaChart to create a "unique" visualization 
-          distinct from the standard LineChart used elsewhere 
-      */}
+            {}
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                     data={data}

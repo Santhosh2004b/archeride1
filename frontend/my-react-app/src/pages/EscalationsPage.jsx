@@ -95,7 +95,7 @@ function EscalationsPage() {
       {mode === "edit" && editId && (
         <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5">
           <h3 className="font-urbanist font-semibold text-sm mb-4">Edit Escalation</h3>
-          {/* ...form fields here... */}
+          {}
           <button
             className="mt-4 bg-brandDark text-white px-6 py-2 rounded-full"
             onClick={() => {

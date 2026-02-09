@@ -1,57 +1,43 @@
-// ---------------- MONITORING DEPENDENCIES PAGE (MASTER FILTER PATTERN) ----------------
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchDependencies } from "../api/dependenciesApi";
-import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
-import { filterConfig } from "../config/filterConfig";
-import useMonitoringExport from "../hooks/useMonitoringExport";
-
-import { useNavigate } from "react-router-dom";
-import { FiFilter, FiSearch, FiPlus } from "react-icons/fi";
-import { RxCross2 } from "react-icons/rx";
-import LayoutBuilder from "../components/LayoutBuilder";
-import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import { formatDateOnly } from "../utils/dateFormat"; // Keep only what is used? wait formatDisplayDate is NOT used.
 import { dependenciesFormConfig } from "../config/formConfig";
-import { Pen } from "phosphor-react";
 
-/* STATUS META (unchanged) */
+
+// ...
+
+import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
+import useMonitoringExport from "../hooks/useMonitoringExport";
+import LayoutBuilder from "../components/LayoutBuilder";
+import { RxCross2 } from "react-icons/rx";
+import { FiFilter, FiSearch } from "react-icons/fi";
+import { Pen, DownloadSimple } from "phosphor-react";
+import TruncatedCell from "../components/TruncatedCell";
+import { exportToExcel } from "../utils/exportToExcel";
+
+const statusOptions = ["Open", "In Progress", "Resolved", "Cancelled", "Approved & Closed"];
+const priorityOptions = ["Low", "Medium", "High", "Critical"];
+const typeOptions = ["Technical", "Resource", "External", "Financial"];
+
 const getStatusMeta = (row) => {
   const raw = row.status || row.Status || row.current_status;
   if (!raw) return null;
-
-  const s = String(raw).toLowerCase();
-  const map = {
-    open: { rowClass: "status-open", dotClass: "dot-open", label: "Open" },
-    "in progress": { rowClass: "status-inprogress", dotClass: "dot-inprogress", label: "In Progress" },
-    "on hold": { rowClass: "status-onhold", dotClass: "dot-onhold", label: "On Hold" },
-    resolved: { rowClass: "status-resolved", dotClass: "dot-resolved", label: "Resolved" },
-    "approved & closed": { rowClass: "status-approved", dotClass: "dot-approved", label: "Approved & Closed" },
-    cancelled: { rowClass: "status-cancelled", dotClass: "dot-cancelled", label: "Cancelled" },
-  };
-  return map[s] || null;
+  const s = String(raw).toLowerCase().trim();
+  if (s.includes("open")) return { label: "Open", dotClass: "bg-red-500", rowClass: "bg-red-50" };
+  if (s.includes("progress")) return { label: "In Progress", dotClass: "bg-orange-500", rowClass: "bg-orange-50" };
+  if (s.includes("resolved")) return { label: "Resolved", dotClass: "bg-blue-500", rowClass: "bg-blue-50" };
+  if (s.includes("cancel")) return { label: "Cancelled", dotClass: "bg-gray-400", rowClass: "bg-gray-50" };
+  if (s.includes("approved") || s.includes("closed")) return { label: "Approved & Closed", dotClass: "bg-green-500", rowClass: "bg-green-50" };
+  return { label: raw, dotClass: "bg-gray-300", rowClass: "" };
 };
 
-/* CLEAN PARAMS */
-function cleanParams(params) {
-  // Remove keys with empty string values
-  return Object.fromEntries(
-    Object.entries(params).filter(([_, v]) => v !== "")
-  );
-}
-/* MAIN */
 const MonitoringDependenciesPage = () => {
-  // Layout Builder state
+
   const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
   const [layoutFields, setLayoutFields] = useState(dependenciesFormConfig?.fields || []);
 
-  const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [allRows, setAllRows] = useState([]); // Store unfiltered data
-  useMonitoringExport("dependencies", rows);
-
-  // master filter set
   const [filters, setFilters] = useState({
     account: "",
     status: "",
@@ -60,22 +46,46 @@ const MonitoringDependenciesPage = () => {
     dependent_on: "",
     search: "",
   });
-
-  // second row global search
   const [globalSearch, setGlobalSearch] = useState("");
+  const [allRows, setAllRows] = useState([]); // Store full data for client-side filtering
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+  const [showToast, setShowToast] = useState(false);
 
-  const depCfg = filterConfig.dependencies.fields;
-  const statusOptions = depCfg.find((f) => f.name === "status").options;
-  const priorityOptions = depCfg.find((f) => f.name === "priority").options;
-  const typeOptions = depCfg.find((f) => f.name === "type").options;
+  useMonitoringExport("dependencies", rows);
 
-  /* ======================================================
-     APPLY FILTERS + LIVE SEARCH (matches to top)
-  ====================================================== */
-  const applyFiltersAndSearch = (data) => {
+  // Load implementation
+  const loadData = async (currentFilters = filters) => {
+    setLoading(true);
+    try {
+      // Build API params if server-side filtering is supported,
+      // otherwise fetch all and filter client-side (preferred for smaller datasets)
+      const res = await fetchDependencies();
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      setAllRows(data);
+      applyFiltersAndSearch(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadLayout = async () => {
+    try {
+      const res = await getLayoutApi("dependencies");
+      if (res?.success && res.data?.length > 0) {
+        setLayoutFields(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  // ... 
+
+  const applyFiltersAndSearch = React.useCallback((data) => {
     let filtered = [...data];
 
-    // 1. Account Filter
     const pName = filters.account?.trim().toLowerCase();
     if (pName) {
       filtered = filtered.filter((row) =>
@@ -83,7 +93,6 @@ const MonitoringDependenciesPage = () => {
       );
     }
 
-    // 2. Select Filters
     const selectFilters = { ...filters };
     delete selectFilters.account;
     delete selectFilters.search;
@@ -96,7 +105,6 @@ const MonitoringDependenciesPage = () => {
       }
     });
 
-    // 3. Global Search
     if (globalSearch.trim()) {
       const term = globalSearch.toLowerCase();
       filtered = filtered.filter((row) =>
@@ -106,7 +114,6 @@ const MonitoringDependenciesPage = () => {
       );
     }
 
-    // Sort by latest reported_date/last_updated
     filtered.sort((a, b) => {
       const dateA = new Date(a.last_updated || a.reported_date || a.created_at || 0);
       const dateB = new Date(b.last_updated || b.reported_date || b.created_at || 0);
@@ -114,60 +121,25 @@ const MonitoringDependenciesPage = () => {
     });
 
     setRows(filtered);
-  };
-
-  /* LOAD DATA */
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const q = cleanParams(filters);
-      q.search = ""; // Don't send search to backend
-
-      let res = await fetchDependencies(q);
-      const data = (res && res.data) ? res.data : res;
-      const list = Array.isArray(data) ? data : [];
-
-      setAllRows(list);
-      applyFiltersAndSearch(list);
-    } catch (err) {
-      console.error("Failed to load dependencies", err);
-      alert("Failed to load dependencies");
-      setAllRows([]);
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [filters, globalSearch]);
 
 
-  // Load layout configuration
-  const loadLayout = async () => {
-    try {
-      const serverLayout = await getLayoutApi("dependencies");
-      if (serverLayout && Array.isArray(serverLayout)) {
-        setLayoutFields(serverLayout);
-      } else {
-        setLayoutFields(dependenciesFormConfig?.fields || []);
-      }
-    } catch (err) {
-      console.warn("No custom layout found, using default");
-      setLayoutFields(dependenciesFormConfig?.fields || []);
-    }
-  };
+  // ... loadData ...
 
   useEffect(() => {
     loadData();
     loadLayout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-filter when filters or search change (live)
+
   useEffect(() => {
     if (allRows.length > 0) {
       applyFiltersAndSearch(allRows);
     }
-  }, [filters, globalSearch]);
+  }, [filters, globalSearch, allRows, applyFiltersAndSearch]);
 
-  /* FILTER CHANGE */
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -192,17 +164,39 @@ const MonitoringDependenciesPage = () => {
     setGlobalSearch("");
   };
 
-  /* TABLE COLS */
+  const handleExport = () => {
+    const exportData = window.__EXPORT_DATA__?.["dependencies"];
+
+    if (!exportData || !exportData.rows?.length) {
+      alert(`No data available to export for dependencies`);
+      return;
+    }
+
+    exportToExcel(exportData);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   const columns = dependenciesFormConfig?.fields || [];
 
   return (
     <motion.div
-      className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6"
+      className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* Animated Header */}
+      {/* Export Toast */}
+      {showToast && (
+        <div className="absolute top-4 right-1/2 translate-x-1/2 z-50
+                      rounded-md bg-green-600 px-3 py-1.5
+                      text-xs text-white shadow-lg
+                      animate-fade">
+          ✅ Downloaded successfully
+        </div>
+      )}
+
+      { }
       <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
@@ -210,23 +204,35 @@ const MonitoringDependenciesPage = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Dependency</h1>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Dependencies</h1>
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
-        {/* Customize Form Button */}
-        <button
-          onClick={() => setShowLayoutBuilder(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-          title="Customize Form Layout"
-        >
-          <Pen size={18} weight="bold" />
-          Customize Form
-        </button>
+        { }
+        <div className="flex gap-2">
+          {rows.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExport}
+              className="rounded-full h-10 w-10 flex items-center justify-center border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+              title="Export to Excel"
+            >
+              <DownloadSimple size={20} weight="duotone" />
+            </button>
+          )}
+          <button
+            onClick={() => setShowLayoutBuilder(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+            title="Customize Form Layout"
+          >
+            <Pen size={18} weight="bold" />
+            Customize Form
+          </button>
+        </div>
 
       </motion.div>
 
-      {/* ROW 1 — main filters */}
+      { }
       <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-4 py-4 flex flex-col lg:flex-row gap-4"
         initial={{ opacity: 0, y: 10 }}
@@ -236,7 +242,7 @@ const MonitoringDependenciesPage = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 flex-1">
 
-          {/* project w/ icon */}
+          { }
           <div className="relative">
             <input
               type="text"
@@ -289,7 +295,7 @@ const MonitoringDependenciesPage = () => {
         </div>
       </motion.div>
 
-      {/* ROW 2 — global search only */}
+      { }
       <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-4 py-3 flex flex-row gap-3 items-center"
         initial={{ opacity: 0, y: 10 }}
@@ -318,7 +324,7 @@ const MonitoringDependenciesPage = () => {
 
       </motion.div>
 
-      {/* TABLE */}
+      { }
       <motion.div
         className="flex-1 rounded-xl bg-white border shadow-sm overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
@@ -346,14 +352,14 @@ const MonitoringDependenciesPage = () => {
                     <tr key={row.id} className={`${m?.rowClass || ""} border-b`}>
                       <td className="px-4 py-2 whitespace-nowrap font-semibold w-12">{idx + 1}</td>
                       {columns.map((c) => (
-                        <td key={c.name} className="px-4 py-2 whitespace-nowrap">
+                        <td key={c.name} className="px-4 py-2 min-w-[180px] align-top text-gray-700 leading-relaxed">
                           {c.name.toLowerCase() === "status" && m
                             ? <span className="inline-flex items-center gap-2">
                               <span className={`status-dot ${m.dotClass}`} />{m.label}
                             </span>
                             : (c.type === "date" || c.name.toLowerCase().includes("date") || c.name.toLowerCase().includes("_at"))
                               ? formatDateOnly(row[c.name])
-                              : String(row[c.name] ?? "")}
+                              : <TruncatedCell content={String(row[c.name] ?? "")} />}
                         </td>
                       ))}
 
@@ -375,7 +381,7 @@ const MonitoringDependenciesPage = () => {
       </motion.div>
 
 
-      {/* Layout Builder Modal */}
+      { }
       {showLayoutBuilder && (
         <LayoutBuilder
           fields={layoutFields}

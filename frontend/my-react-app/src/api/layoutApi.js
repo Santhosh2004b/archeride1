@@ -2,7 +2,7 @@ import axios from "axios";
 import { BASE_URL } from "./http";
 
 const getAuthHeaders = () => {
-    const stored = localStorage.getItem("archeride_auth");
+    const stored = localStorage.getItem("ARCHERIDE_AUTH");
     if (!stored) return {};
     const { token } = JSON.parse(stored);
     return { Authorization: `Bearer ${token}` };
@@ -11,10 +11,10 @@ const getAuthHeaders = () => {
 export const getLayoutApi = async (moduleName) => {
     try {
         const res = await axios.get(`${BASE_URL}/layout/${moduleName}`, { headers: getAuthHeaders() });
-        return res.data.data; // Only config part
+        return res.data.data; 
     } catch (err) {
         console.error(err);
-        return null; // Fallback to default
+        return null; 
     }
 };
 

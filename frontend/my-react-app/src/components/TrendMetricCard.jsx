@@ -1,16 +1,11 @@
-// src/components/TrendMetricCard.jsx
+
 import React from "react";
 import { ArrowUpRight, ArrowDownRight, Minus } from "phosphor-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
-/**
- * Modern card to display a metric trend.
- * - Displays the current count (last month's value)
- * - Indicates trend direction compared to previous month
- * - Displays a small sparkline chart (Lines)
- */
+
 const TrendMetricCard = ({ title, data = [], color = "#3b82f6" }) => {
-    const currentMonthIndex = new Date().getMonth(); // 0-11
+    const currentMonthIndex = new Date().getMonth();
     const currentVal = data[currentMonthIndex]?.value || 0;
     const prevVal = currentMonthIndex > 0 ? (data[currentMonthIndex - 1]?.value || 0) : 0;
 
@@ -21,8 +16,8 @@ const TrendMetricCard = ({ title, data = [], color = "#3b82f6" }) => {
     const diff = currentVal - prevVal;
     const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
 
-    // Process data for charts: just need [{value: x}, ...] which we have.
-    // We might want to add 'name' effectively being index
+
+
     const chartData = data.map((d, i) => ({ i, value: d.value }));
 
     return (
@@ -49,7 +44,7 @@ const TrendMetricCard = ({ title, data = [], color = "#3b82f6" }) => {
                     </div>
                 </div>
 
-                {/* Trend Indicator */}
+                { }
                 <div style={{
                     display: "flex", alignItems: "center", gap: 4,
                     fontSize: 13, fontWeight: 600,
@@ -62,9 +57,9 @@ const TrendMetricCard = ({ title, data = [], color = "#3b82f6" }) => {
                 </div>
             </div>
 
-            {/* Sparkline Chart */}
+            { }
             <div style={{ height: 60, width: '100%', marginTop: 8 }}>
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={chartData}>
                         <Line
                             type="monotone"

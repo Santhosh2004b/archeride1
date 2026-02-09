@@ -1,15 +1,12 @@
-// backend/models/escalations.model.js
+
 import pool from "../db.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
 
-/* =======================================================
-   ESCALATIONS MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ======================================================= */
 
-/* ============================
-   LIST ESCALATIONS
-   ============================ */
-const sql = `
+
+
+export async function findEscalations({ whereSql = "", params = [] } = {}) {
+  const sql = `
     SELECT
       e.id,
       e.escalation_id,
@@ -47,13 +44,11 @@ const sql = `
     ${whereSql}
     ORDER BY e.created_at DESC, e.reported_date DESC
   `;
-const { rows } = await pool.query(sql, params);
-return rows;
+  const { rows } = await pool.query(sql, params);
+  return rows;
 }
 
-/* ============================
-   GET ESCALATION BY ID
-   ============================ */
+
 export async function findEscalationById(id) {
   const sql = `
     SELECT e.*, u.email as created_by,
@@ -70,9 +65,7 @@ export async function findEscalationById(id) {
   return rows[0];
 }
 
-/* ============================
-   GET ESCALATION BY USER
-   ============================ */
+
 export async function findEscalationByUser(userId) {
   const sql = `
     SELECT *
@@ -85,9 +78,7 @@ export async function findEscalationByUser(userId) {
   return rows[0] || null;
 }
 
-/* ============================
-   CREATE ESCALATION
-   ============================ */
+
 export async function createEscalation(data, userId) {
   const sql = `
     INSERT INTO escalations (
@@ -151,9 +142,7 @@ export async function createEscalation(data, userId) {
   return rows[0];
 }
 
-/* ============================
-   UPDATE ESCALATION
-   ============================ */
+
 export async function updateEscalation(id, data) {
   const sql = `
     UPDATE escalations SET
@@ -207,7 +196,7 @@ export async function updateEscalation(id, data) {
     data.last_updated,
     data.comments || null,
     id,
-    data.manual_project_id // $23
+    data.manual_project_id 
   ];
 
   const { rows } = await pool.query(sql, params);
@@ -216,9 +205,7 @@ export async function updateEscalation(id, data) {
   return updated;
 }
 
-/* ============================
-   COUNT ESCALATIONS
-   ============================ */
+
 export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM escalations");
   return Number(result.rows[0].c);

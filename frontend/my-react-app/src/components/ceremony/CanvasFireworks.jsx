@@ -24,8 +24,8 @@ const CanvasFireworks = () => {
         class Particle {
             constructor() {
                 this.w = this.h = Math.random() * 4 + 1;
-                // Random start roughly in the center area to match expected visual
-                // Or strictly follow the original code's logic
+                
+                
                 const xPoint = Math.random() * (w - 200) + 100;
                 const yPoint = Math.random() * (h - 200) + 100;
 
@@ -75,7 +75,7 @@ const CanvasFireworks = () => {
 
             for (let i = 0; i < nFire; i++) {
                 const particle = new Particle();
-                // Override particle position to be consistent with the firework center
+                
                 particle.x = xPoint - particle.w / 2;
                 particle.y = yPoint - particle.h / 2;
                 particle.color = c;
@@ -103,7 +103,7 @@ const CanvasFireworks = () => {
 
         const paint = () => {
             ctx.globalCompositeOperation = 'source-over';
-            // Transparent background so it overlays efficiently or use the slight fade effect
+            
             ctx.fillStyle = "rgba(0,0,0,0.2)";
             ctx.fillRect(0, 0, w, h);
             ctx.globalCompositeOperation = 'lighter';

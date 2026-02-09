@@ -1,4 +1,4 @@
-// src/pages/MonitoringNotificationsPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -60,7 +60,7 @@ const MonitoringNotificationsPage = () => {
   useEffect(() => {
     setExpandedId(null);
     load(selectedModule);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [selectedModule]);
 
   const handleDecision = async (id, decision) => {
@@ -105,7 +105,7 @@ const MonitoringNotificationsPage = () => {
           </p>
         </div>
 
-        {/* Tab Navigation */}
+        {}
         <div className="mb-8 flex flex-wrap gap-2">
           {MODULES.map((m) => {
             const active = selectedModule === m.key;
@@ -142,7 +142,7 @@ const MonitoringNotificationsPage = () => {
               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
               .map((n) => {
                 const p = n.payload || {};
-                // Extract meaningful data
+                
                 const title = p.risk_title || p.issue_title || p.dependency_title || p.action_title || p.title || "(No Title)";
                 const project = p.account || p.project || "Unknown Project";
                 const priority = p.priority || "Medium";
@@ -157,7 +157,7 @@ const MonitoringNotificationsPage = () => {
                     className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 ${isExpanded ? "ring-2 ring-blue-500 shadow-md transform scale-[1.01]" : "hover:shadow-md"
                       }`}
                   >
-                    {/* Card Header (Clickable) */}
+                    {}
                     <div className="p-5 cursor-pointer" onClick={() => toggleExpand(n.id)}>
                       <div className="flex justify-between items-start mb-3">
                         <span className="text-xs font-bold uppercase tracking-wider text-gray-400 truncate max-w-[60%]">
@@ -207,11 +207,11 @@ const MonitoringNotificationsPage = () => {
                       </div>
                     </div>
 
-                    {/* Expanded Content */}
+                    {}
                     {isExpanded && (
                       <div className="px-5 pb-5 pt-0 animate-fadeIn bg-white border-t border-gray-100">
                         <div className="mt-4 space-y-3">
-                          {/* Mini Data Table */}
+                          {}
                           <div className="grid grid-cols-2 gap-2 text-xs mb-4 p-3 bg-gray-50 rounded-lg">
                             <div>
                               <span className="block text-gray-400 text-[10px] uppercase">BM User</span>
@@ -231,7 +231,7 @@ const MonitoringNotificationsPage = () => {
                             </div>
                           </div>
 
-                          {/* ESCALATION DOCUMENTS */}
+                          {}
                           {n.documents && n.documents.length > 0 && (
                             <div className="mb-4">
                               <span className="text-[10px] font-bold text-blue-500 uppercase mb-1 block">Attached Documents</span>
@@ -253,7 +253,7 @@ const MonitoringNotificationsPage = () => {
                             </div>
                           )}
 
-                          {/* Payload Dump (Styled) */}
+                          {}
                           <div className="mb-4">
                             <span className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Payload Data</span>
                             <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
@@ -261,7 +261,7 @@ const MonitoringNotificationsPage = () => {
                                 {Object.entries(p).filter(([k, v]) => {
                                   if (!v) return false;
                                   const key = k.toLowerCase();
-                                  // Hide internal fields
+                                  
                                   if (key === 'id' || key.includes('id_') || key.endsWith('_id') || key.includes('_at') || key === 'updated_at' || key === 'created_at') return false;
                                   return true;
                                 }).map(([k, v]) => (
@@ -278,7 +278,7 @@ const MonitoringNotificationsPage = () => {
                             </div>
                           </div>
 
-                          {/* Actions */}
+                          {}
                           <div className="space-y-3 pt-2 border-t border-gray-100">
                             <input
                               type="text"
@@ -305,7 +305,7 @@ const MonitoringNotificationsPage = () => {
                             <button
                               onClick={() => {
                                 const base = `${selectedModule}s`;
-                                navigate(`/monitoring/${base}?id=${encodeURIComponent(n.item_code || n.risk_id || n.id)}`); // Try to link via code if possible
+                                navigate(`/monitoring/${base}?id=${encodeURIComponent(n.item_code || n.risk_id || n.id)}`); 
                               }}
                               className="w-full py-2 text-blue-600 text-xs font-bold uppercase hover:bg-blue-50 rounded transition-colors"
                             >

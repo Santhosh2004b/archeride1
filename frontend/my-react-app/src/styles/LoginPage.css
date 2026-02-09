@@ -1,173 +1,277 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Urbanist:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Exo:400,700');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
-/* VIDEO FADE + QUALITY */
 
-@keyframes loginVideoFadeIn {
+
+.context {
+  width: 100%;
+}
+
+
+
+.area {
+  background: -webkit-linear-gradient(to top, #f3f4f6, #fff);
+  background: linear-gradient(to top, #f3f4f6, #fff);
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.circles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.circles li {
+  position: absolute;
+  display: block;
+  list-style: none;
+  width: 20px;
+  height: 20px;
+  background: rgba(46, 56, 68, 0.1);
+  animation: animate 25s linear infinite;
+  bottom: -150px;
+}
+
+.circles li:nth-child(1) {
+  left: 25%;
+  width: 80px;
+  height: 80px;
+  animation-delay: 0s;
+}
+
+.circles li:nth-child(2) {
+  left: 10%;
+  width: 20px;
+  height: 20px;
+  animation-delay: 2s;
+  animation-duration: 12s;
+}
+
+.circles li:nth-child(3) {
+  left: 70%;
+  width: 20px;
+  height: 20px;
+  animation-delay: 4s;
+}
+
+.circles li:nth-child(4) {
+  left: 40%;
+  width: 60px;
+  height: 60px;
+  animation-delay: 0s;
+  animation-duration: 18s;
+}
+
+.circles li:nth-child(5) {
+  left: 65%;
+  width: 20px;
+  height: 20px;
+  animation-delay: 0s;
+}
+
+.circles li:nth-child(6) {
+  left: 75%;
+  width: 110px;
+  height: 110px;
+  animation-delay: 3s;
+}
+
+.circles li:nth-child(7) {
+  left: 35%;
+  width: 150px;
+  height: 150px;
+  animation-delay: 7s;
+}
+
+.circles li:nth-child(8) {
+  left: 50%;
+  width: 25px;
+  height: 25px;
+  animation-delay: 15s;
+  animation-duration: 45s;
+}
+
+.circles li:nth-child(9) {
+  left: 20%;
+  width: 15px;
+  height: 15px;
+  animation-delay: 2s;
+  animation-duration: 35s;
+}
+
+.circles li:nth-child(10) {
+  left: 85%;
+  width: 150px;
+  height: 150px;
+  animation-delay: 0s;
+  animation-duration: 11s;
+}
+
+@keyframes animate {
   0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+    border-radius: 0;
+  }
+
+  100% {
+    transform: translateY(-1000px) rotate(720deg);
     opacity: 0;
-    transform: scale(1.02);
+    border-radius: 50%;
+  }
+}
+
+
+.perspective-container {
+  perspective: 1000px;
+}
+
+.quote-flip-in {
+  animation: flipInX 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  backface-visibility: visible !important;
+}
+
+@keyframes flipInX {
+  from {
+    transform: perspective(400px) rotate3d(1, 0, 0, 90deg);
+    animation-timing-function: ease-in;
+    opacity: 0;
+  }
+
+  40% {
+    transform: perspective(400px) rotate3d(1, 0, 0, -20deg);
+    animation-timing-function: ease-in;
   }
 
   60% {
+    transform: perspective(400px) rotate3d(1, 0, 0, 10deg);
     opacity: 1;
-    transform: scale(1.0);
   }
 
-  100% {
+  80% {
+    transform: perspective(400px) rotate3d(1, 0, 0, -5deg);
+  }
+
+  to {
+    transform: perspective(400px);
     opacity: 1;
-    transform: scale(1.0);
-  }
-}
-
-/* container that forces proper 16:9, no white side bars */
-.login-video-frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 1.00rem;
-  overflow: hidden;
-  background: #00000083;
-  /* avoids white edges behind */
-}
-
-.login-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  filter: contrast(1.00) saturate(1.28);
-}
-
-.login-video-fade {
-  opacity: 0;
-  animation: loginVideoFadeIn 2.8s ease-out forwards;
-}
-
-/* LEFT MEDIA CARD – slower entrance, no jump */
-
-@keyframes loginCardRise {
-  0% {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.login-media-card {
-  box-shadow:
-    rgb(0, 0, 0) 0px 24px 40px,
-    rgba(0, 0, 0, 0.12) 0px 0px 10px;
-  opacity: 0;
-  animation: loginCardRise 2.4s ease-out forwards;
-  animation-delay: 0.5s;
-}
-
-/* RIGHT SIDE FADE STAGING */
-
-@keyframes loginFadeUp {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .login-heading-fade {
-  opacity: 0;
-  animation: loginFadeUp 0.4s ease-out forwards;
-  animation-delay: 0.1s;
+  animation: fadeInDown 1s ease-out;
 }
 
 .login-subtext-fade {
-  opacity: 0;
-  animation: loginFadeUp 0.6s ease-out forwards;
-  animation-delay: 0.25s;
-}
-
-.login-error-fade {
-  opacity: 0;
-  animation: loginFadeUp 0.8s ease-out forwards;
-  animation-delay: 0.35s;
+  animation: fadeInUp 1s ease-out 0.3s backwards;
 }
 
 .login-fields-fade {
-  opacity: 0;
-  animation: loginFadeUp 1s ease-out forwards;
-  animation-delay: 0.4s;
+  animation: fadeInUp 1s ease-out 0.6s backwards;
 }
 
 .login-footer-fade {
+  animation: fadeInUp 1s ease-out 0.9s backwards;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+.stack {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 900px;
+}
+
+.line {
+  display: block;
+  margin: 0 auto;
+  line-height: 1.15;
+  letter-spacing: 0.2px;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.1);
   opacity: 0;
-  animation: loginFadeUp 1s ease-out forwards;
-  animation-delay: 0.9s;
+  transform: translateY(6px);
 }
 
-/* LOGIN BUTTON – black → white transition */
+.line1 {
+  font-size: clamp(24px, 4vw, 42px);
+  font-weight: 800;
+  color: #111827;
+  animation: lineIn 900ms ease forwards;
+  animation-delay: 0.6s;
+}
 
-@keyframes loginBtnSwap {
-  0% {
-    background-color: #000000;
-    color: #ffffff;
+
+.line2 {
+  display: none;
+}
+
+@keyframes lineIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
+.type-cursor::after {
+  content: "▍";
+  display: inline-block;
+  margin-left: 2px;
+  transform: translateY(-1px);
+  opacity: 0.85;
+  animation: blink 900ms steps(1) infinite;
+}
+
+@keyframes blink {
   50% {
-    background-color: #000000;
-    color: #ffffff;
-  }
-
-  100% {
-    background-color: #ffffff;
-    color: #000000;
-  }
-}
-
-.login-button-animate {
-  background-color: #0000005f;
-  color: #ffffff;
-  animation: loginBtnSwap 2.2s ease-out forwards;
-}
-
-.login-button-animate:hover {
-  background-color: #111111;
-  color: #ffffff;
-}
-
-@keyframes fadeDown {
-  from {
     opacity: 0;
-    transform: translateY(-6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
-.animate-fade-down {
-  animation: fadeDown 0.4s ease-out;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.login-slide-up {
-  animation: slideUp 0.6s ease-out;
-}

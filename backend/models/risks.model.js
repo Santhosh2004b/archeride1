@@ -1,14 +1,10 @@
-// backend/models/risks.model.js
+
 import pool from "../db.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
 
-/* =======================================================
-   RISKS MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ======================================================= */
 
-/* ============================
-   LIST RISKS (ROLE AWARE)
-   ============================ */
+
+
 export async function findRisks({ whereSql = "", params = [] } = {}) {
   const sql = `
     SELECT
@@ -46,9 +42,7 @@ export async function findRisks({ whereSql = "", params = [] } = {}) {
   return rows;
 }
 
-/* ============================
-   GET BY ID
-   ============================ */
+
 export async function findRiskById(id) {
   const sql = `
     SELECT r.*
@@ -59,9 +53,7 @@ export async function findRiskById(id) {
   return rows[0];
 }
 
-/* ============================
-   CREATE RISK (OWNERSHIP)
-   ============================ */
+
 export async function createRisk(data) {
   const sql = `
     INSERT INTO risks (
@@ -95,7 +87,7 @@ export async function createRisk(data) {
 
   const params = [
     data.risk_id,
-    data.manual_project_id || null, // Updated
+    data.manual_project_id || null, 
     data.project_description || null,
     data.account || null,
     data.identified_date,
@@ -114,16 +106,14 @@ export async function createRisk(data) {
     data.current_status || null,
     data.last_reviewed_date || null,
     data.comments || null,
-    data.created_by, // ROLE LOCK
+    data.created_by, 
   ];
 
   const { rows } = await pool.query(sql, params);
   return rows[0];
 }
 
-/* ============================
-   UPDATE RISK
-   ============================ */
+
 export async function updateRisk(id, data) {
   const sql = `
     UPDATE risks SET
@@ -173,21 +163,19 @@ export async function updateRisk(id, data) {
     data.last_reviewed_date || null,
     data.comments || null,
     id,
-    data.manual_project_id, // $21
+    data.manual_project_id, 
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (String(updated.status).toLowerCase() === "resolved") {
-    // Notification handled in controller now
+    
   }
 
   return updated;
 }
-/* ============================
-   COUNT HELPERS
-   ============================ */
+
 export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM risks");
   return Number(result.rows[0].c);
@@ -201,9 +189,7 @@ export async function countByStatus(status) {
   return Number(result.rows[0].c);
 }
 
-/* ============================
-   UPDATE ONLY STATUS (ADMIN)
-   ============================ */
+
 export async function updateRiskStatus(id, status) {
   const sql = `
     UPDATE risks

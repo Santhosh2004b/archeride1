@@ -91,7 +91,7 @@ const FireworksCanvas = ({ isActive, intensity = 100 }) => {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Launch fireworks based on intensity
+            
             if (isActive && intensity > 0) {
                 const delay = intensity >= 100 ? 200 :
                     intensity >= 75 ? 400 :
@@ -108,13 +108,13 @@ const FireworksCanvas = ({ isActive, intensity = 100 }) => {
                 }
             }
 
-            // Update and draw fireworks
+            
             fireworksRef.current = fireworksRef.current.filter(fw => {
                 fw.draw();
                 return fw.update();
             });
 
-            // Update and draw particles
+            
             particlesRef.current = particlesRef.current.filter(p => {
                 p.draw();
                 return p.update();

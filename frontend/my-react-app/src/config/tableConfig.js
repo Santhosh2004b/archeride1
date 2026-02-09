@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/config/tableConfig.js
+
 const tableConfig = {
   risks: {
     columns: [
@@ -58,16 +58,6 @@ const tableConfig = {
       { key: "appreciation_type", label: "Type" },
       { key: "subject", label: "Subject" },
       { key: "received_date", label: "Received Date" },
-    ],
-  },
-  collections: {
-    columns: [
-      { key: "invoice_id", label: "Invoice ID" },
-      { key: "account", label: "Account" },
-      { key: "customer_name", label: "Customer" },
-      { key: "invoice_date", label: "Invoice Date" },
-      { key: "invoice_amount", label: "Amount" },
-      { key: "status", label: "Status" },
     ],
   },
 };

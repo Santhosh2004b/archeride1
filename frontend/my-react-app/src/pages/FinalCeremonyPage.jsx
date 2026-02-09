@@ -21,7 +21,7 @@ const FinalCeremonyPage = () => {
 
     return (
         <div className="final-ceremony-container ceremony-fullscreen overflow-y-auto px-6 py-20 pb-40 relative">
-            {/* Premium Backdrop */}
+            {}
             <div className="ceremony-service-bg fixed inset-0 z-0">
                 <div className="parallax-stars-1 opacity-50" />
                 <div className="parallax-stars-2 opacity-40" />
@@ -29,7 +29,7 @@ const FinalCeremonyPage = () => {
             </div>
 
             <div className="relative z-10 max-w-6xl mx-auto text-center">
-                {/* Hero Header */}
+                {}
                 <header className="mb-24 animate-fade-in-down">
                     <div className="success-story-badge">Corporate Success Story</div>
                     <h1 className="executive-hero-title mb-6">A Legacy of Innovation & Success</h1>
@@ -39,7 +39,7 @@ const FinalCeremonyPage = () => {
                     </p>
                 </header>
 
-                {/* The Success Story / Timeline */}
+                {}
                 <section className="mb-32">
                     <h2 className="section-label-gold mb-16 underline-gold">The Stones of Progress</h2>
                     <div className="milestones-grid grid grid-cols-1 md:grid-cols-3 gap-10 px-4">
@@ -53,7 +53,7 @@ const FinalCeremonyPage = () => {
                     </div>
                 </section>
 
-                {/* Executive Honor - VP Spotlight */}
+                {}
                 <section className="mb-32">
                     <h2 className="section-label-gold mb-12 uppercase tracking-widest">Executive leadership & support</h2>
                     <div className="vp-honor-card glass-premium p-12 max-w-5xl mx-auto relative overflow-hidden group animate-fade-in-up" style={{ animationDelay: '1.5s' }}>
@@ -74,7 +74,7 @@ const FinalCeremonyPage = () => {
                     </div>
                 </section>
 
-                {/* Team Recognition */}
+                {}
                 <section className="mb-20">
                     <h2 className="section-label-gold mb-12 uppercase tracking-widest">Execution Excellence</h2>
                     <div className="flex justify-center">
@@ -86,7 +86,7 @@ const FinalCeremonyPage = () => {
                     </div>
                 </section>
 
-                {/* Final CTA */}
+                {}
                 <div className="mt-32 pb-20 animate-fade-in" style={{ animationDelay: '2.5s' }}>
                     <p className="text-white/60 mb-10 font-light italic tracking-widest uppercase text-sm">Step into the future of Arche.RIDE</p>
                     <button onClick={handleFinish} className="intro-btn px-20 py-6 text-xl font-black tracking-[0.2em] hover:scale-105 transition-all shadow-xl">

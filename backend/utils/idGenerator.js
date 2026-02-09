@@ -5,7 +5,6 @@ export async function generateEntityId(userEmail, projectName, entityType) {
     try {
         await client.query('BEGIN');
 
-        // 1. Define Prefixes
         const prefixMap = {
             risk: "RSK",
             issue: "ISS",
@@ -19,23 +18,18 @@ export async function generateEntityId(userEmail, projectName, entityType) {
 
         const prefix = prefixMap[entityType.toLowerCase()] || "GEN";
 
-        // 2. Get User Code (Keeping for userId retrieval, but not using user_code in ID)
         const userRes = await client.query('SELECT id FROM users WHERE email = $1', [userEmail]);
         if (userRes.rows.length === 0) {
             throw new Error(`User not found: ${userEmail}`);
         }
         const { id: userId } = userRes.rows[0];
 
-        // 3. Extract Account Code (First 3 chars, Uppercase)
-        // If account is missing/null, fallback to "GEN" or similar? User said "ACCOUNT STARTING 3LETTERS"
-        // Let's use "GEN" if null, or extract from accountName
         let accountCode = "GEN";
         if (projectName && typeof projectName === 'string' && projectName.trim().length > 0) {
             accountCode = projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
             if (accountCode.length < 3) accountCode = accountCode.padEnd(3, 'X');
         }
 
-        // 4. Get and Increment Sequence (User-Specific)
         const seqRes = await client.query(`
             INSERT INTO user_entity_sequences (user_id, entity_type, last_value)
             VALUES ($1, $2, 1)
@@ -47,7 +41,7 @@ export async function generateEntityId(userEmail, projectName, entityType) {
         const nextVal = seqRes.rows[0].last_value;
         const paddedVal = String(nextVal).padStart(3, '0');
 
-        const generatedId = `${prefix}-${accountCode}-${paddedVal}`; // e.g., RSK-ROX-001
+        const generatedId = `${prefix}-${accountCode}-${paddedVal}`;
 
         await client.query('COMMIT');
 
@@ -58,6 +52,58 @@ export async function generateEntityId(userEmail, projectName, entityType) {
         if (client) await client.query('ROLLBACK');
         console.error("ID Generation Error:", err);
         return `${entityType.toUpperCase().slice(0, 3)}-ERR-${Math.floor(Math.random() * 999)}`;
+    } finally {
+        if (client) client.release();
+    }
+}
+
+export async function previewEntityId(userEmail, projectName, entityType) {
+    const client = await db.connect();
+    try {
+        // No transaction needed for read-only preview
+
+        const prefixMap = {
+            risk: "RSK",
+            issue: "ISS",
+            dependency: "DEP",
+            escalation: "ESC",
+            action: "ACT",
+            appreciation: "APP",
+            collection: "INV",
+            project: "PRJ"
+        };
+
+        const prefix = prefixMap[entityType.toLowerCase()] || "GEN";
+
+        const userRes = await client.query('SELECT id FROM users WHERE email = $1', [userEmail]);
+        if (userRes.rows.length === 0) {
+            return "USER-ERR";
+        }
+        const { id: userId } = userRes.rows[0];
+
+        let accountCode = "GEN";
+        if (projectName && typeof projectName === 'string' && projectName.trim().length > 0) {
+            accountCode = projectName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
+            if (accountCode.length < 3) accountCode = accountCode.padEnd(3, 'X');
+        }
+
+        // Check current sequence without incrementing
+        const seqRes = await client.query(`
+            SELECT last_value FROM user_entity_sequences 
+            WHERE user_id = $1 AND entity_type = $2
+        `, [userId, entityType.toLowerCase()]);
+
+        let nextVal = 1;
+        if (seqRes.rows.length > 0) {
+            nextVal = seqRes.rows[0].last_value + 1;
+        }
+
+        const paddedVal = String(nextVal).padStart(3, '0');
+        return `${prefix}-${accountCode}-${paddedVal}`;
+
+    } catch (err) {
+        console.error("ID Preview Error:", err);
+        return "PREVIEW-ERR";
     } finally {
         if (client) client.release();
     }

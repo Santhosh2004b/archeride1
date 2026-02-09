@@ -1,4 +1,4 @@
-// Risk Trend with Year Selector
+
 import React, { useState, useMemo } from "react";
 import {
   LineChart as RLineChart,
@@ -13,7 +13,7 @@ import {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function LineChart({ data = [] }) {
-  // Ensure months are in correct order
+  
   const sortedData = useMemo(() => {
     const monthMap = new Map();
     data.forEach(item => {
@@ -21,14 +21,14 @@ export default function LineChart({ data = [] }) {
       monthMap.set(monthName, item.count || 0);
     });
 
-    // Build array in month order
+    
     return MONTHS.map(month => ({
       month,
       count: monthMap.get(month) || 0,
     }));
   }, [data]);
 
-  // Auto-scale Y-axis
+  
   const maxCount = useMemo(() => {
     const max = Math.max(...sortedData.map(d => Number(d.count || 0)));
     return Math.max(max * 1.15, 10);
@@ -36,7 +36,7 @@ export default function LineChart({ data = [] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Chart */}
+      {}
       <ResponsiveContainer width="100%" height={260}>
         <RLineChart data={sortedData}>
           <CartesianGrid stroke="#e6e6e6" strokeDasharray="3 3" />

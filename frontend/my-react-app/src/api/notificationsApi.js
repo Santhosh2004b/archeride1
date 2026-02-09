@@ -1,7 +1,7 @@
-// src/api/notificationsApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 
-// LIST pending risk notifications (ADMIN)
+
 export async function fetchRiskNotifications() {
   const res = await fetch(`${BASE_URL}/notifications/risks`, {
     headers: {
@@ -12,7 +12,7 @@ export async function fetchRiskNotifications() {
   return handleResponse(res);
 }
 
-// Other modules (ADMIN)
+
 export async function fetchIssueNotifications() {
   const res = await fetch(`${BASE_URL}/notifications/issues`, {
     headers: {
@@ -53,7 +53,7 @@ export async function fetchActionNotifications() {
   return handleResponse(res);
 }
 
-// ADMIN decisions
+
 export async function decideRiskNotification(notificationId, decision, comment) {
   const res = await fetch(`${BASE_URL}/risks/decisions/${notificationId}`, {
     method: "POST",
@@ -132,7 +132,7 @@ export async function decideActionNotification(
   return handleResponse(res);
 }
 
-// BM list – supports module filter (?module=)
+
 export async function fetchBmNotifications(module = "risk") {
   const res = await fetch(
     `${BASE_URL}/notifications/bm?module=${encodeURIComponent(module)}`,
@@ -146,7 +146,7 @@ export async function fetchBmNotifications(module = "risk") {
   return handleResponse(res);
 }
 
-// Bell counts
+
 export async function fetchAdminNotificationCount() {
   const res = await fetch(`${BASE_URL}/notifications/counts/admin`, {
     headers: {

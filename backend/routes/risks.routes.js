@@ -14,7 +14,7 @@ router.get("/:id", getRisk);
 router.post("/", createRiskHandler);
 router.put("/:id", updateRiskHandler);
 
-// ✅ ADMIN APPROVAL
+
 router.post("/decisions/:notificationId", decideRiskResolution);
 
 export default router;

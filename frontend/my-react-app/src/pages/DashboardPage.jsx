@@ -21,7 +21,6 @@ const modules = [
   { key: "dependencies", label: "Dependencies", icon: Stack, color: "var(--status-dependency)" },
   { key: "escalations", label: "Escalations", icon: TrendUp, color: "var(--status-escalation)" },
   { key: "appreciations", label: "Appreciations", icon: Heart, color: "var(--status-appreciation)" },
-  { key: "collections", label: "Collections", icon: ShieldCheck, color: "var(--status-collection)" },
 ];
 
 function DashboardPage() {

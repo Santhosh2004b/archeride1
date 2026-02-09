@@ -1,17 +1,7 @@
-// backend/utils/metrics.utils.js
-import pool from "../config/db.config.js";
-// utils/metrics.utils.js
 
-export async function buildTrendCollections() {
-  const q = `
-    SELECT TO_CHAR(invoice_date, 'Mon') AS month,
-           COUNT(*) as value
-    FROM collections
-    GROUP BY 1
-    ORDER BY MIN(invoice_date);
-  `;
-  return (await pool.query(q)).rows;
-}
+import pool from "../config/db.config.js";
+
+
 
 export async function buildTrendClosedIssues() {
   const q = `
@@ -36,7 +26,7 @@ export async function buildTrendEscalations() {
   return (await pool.query(q)).rows;
 }
 
-/** Monthly Risk Trend: for line chart */
+
 export async function buildMonthlyRiskTrend() {
   const result = await pool.query(`
     SELECT
@@ -49,7 +39,7 @@ export async function buildMonthlyRiskTrend() {
   return result.rows;
 }
 
-/** Action completion %: for gauge chart */
+
 export async function buildActionCompletion() {
   const result = await pool.query(`
     SELECT
@@ -60,7 +50,7 @@ export async function buildActionCompletion() {
   return Number(result.rows[0].percent || 0);
 }
 
-/** Module Status Distribution: for stacked column chart */
+
 export async function buildModuleStatusDistribution() {
   const queries = {
     risks: "SELECT status, COUNT(*)::int AS count FROM risks GROUP BY status",

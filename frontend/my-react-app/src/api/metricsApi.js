@@ -1,4 +1,4 @@
-// src/api/metricsApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 
 export async function fetchDashboardMetrics(params = {}) {

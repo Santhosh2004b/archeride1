@@ -1,49 +1,128 @@
-// src/pages/LoginPage.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginApi } from "../api/authApi";
+import { loginApi, resetPasswordExpiredApi } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/arche-logo2.png";
 import loginVideo from "../assets/login-hero.mp4";
 import "../styles/LoginPage.css";
 
 function LoginPage() {
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
+
+  const [isExpired, setIsExpired] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [requireOldPassword, setRequireOldPassword] = useState(true);
+
+
+  const [text1, setText1] = useState("");
+  const [cursor1, setCursor1] = useState(true);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const QUOTES = [
+    "Innovation is the ability to see change as an opportunity - not a threat.",
+    "Quality means doing it right when no one is looking.",
+    "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    "The secret of business is to know something that nobody else knows.",
+    "Efficiency is doing better what is already being done.",
+    "Great things in business are never done by one person.",
+    "Productivity is never an accident. It is always the result of a commitment to excellence.",
+    "The only way to do great work is to love what you do.",
+    "Management is doing things right; leadership is doing the right things.",
+    "Vision is the art of seeing what is invisible to others.",
+    "Leadership is the capacity to translate vision into reality.",
+    "Your most unhappy customers are your greatest source of learning.",
+    "Business opportunities are like buses, there's always another one coming.",
+    "Success usually comes to those who are too busy to be looking for it.",
+    "Don't sit down and wait for the opportunities to come. Get up and make them.",
+    "The way to get started is to quit talking and begin doing.",
+    "There's no shortage of remarkable ideas, what's missing is the will to execute them.",
+    "Far and away the best prize that life offers is the chance to work hard at work worth doing.",
+    "If you really look closely, most overnight successes took a long time.",
+    "To succeed in business, to reach the top, an individual must know all it is possible to know about that business."
+  ];
+
+
+  React.useEffect(() => {
+    const mainText = "Manage with Clarity and Control";
+    const type = (fullText, setFn, charDelay, startDelay, onComplete) => {
+      setTimeout(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+          setFn(fullText.slice(0, i + 1));
+          i++;
+          if (i >= fullText.length) {
+            clearInterval(interval);
+            if (onComplete) onComplete();
+          }
+        }, charDelay);
+      }, startDelay);
+    };
+
+    type(mainText, setText1, 40, 600, () => {
+      setCursor1(false);
+    });
+  }, []);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
+    }, 5000);
+    if (window.stopCeremonyAudio) window.stopCeremonyAudio();
+    return () => clearInterval(interval);
+  }, [QUOTES.length]);
+
+
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setInfo("");
     setLoading(true);
 
     try {
+
       const response = await loginApi(email, password);
 
+
       if (response.isFirstLogin) {
+        setInfo(response.message);
+        setIsExpired(true);
+        setRequireOldPassword(false);
+        setLoading(false);
+        return;
+      }
+
+
+      if (response.passwordExpired) {
+        setIsExpired(true);
+        setRequireOldPassword(true);
         setInfo(response.message);
         setLoading(false);
         return;
       }
 
-      login(response.data);
-      const role = response.data.user.role;
 
-      if (role === "ADMIN") {
+      login(response.data);
+      if (response.data.user.role === "ADMIN") {
         navigate("/monitoring", { replace: true });
-      } else if (role === "BM" || role === "PM") {
-        navigate("/modules/risks?mode=view", { replace: true });
       } else {
-        setError("Your role is not authorized for this portal.");
-        navigate("/login", { replace: true });
+        navigate("/modules/risks?mode=view", { replace: true });
       }
+
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -51,149 +130,185 @@ function LoginPage() {
     }
   };
 
-  const [theme, setTheme] = useState("light"); // light | dark
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-  const handleInteraction = () => {
-    if (theme === "light") {
-      setTheme("dark");
+    setLoading(true);
+    setError("");
+    try {
+      const res = await resetPasswordExpiredApi(email, requireOldPassword ? password : "", newPassword);
+      setInfo(res.message);
+      setIsExpired(false);
+      setPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setError(err.message || "Failed to update password");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div
-      onClick={handleInteraction}
-      className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-1000 ${theme === "dark" ? "bg-black text-white" : "bg-white text-gray-900"
-        }`}
-    >
 
-      {/* left video only desktop */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center">
-        <div
-          className="w-4/5 max-w-xl rounded-2xl overflow-hidden transition-shadow duration-500"
-          style={{
-            boxShadow: theme === 'dark'
-              ? "rgba(255, 255, 255, 0.1) 0px 2px 4px 0px, rgba(255, 255, 255, 0.2) 0px 2px 16px 0px"
-              : "rgba(14, 30, 37, 0.12) 0px 2px 4px 0px, rgba(14, 30, 37, 0.32) 0px 2px 16px 0px"
-          }}
-        >
-          <video
-            className="w-full h-full object-cover"
-            src={loginVideo}
-            autoPlay loop muted playsInline
-          />
+  return (
+    <div className="min-h-screen w-full flex font-urbanist relative overflow-hidden">
+      { }
+      <div className="area"><ul className="circles">{[...Array(10)].map((_, i) => <li key={i}></li>)}</ul></div>
+
+      { }
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden z-10">
+        <div className="context flex flex-col items-center justify-center h-full w-full px-12">
+          { }
+          <div className="relative w-full aspect-video max-w-lg rounded-2xl overflow-hidden shadow-2xl mb-8 border border-gray-900/10 group">
+            <video className="absolute inset-0 w-full h-full object-cover opacity-90" src={loginVideo} autoPlay loop muted playsInline />
+            <div className="absolute inset-0 bg-black/5"></div>
+          </div>
+          { }
+          <div className="stack mb-4">
+            <div className={`line line1 ${cursor1 ? "type-cursor" : ""}`}>{text1}</div>
+          </div>
+          { }
+          <div className="h-20 flex items-center justify-center px-4 perspective-container">
+            <p className="text-base sm:text-lg text-gray-600 italic font-light drop-shadow-sm text-center" key={quoteIndex}>"{QUOTES[quoteIndex]}"</p>
+          </div>
         </div>
       </div>
 
-      {/* login form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-6 sm:px-10">
-        <div className="w-full max-w-sm sm:max-w-md">
+      { }
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 z-20 relative">
+        <div className="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl p-8 sm:p-10 border border-gray-100">
 
-          {/* mobile logo */}
-          <h1 className={`font-cinzel text-2xl sm:text-4xl mb-3 uppercase tracking-wide text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Welcome to ride.arche.global
-          </h1>
+          { }
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <img src={logo} alt="Arche Logo" className="w-12 h-12 object-contain" />
+            <h1 className="pop-text text-xl sm:text-2xl font-bold tracking-tight">RIDE+</h1>
+            <div className="h-0.5 w-12 bg-blue-600 rounded-full mt-1"></div>
+          </div>
 
-          <p className={`font-urbanist text-sm mb-6 text-center ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            Sign in to access your workspace and manage your projects with precision.
-          </p>
+          { }
+          {info && <div className="mb-4 bg-blue-50 text-blue-600 px-4 py-2 rounded text-sm border border-blue-100">{info}</div>}
+          {error && <div className="mb-4 bg-red-50 text-red-500 px-4 py-2 rounded text-sm border border-red-100">{error}</div>}
 
-          {info && (
-            <div className="mb-3 rounded bg-yellow-900/20 border border-yellow-500/60 px-3 py-2 text-xs sm:text-sm text-yellow-500">
-              {info}
-            </div>
-          )}
+          { }
+          {isExpired ? (
 
-          {error && (
-            <div className="mb-3 rounded bg-red-900/20 border border-red-500/60 px-3 py-2 text-xs sm:text-sm text-red-500">
-              {error}
-            </div>
-          )}
-
-          <form
-            autoComplete="off"
-            onSubmit={handleSubmit}
-            className={`space-y-6 rounded-2xl shadow-2xl border px-8 py-10 transition-all duration-700 backdrop-blur-xl ${theme === "dark"
-              ? "bg-[#050509]/60 border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
-              : "bg-white/70 border-white/40 shadow-xl"
-              }`}
-          >
-            {/* email */}
-            <div className="space-y-2">
-              <label className={`block text-[10px] font-bold uppercase tracking-widest ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Email</label>
-              <input
-                autoComplete="off"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full rounded-lg border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${theme === "dark"
-                  ? "border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus:ring-blue-500/50 focus:border-blue-500/50 hover:bg-white/10"
-                  : "border-gray-200 bg-white/50 text-gray-900 placeholder:text-gray-400 focus:ring-black/20 hover:bg-white/80"
-                  }`}
-              />
-            </div>
-
-            {/* password with show/hide */}
-            <div className="space-y-2">
-              <label className={`block text-[10px] font-bold uppercase tracking-widest ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Password</label>
-              <div className="relative">
-                <input
-                  autoComplete="new-password"
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full rounded-lg border px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 transition-all ${theme === "dark"
-                    ? "border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus:ring-blue-500/50 focus:border-blue-500/50 hover:bg-white/10"
-                    : "border-gray-200 bg-white/50 text-gray-900 placeholder:text-gray-400 focus:ring-black/20 hover:bg-white/80"
-                    }`}
-                />
-                <button
-                  type="button"
-                  className={`absolute right-3 top-3 text-[10px] font-bold tracking-wider hover:text-blue-400 transition-colors ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}
-                  onClick={() => setShowPass(!showPass)}
-                >
-                  {showPass ? "HIDE" : "SHOW"}
-                </button>
+            <div className="animate-fade-in-up">
+              <div className="mb-6 text-center">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  {requireOldPassword ? "Update Your Password" : "Set Your Password"}
+                </h2>
               </div>
-            </div>
 
-            {/* login button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full rounded-lg px-4 py-3.5 text-sm font-bold uppercase tracking-[0.2em] transition-all duration-300 transform active:scale-95 ${loading ? "opacity-70 cursor-wait" : ""
-                } ${theme === "dark"
-                  ? "bg-white text-black hover:bg-blue-50 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                  : "bg-black text-white hover:bg-gray-800 hover:shadow-lg"}`}
-            >
-              {loading ? "Accessing..." : "Login"}
-            </button>
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {requireOldPassword && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Current Password</label>
+                    <input
+                      type="password"
+                      placeholder="Enter current password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full p-3 rounded border border-gray-200 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    />
+                  </div>
+                )}
 
-            {/* RESTRICTED ACCESS - PRO VISION STYLE */}
-            <div className="mt-8 flex justify-center">
-              <div className={`
-                relative px-5 py-2 rounded-full overflow-hidden group cursor-default
-                transition-all duration-500 ease-out border backdrop-blur-2xl
-                ${theme === 'dark'
-                  ? 'bg-white/5 border-white/5 shadow-lg'
-                  : 'bg-black/5 border-black/5 shadow-sm'}
-                hover:border-blue-400/30 hover:bg-white/10
-              `}>
-                <div className="flex items-center gap-2.5 relative z-10">
-                  <div className={`w-1.5 h-1.5 rounded-full ${theme === 'dark' ? 'bg-blue-400/80 shadow-[0_0_8px_rgba(96,165,250,0.6)]' : 'bg-blue-600'} animate-pulse`}></div>
-                  <span className={`text-[10px] font-bold tracking-[0.2em] uppercase font-urbanist ${theme === 'dark' ? 'text-gray-400 group-hover:text-blue-200' : 'text-gray-600 group-hover:text-blue-800'} transition-colors duration-300`}>
-                    Restricted Access
-                  </span>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">New Password</label>
+                  <input
+                    type="password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full p-3 rounded border border-gray-200 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    required
+                  />
                 </div>
 
-                {/* Horizontal Light Scan */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-150%] group-hover:animate-[shimmer_1s_infinite]"></div>
-              </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Confirm Password</label>
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full p-3 rounded border border-gray-200 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-3 rounded font-bold uppercase tracking-wider text-sm hover:bg-blue-700 transition shadow-md"
+                >
+                  {loading ? "Updating..." : "Update Password"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsExpired(false)}
+                  className="w-full text-center text-xs font-bold text-gray-500 hover:text-black mt-4 uppercase tracking-wide"
+                >
+                  Cancel
+                </button>
+              </form>
             </div>
-          </form>
+
+          ) : (
+
+            <>
+              <div className="mb-6 text-center">
+                <p className="text-gray-500 text-sm">Please login with your official account.</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@arche.global"
+                    className="w-full p-3 rounded border border-gray-200 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">
+                    Password <span className="font-normal normal-case text-gray-400">(Empty for new accounts)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPass ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter Password"
+                      className="w-full p-3 pr-10 rounded border border-gray-200 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition"
+                    />
+                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-3.5 text-xs font-bold text-gray-500 hover:text-black">
+                      {showPass ? "HIDE" : "SHOW"}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-black text-white py-3.5 rounded shadow-md text-sm font-bold uppercase tracking-wider hover:bg-gray-800 transition-all"
+                >
+                  {loading ? "Processing..." : (!password ? "Continue" : "Login")}
+                </button>
+              </form>
+            </>
+          )}
+
         </div>
       </div>
     </div>
-
   );
 }
 

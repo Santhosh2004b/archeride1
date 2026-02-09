@@ -1,4 +1,4 @@
-// backend/config/db.config.js
+
 import pg from "pg";
 import { config } from "dotenv";
 config();
@@ -11,4 +11,4 @@ const pool = new pg.Pool({
   port: process.env.PGPORT,
 });
 
-export default pool;   // <<--- IMPORTANT
+export default pool;   

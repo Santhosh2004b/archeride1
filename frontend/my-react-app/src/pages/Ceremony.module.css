@@ -13,7 +13,7 @@
     font-family: "Bricolage Grotesque", sans-serif;
 }
 
-/* Background Crackers */
+
 .globalCrackers {
     position: absolute;
     top: 0;
@@ -25,7 +25,7 @@
     opacity: 0.6;
 }
 
-/* Landing */
+
 .landingContainer {
     position: absolute;
     top: 50%;
@@ -47,7 +47,7 @@
     animation: pulseWhite 2s infinite;
 }
 
-/* Intro */
+
 .introContainer {
     display: flex;
     width: 100%;
@@ -106,7 +106,7 @@
     object-fit: contain;
 }
 
-/* Buzzer Bottom Right */
+
 .buzzerButtonContainer {
     position: absolute;
     bottom: 50px;
@@ -129,7 +129,7 @@
     align-items: center;
 }
 
-/* Ribbon */
+
 .ribbonLayer {
     position: absolute;
     top: 0;
@@ -153,7 +153,7 @@
     animation: fadeIn 1s forwards;
 }
 
-/* Welcome Post-Ribbon */
+
 .welcomeContainer {
     position: absolute;
     top: 50%;
@@ -178,7 +178,7 @@
     animation: fadeIn 1s 0.5s forwards;
 }
 
-/* Main Content (Split) */
+
 .mainContentContainer {
     position: absolute;
     top: 0;
@@ -191,14 +191,14 @@
     box-sizing: border-box;
 }
 
-/* LEFT: PROFILES */
+
 .profilesLeftSection {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 3rem;
-    /* Space between rows */
+    
 }
 
 .profileRow {
@@ -229,7 +229,7 @@
     text-align: left;
     opacity: 0;
     animation: slideInLeft 1s forwards 0.5s;
-    /* Stagger text after image */
+    
 }
 
 .profileName {
@@ -245,7 +245,7 @@
 }
 
 
-/* RIGHT: CONTENT */
+
 .contentRightSection {
     flex: 1;
     display: flex;
@@ -294,7 +294,7 @@
 }
 
 
-/* Final CTA */
+
 .finalCtaOverlay {
     position: absolute;
     bottom: 10%;
@@ -318,7 +318,7 @@
     animation: pulseRed 2s infinite;
 }
 
-/* Animations */
+
 @keyframes fadeIn {
     from {
         opacity: 0;

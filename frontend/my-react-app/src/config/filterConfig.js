@@ -1,15 +1,15 @@
-// =========================
-// MASTER FILTER CONFIG (FINAL)
-// =========================
+
+
+
 
 export const filterConfig = {
-  /* 1️⃣ RISKS */
+  
   risks: {
     fields: [
       { name: "account", label: "Account", type: "text" },
       {
         name: "status", label: "Status", type: "select",
-        options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"]
+        options: ["Open", "Resolved", "Approved & Closed", "Cancelled"]
       },
       {
         name: "priority", label: "Priority", type: "select",
@@ -21,24 +21,24 @@ export const filterConfig = {
       },
       {
         name: "probability", label: "Probability", type: "select",
-        options: ["Very High", "High", "Medium", "Low", "Very Low"]
+        options: ["Rare", "Possible", "Likely (Regularly)"]
       },
       {
         name: "impact", label: "Impact", type: "select",
-        options: ["Critical", "High", "Medium", "Low", "Minimal"]
+        options: ["Minor", "Moderate", "Major"]
       }
     ]
   },
 
-  /* 2️⃣ ISSUES */
-  // ...existing code...
+  
+  
   issues: {
     fields: [
       { name: "account", label: "Account", type: "text" },
-      { name: "search", label: "Search", type: "text" }, // free-text search (optional)
+      { name: "search", label: "Search", type: "text" }, 
       {
         name: "status", label: "Status", type: "select",
-        options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"]
+        options: ["Open", "Resolved", "Approved & Closed", "Cancelled"]
       },
       {
         name: "priority", label: "Priority", type: "select",
@@ -50,15 +50,15 @@ export const filterConfig = {
       }
     ]
   },
-  // ...existing code...
+  
 
-  /* 3️⃣ DEPENDENCIES */
+  
   dependencies: {
     fields: [
       { name: "account", label: "Account", type: "text" },
       {
         name: "status", label: "Status", type: "select",
-        options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"]
+        options: ["Open", "Resolved", "Approved & Closed", "Cancelled"]
       },
       {
         name: "priority", label: "Priority", type: "select",
@@ -71,13 +71,13 @@ export const filterConfig = {
     ]
   },
 
-  /* 4️⃣ ESCALATIONS */
+  
   escalations: {
     fields: [
       { name: "account", label: "Account", type: "text" },
       {
         name: "status", label: "Status", type: "select",
-        options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"]
+        options: ["Open", "Resolved", "Approved & Closed", "Cancelled"]
       },
       {
         name: "priority", label: "Priority", type: "select",
@@ -90,13 +90,13 @@ export const filterConfig = {
     ]
   },
 
-  /* 5️⃣ ACTIONS */
+  
   actions: {
     fields: [
       { name: "account", label: "Account", type: "text" },
       {
         name: "status", label: "Status", type: "select",
-        options: ["Open", "In Progress", "On Hold", "Resolved", "Approved & Closed", "Cancelled"]
+        options: ["Open", "Resolved", "Approved & Closed", "Cancelled"]
       },
       {
         name: "priority", label: "Priority", type: "select",
@@ -106,23 +106,7 @@ export const filterConfig = {
         name: "related_to_type", label: "Related To", type: "select",
         options: ["Risk", "Issue"]
       }
-      // no dates inside filters 🚫
-    ]
-  },
-
-  /* 6️⃣ COLLECTIONS */
-  collections: {
-    fields: [
-      { name: "account", label: "Account", type: "text" },
-      {
-        name: "status", label: "Status", type: "select",
-        options: ["Pending", "Partially Paid", "Paid", "Overdue", "Disputed", "Written Off"]
-      },
-      {
-        name: "currency", label: "Currency", type: "select",
-        options: ["INR", "USD", "EUR", "GBP"]
-      }
-      // no date filters here 🚫
+      
     ]
   }
 };

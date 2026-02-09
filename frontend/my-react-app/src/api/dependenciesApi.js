@@ -1,4 +1,4 @@
-// src/api/dependenciesApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 function sanitizeStatus(payload = {}) {
   if (!payload.status) return payload;
@@ -12,10 +12,10 @@ function sanitizeStatus(payload = {}) {
   return payload;
 }
 
-// frontend/src/api/dependenciesApi.js
+
 export async function fetchDependencies(params = {}) {
   const search = new URLSearchParams(params).toString();
-  const url = `${BASE_URL}/dependencies${search ? `?${search}` : ""}`; // <- no stray quotes
+  const url = `${BASE_URL}/dependencies${search ? `?${search}` : ""}`; 
   const res = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
@@ -62,7 +62,7 @@ export async function updateDependencyApi(id, payload) {
   return handleResponse(res);
 }
 
-// ADMIN decision for dependency
+
 export async function decideDependencyNotification(
   notificationId,
   decision,

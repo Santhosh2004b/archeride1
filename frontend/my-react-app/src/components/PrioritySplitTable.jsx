@@ -1,4 +1,4 @@
-// Priority Split Table Component
+
 import React from "react";
 
 const PRIORITY_COLORS = {
@@ -10,10 +10,10 @@ const PRIORITY_COLORS = {
 };
 
 export default function PrioritySplitTable({ data = [] }) {
-  // Sort by count descending
+  
   const sortedData = [...data].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
 
-  // Calculate total
+  
   const total = sortedData.reduce((sum, item) => sum + Number(item.value || 0), 0);
 
   return (

@@ -1,4 +1,4 @@
-// src/pages/IssuesPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { fetchIssues } from "../api/issuesApi";
 import { formatDisplayDate } from "../utils/dateFormat";

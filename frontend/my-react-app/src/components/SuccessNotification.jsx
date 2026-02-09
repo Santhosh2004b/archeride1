@@ -6,19 +6,19 @@ const SuccessNotification = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         if (isOpen) {
-            // Show immediately
-            // Small delay to allow render before opacity transition
+            
+            
             requestAnimationFrame(() => setVisible(true));
 
-            // Schedule fade out (Fast!)
+            
             const fadeTimer = setTimeout(() => {
                 setVisible(false);
-            }, 1000); // Start fading out at 1.0s
+            }, 1000); 
 
-            // Schedule close (unmount/hide)
+            
             const closeTimer = setTimeout(() => {
                 onClose();
-            }, 1500); // Fully gone at 1.5s
+            }, 1500); 
 
             return () => {
                 clearTimeout(fadeTimer);
@@ -39,7 +39,7 @@ const SuccessNotification = ({ isOpen, onClose }) => {
         >
             <div className="bg-[#1a1a1a] text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-4 border border-gray-800 relative overflow-hidden">
 
-                {/* Green Check Icon */}
+                {}
                 <div className="bg-green-500 p-1.5 rounded-full shadow-lg flex items-center justify-center">
                     <Check size={16} weight="bold" className="text-white" />
                 </div>

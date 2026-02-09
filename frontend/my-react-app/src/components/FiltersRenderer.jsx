@@ -1,17 +1,7 @@
-// src/components/FiltersRenderer.jsx
+
 import React, { useEffect, useMemo, useState } from "react";
 
-/**
- * FiltersRenderer
- * Props:
- * - config: { fields: [ { name, label, type, options?, source? } ] }
- * - values: { key: value }
- * - onChange: (name, value) => void
- * - onApply: () => void
- * - onClear: () => void
- * - sources: { projects: [{ value, label }, ...], ... }
- * - compactOnMobile: boolean (default true)
- */
+
 
 const useDebounced = (value, delay = 300) => {
   const [v, setV] = useState(value);
@@ -31,7 +21,7 @@ const DebouncedText = ({ label, name, value, onChange, delay = 300 }) => {
     if ((value ?? "") !== debounced) {
       onChange(name, debounced);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [debounced]);
 
   return (
@@ -116,7 +106,7 @@ const FieldControl = ({ field, value, onChange, sources }) => {
     );
   }
 
-  // default: debounced text
+  
   return <DebouncedText label={label} name={name} value={value} onChange={onChange} />;
 };
 

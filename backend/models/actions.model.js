@@ -1,14 +1,10 @@
-// backend/models/actions.model.js
+
 import pool from "../db.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
 
-/* ==========================================================
-   ACTIONS MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ========================================================== */
 
-/* ============================
-   LIST ACTIONS BY USER
-   ============================ */
+
+
 export async function findActionsByUser(email) {
   const sql = `
     SELECT
@@ -38,9 +34,7 @@ export async function findActionsByUser(email) {
   return rows;
 }
 
-/* ============================
-   GET LATEST ACTION BY USER
-   ============================ */
+
 export async function findActionByUserSingle(email) {
   const sql = `
     SELECT a.*
@@ -53,9 +47,7 @@ export async function findActionByUserSingle(email) {
   return rows[0] || null;
 }
 
-/* ============================
-   GET ACTION BY ID
-   ============================ */
+
 export async function findActionById(id) {
   const sql = `
     SELECT a.*
@@ -66,9 +58,7 @@ export async function findActionById(id) {
   return rows[0];
 }
 
-/* ============================
-   CREATE ACTION
-   ============================ */
+
 export async function createAction(data) {
   const sql = `
     INSERT INTO actions (
@@ -101,7 +91,7 @@ export async function createAction(data) {
 
   const params = [
     data.action_id,
-    data.manual_project_id || null, // Added manual_project_id
+    data.manual_project_id || null, 
     data.project_id || null,
     data.project_description || null,
     data.account || null,
@@ -125,9 +115,7 @@ export async function createAction(data) {
   return rows[0];
 }
 
-/* ============================
-   UPDATE ACTION
-   ============================ */export async function updateAction(id, data) {
+export async function updateAction(id, data) {
   const sql = `
     UPDATE actions SET
       action_id = $1,
@@ -175,24 +163,22 @@ export async function createAction(data) {
     data.dependencies || null,
     data.comments || null,
     id,
-    data.manual_project_id // $20
+    data.manual_project_id 
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
-  // 🔔 ***NOW reachable***
-  // 🔔 Notification handled in controller
+  
+  
   if (String(updated.status).toLowerCase() === "resolved") {
-    // handled in controller
+    
   }
 
   return updated;
 }
 
-/* ============================
-   KPI HELPERS
-   ============================ */
+
 export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM actions");
   return Number(result.rows[0].c);

@@ -1,4 +1,4 @@
-// backend/controllers/issues.controller.js
+
 import { buildIssueFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
 import { getAssignedProjects } from "../models/users.model.js";
 import {
@@ -48,8 +48,8 @@ export async function getIssue(req, res) {
     const issue = await findIssueById(id);
     if (!issue) return sendError(res, 404, "Issue not found");
 
-    // Previously we used project_id for access checks.
-    // For now, we allow access if the issue exists.
+    
+    
     return sendSuccess(res, issue);
 
     return sendSuccess(res, issue);
@@ -76,7 +76,7 @@ export async function createIssueHandler(req, res) {
 
     const payload = { ...req.body };
     payload.reported_date = payload.reported_date || payload.identified_date || new Date();
-    // Format to YYYY-MM-DD
+    
     if (payload.reported_date) {
       const d = new Date(payload.reported_date);
       payload.reported_date = d.toISOString().slice(0, 10);
@@ -91,14 +91,14 @@ export async function createIssueHandler(req, res) {
     delete payload.identified_date;
     delete payload.identified_by;
 
-    // Ensure undefined fields become null (especially project info)
+    
     [
       "manual_project_id",
       "project_description",
       "account",
       "severity",
       "probability",
-      // Add other optional issue fields if needed
+      
     ].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
@@ -134,7 +134,7 @@ export async function updateIssueHandler(req, res) {
 
     const updated = await updateIssueModel(id, payload);
 
-    // Notification Logic for "Resolved" status
+    
     const normalize = (s) => s?.trim().toLowerCase();
     const becameResolved =
       normalize(oldStatus) !== "resolved" &&

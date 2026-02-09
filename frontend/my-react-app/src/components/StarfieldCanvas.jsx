@@ -34,12 +34,12 @@ const StarfieldCanvas = ({ density = 1.0, centerHole = false }) => {
                     if (this.x > vw) this.x = 0;
                     if (this.y < 0) this.y = vh;
 
-                    // Center Hole Logic
+                    
                     if (centerHole) {
                         const dx = this.x - vw / 2;
                         const dy = this.y - vh / 2;
                         const dist = Math.sqrt(dx * dx + dy * dy);
-                        // Clears a 300px radius circle in the center
+                        
                         if (dist < 300) return;
                     }
 
@@ -49,7 +49,7 @@ const StarfieldCanvas = ({ density = 1.0, centerHole = false }) => {
             };
         };
 
-        // Scale counts by density
+        
         const baseCount = 1200;
         const count = Math.floor(baseCount * density);
         const stars = Array.from({ length: count }).map(() => Star(1, 1));
@@ -57,10 +57,10 @@ const StarfieldCanvas = ({ density = 1.0, centerHole = false }) => {
         const closestStars = Array.from({ length: Math.floor(300 * density) }).map(() => Star(3, 2.25));
 
         const animate = () => {
-            // Deep Blue Background (Arche Corporate)
+            
             const gradient = ctx.createRadialGradient(vw / 2, vh / 2, 0, vw / 2, vh / 2, vw);
-            gradient.addColorStop(0, '#09102a'); // Deep Navy Blue
-            gradient.addColorStop(1, '#020205'); // Almost Black
+            gradient.addColorStop(0, '#09102a'); 
+            gradient.addColorStop(1, '#020205'); 
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, vw, vh);
 
@@ -77,7 +77,7 @@ const StarfieldCanvas = ({ density = 1.0, centerHole = false }) => {
             window.removeEventListener('resize', resizeCanvas);
             cancelAnimationFrame(animationFrameId);
         };
-    }, [density, centerHole]); // Re-run when density/hole changes
+    }, [density, centerHole]); 
 
     return (
         <canvas

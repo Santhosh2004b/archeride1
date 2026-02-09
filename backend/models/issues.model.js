@@ -1,14 +1,10 @@
-// backend/models/issues.model.js
+
 import pool from "../db.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
 
-/* =======================================================
-   ISSUES MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ======================================================= */
 
-/* ============================
-   LIST ISSUES (ROLE AWARE)
-   ============================ */
+
+
 export async function findIssues({ whereSql = "", params = [] } = {}) {
   const sql = `
     SELECT
@@ -45,9 +41,7 @@ export async function findIssues({ whereSql = "", params = [] } = {}) {
   return rows;
 }
 
-/* ============================
-   GET ISSUE BY ID
-   ============================ */
+
 export async function findIssueById(id) {
   const sql = `
     SELECT i.*
@@ -58,9 +52,7 @@ export async function findIssueById(id) {
   return rows[0];
 }
 
-/* ============================
-   CREATE ISSUE
-   ============================ */
+
 export async function createIssue(data) {
   const sql = `
     INSERT INTO issues (
@@ -117,9 +109,7 @@ export async function createIssue(data) {
   return rows[0];
 }
 
-/* ============================
-   UPDATE ISSUE
-   ============================ */
+
 export async function updateIssue(id, data) {
   const sql = `
     UPDATE issues SET
@@ -168,22 +158,20 @@ export async function updateIssue(id, data) {
     data.root_cause_analysis || null,
     data.comments || null,
     id,
-    data.manual_project_id // $20
+    data.manual_project_id 
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (updated && String(updated.status).toLowerCase() === "resolved") {
-    // Notification handled in controller now
+    
   }
 
   return updated;
 }
 
-/* ============================
-   KPI HELPERS
-   ============================ */
+
 export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM issues");
   return Number(result.rows[0].c);

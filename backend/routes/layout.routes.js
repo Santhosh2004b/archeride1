@@ -1,4 +1,4 @@
-// backend/routes/layout.routes.js
+
 import { Router } from "express";
 import { getLayout, saveLayout } from "../controllers/layout.controller.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";

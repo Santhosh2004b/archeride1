@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/routes/ModuleRoute.jsx
+
 import React from "react";
 import { useParams, useLocation } from "react-router-dom";
 import WorkboardPage from "../pages/WorkboardPage";
@@ -24,12 +24,6 @@ import {
   createAppreciationApi,
   updateAppreciationApi,
 } from "../api/appreciationsApi";
-import {
-  fetchCollections,
-  fetchCollectionApi,
-  createCollectionApi,
-  updateCollectionApi,
-} from "../api/collectionsApi";
 
 import {
   risksFormConfig,
@@ -38,7 +32,6 @@ import {
   dependenciesFormConfig,
   escalationsFormConfig,
   appreciationsFormConfig,
-  collectionsFormConfig,
 } from "../config/formConfig";
 
 const moduleMap = {
@@ -90,14 +83,6 @@ const moduleMap = {
     updateItem: updateAppreciationApi,
     formConfig: appreciationsFormConfig,
   },
-  collections: {
-    title: "Collections Workboard",
-    fetchList: fetchCollections,
-    fetchItem: fetchCollectionApi,
-    createItem: createCollectionApi,
-    updateItem: updateCollectionApi,
-    formConfig: collectionsFormConfig,
-  },
 };
 
 const ModuleRoute = () => {
@@ -116,9 +101,9 @@ const ModuleRoute = () => {
       mode={mode}
       fetchList={cfg.fetchList}
       fetchItem={cfg.fetchItem}
-      // Add New only in edit mode
+      
       createItem={mode === "edit" ? cfg.createItem : null}
-      // Always allow updating so view table can show Edit buttons
+      
       updateItem={cfg.updateItem}
       formConfig={cfg.formConfig}
     />

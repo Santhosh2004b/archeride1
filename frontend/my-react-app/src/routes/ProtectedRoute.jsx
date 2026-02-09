@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // logged in but wrong role -> send to login, not landing
+    
     return <Navigate to="/login" replace />;
   }
 

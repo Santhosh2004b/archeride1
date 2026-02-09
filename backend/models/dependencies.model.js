@@ -1,15 +1,11 @@
-// backend/models/dependencies.model.js
+
 import pool from "../db.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
 
 
-/* =======================================================
-   DEPENDENCIES MODEL — PROJECT_NAME DIRECT STORAGE VERSION
-   ======================================================= */
 
-/* ============================
-   LIST DEPENDENCIES
-   ============================ */
+
+
 export async function findDependencies({ whereSql = "", params = [] } = {}) {
   const sql = `
     SELECT
@@ -46,9 +42,7 @@ export async function findDependencies({ whereSql = "", params = [] } = {}) {
   return rows;
 }
 
-/* ============================
-   GET DEPENDENCY BY ID
-   ============================ */
+
 export async function findDependencyById(id) {
   const sql = `
     SELECT d.*
@@ -59,9 +53,7 @@ export async function findDependencyById(id) {
   return rows[0];
 }
 
-/* ============================
-   CREATE DEPENDENCY
-   ============================ */
+
 export async function createDependency(data) {
   const sql = `
     INSERT INTO dependencies (
@@ -118,9 +110,7 @@ export async function createDependency(data) {
   return rows[0];
 }
 
-/* ============================
-   UPDATE DEPENDENCY
-   ============================ */
+
 export async function updateDependency(id, data) {
   const sql = `
     UPDATE dependencies SET
@@ -169,21 +159,19 @@ export async function updateDependency(id, data) {
     data.contact_details || null,
     data.comments || null,
     id,
-    data.manual_project_id // $19
+    data.manual_project_id 
   ];
 
   const { rows } = await pool.query(sql, params);
   const updated = rows[0];
 
   if (updated && String(updated.status).toLowerCase() === "resolved") {
-    // Notification handled in controller now
+    
   }
 
   return updated;
 }
-/* ============================
-   KPI HELPERS
-   ============================ */
+
 export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM dependencies");
   return Number(result.rows[0].c);

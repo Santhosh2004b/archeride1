@@ -1,14 +1,12 @@
 import pool from "../db.js";
 
-/* ======================================================
-   CREATE ADMIN NOTIFICATION (BM → ADMIN)
-====================================================== */
+
 export async function createResolutionNotification({
   module,
   itemId,
   itemCode,
   statusBefore,
-  statusAfter, // should be "Resolved"
+  statusAfter, 
   payload,
   bmUser,
 }) {
@@ -39,11 +37,9 @@ export async function createResolutionNotification({
   return rows[0];
 }
 
-/* ======================================================
-   ADMIN DECISION (CORE GOVERNANCE LOGIC)
-====================================================== */
+
 export async function decideNotification({ id, adminUser, decision, comment }) {
-  // 1. Update notification
+  
   const notifSql = `
     UPDATE notifications
     SET admin_user = $2,
@@ -64,8 +60,8 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
   const notif = rows[0];
   if (!notif) throw new Error("Notification not found");
 
-  // 1.1 AUTO-CLOSE any other pending notifications for this same item
-  // (Prevents "ghost" items appearing from previous cycles)
+  
+  
   await pool.query(`
     UPDATE notifications
     SET decision = 'Auto-Closed', decided_at = NOW(), admin_user = $1
@@ -75,7 +71,7 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
       AND id != $4
   `, [adminUser || 'System', notif.module, notif.item_id, notif.id]);
 
-  // 2. Apply FINAL status to actual module table
+  
   const FINAL_STATUS =
     decision === "Closed" ? "Approved & Closed" : "On Hold";
 
@@ -94,7 +90,7 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
       [FINAL_STATUS, notif.item_id]
     );
 
-    // 🔔 Notify the BM who sent this
+    
     if (notif.bm_user) {
       const bmTable = `bm_${notif.module}_notifications`;
       const idCol = `${notif.module}_id`;
@@ -109,9 +105,7 @@ export async function decideNotification({ id, adminUser, decision, comment }) {
   return notif;
 }
 
-/* ======================================================
-   ADMIN – LIST PENDING (ONLY RESOLVED)
-====================================================== */
+
 function baseAdminQuery(module, table, titleCol, extraSelect = "") {
   return `
     SELECT DISTINCT ON(n.item_id)
@@ -173,9 +167,7 @@ export async function listPendingActionNotifications() {
   return rows;
 }
 
-/* ======================================================
-   ADMIN BELL COUNTS
-====================================================== */
+
 async function countAdmin(module, table) {
   const { rows } = await pool.query(`
     SELECT COUNT(*) AS c
@@ -199,10 +191,8 @@ export const countAdminPendingEscalationNotifications = () =>
 export const countAdminPendingActionNotifications = () =>
   countAdmin("action", "actions");
 
-/* ======================================================
-   BM NOTIFICATION LISTS
-====================================================== */
-// BM – generic list for any module from the main notifications table
+
+
 export async function listBmNotificationsByModule(email, module) {
   const sql = `
     SELECT n.*,
@@ -253,9 +243,7 @@ export async function listBmActionNotifications(email) {
   return listBmNotificationsByModule(email, "action");
 }
 
-/* ======================================================
-   BM BELL COUNT
-====================================================== */
+
 export async function countBmNotifications(email) {
   const sql = `
   SELECT
@@ -270,9 +258,7 @@ export async function countBmNotifications(email) {
   return Number(rows[0].c || 0);
 }
 
-/* ======================================================
-   CREATE BM NOTIFICATIONS (AFTER ADMIN DECISION)
-====================================================== */
+
 async function createBmNotification(table, idCol, id, bmEmail, decision, comment) {
   await pool.query(
     `

@@ -1,4 +1,4 @@
-// src/api/appreciationsApi.js
+
 import { BASE_URL, authHeaders, handleResponse } from "./http";
 
 export async function fetchAppreciations(params = {}) {

@@ -1,7 +1,7 @@
-// filepath: backend/controllers/dashboard.controller.js
+
 import pool from "../db.js";
 
-// Helper: safely get first row count
+
 const safeCount = async (sql, params = []) => {
   try {
     const res = await pool.query(sql, params);
@@ -11,7 +11,7 @@ const safeCount = async (sql, params = []) => {
   }
 };
 
-// Helper: safely get aggregate value
+
 const safeValue = async (sql, field, params = []) => {
   try {
     const res = await pool.query(sql, params);
@@ -25,12 +25,12 @@ export async function getDashboardMetrics(req, res) {
   try {
     const currentYear = new Date().getFullYear();
     const selectedYear = parseInt(req.query.year) || currentYear;
-    // New: independent risk year logic
+
     const riskYear = parseInt(req.query.risk_year) || selectedYear;
 
     const priorityParam = req.query.priority || null;
 
-    // Filter Logic for KPIs
+
     const kpiParams = [];
     let pCond = "";
     if (priorityParam) {
@@ -38,10 +38,8 @@ export async function getDashboardMetrics(req, res) {
       kpiParams.push(priorityParam);
     }
 
-    // Collections lacks 'priority' column, so we exclude it when filtering by priority
-    const includeCollections = !priorityParam;
 
-    // 1. OPEN
+
     const total_open = await safeCount(`
       SELECT COUNT(*) FROM (
         SELECT id FROM risks WHERE status = 'Open' ${pCond}
@@ -49,11 +47,10 @@ export async function getDashboardMetrics(req, res) {
         UNION ALL SELECT id FROM actions WHERE status = 'Open' ${pCond}
         UNION ALL SELECT id FROM dependencies WHERE status = 'Open' ${pCond}
         UNION ALL SELECT id FROM escalations WHERE status = 'Open' ${pCond}
-        ${includeCollections ? "UNION ALL SELECT id FROM collections WHERE status IN ('Pending', 'PO Received - Payment in Process', 'Under Review', 'Approved - Awaiting Payment')" : ""}
       ) t
     `, kpiParams);
 
-    // 2. ON HOLD / IN PROGRESS
+
     const total_on_hold = await safeCount(`
       SELECT COUNT(*) FROM (
         SELECT id FROM risks WHERE status IN ('In Progress', 'On Hold') ${pCond}
@@ -61,34 +58,50 @@ export async function getDashboardMetrics(req, res) {
         UNION ALL SELECT id FROM actions WHERE status IN ('In Progress', 'On Hold') ${pCond}
         UNION ALL SELECT id FROM dependencies WHERE status IN ('In Progress', 'On Hold') ${pCond}
         UNION ALL SELECT id FROM escalations WHERE status IN ('In Progress', 'On Hold') ${pCond}
-        ${includeCollections ? "UNION ALL SELECT id FROM collections WHERE status IN ('Partially Paid', 'On Hold')" : ""}
       ) t
     `, kpiParams);
 
-    // 3. CLOSED
+
     const resolved = await safeCount(`
       SELECT COUNT(*) FROM (
-        SELECT id FROM risks WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled') ${pCond}
-        UNION ALL SELECT id FROM issues WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled') ${pCond}
-        UNION ALL SELECT id FROM actions WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled') ${pCond}
-        UNION ALL SELECT id FROM dependencies WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled') ${pCond}
-        UNION ALL SELECT id FROM escalations WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled') ${pCond}
-        ${includeCollections ? "UNION ALL SELECT id FROM collections WHERE status IN ('Resolved', 'Approved & Closed', 'Paid', 'Written Off', 'Disputed')" : ""}
+        SELECT id FROM risks WHERE status = 'Resolved' ${pCond}
+        UNION ALL SELECT id FROM issues WHERE status = 'Resolved' ${pCond}
+        UNION ALL SELECT id FROM actions WHERE status = 'Resolved' ${pCond}
+        UNION ALL SELECT id FROM dependencies WHERE status = 'Resolved' ${pCond}
+        UNION ALL SELECT id FROM escalations WHERE status = 'Resolved' ${pCond}
       ) t
     `, kpiParams);
 
-    // Total Items
+    const approved = await safeCount(`
+      SELECT COUNT(*) FROM (
+        SELECT id FROM risks WHERE status = 'Approved & Closed' ${pCond}
+        UNION ALL SELECT id FROM issues WHERE status = 'Approved & Closed' ${pCond}
+        UNION ALL SELECT id FROM actions WHERE status = 'Approved & Closed' ${pCond}
+        UNION ALL SELECT id FROM dependencies WHERE status = 'Approved & Closed' ${pCond}
+        UNION ALL SELECT id FROM escalations WHERE status = 'Approved & Closed' ${pCond}
+      ) t
+    `, kpiParams);
+
+    const cancelled = await safeCount(`
+      SELECT COUNT(*) FROM (
+        SELECT id FROM risks WHERE status = 'Cancelled' ${pCond}
+        UNION ALL SELECT id FROM issues WHERE status = 'Cancelled' ${pCond}
+        UNION ALL SELECT id FROM actions WHERE status = 'Cancelled' ${pCond}
+        UNION ALL SELECT id FROM dependencies WHERE status = 'Cancelled' ${pCond}
+        UNION ALL SELECT id FROM escalations WHERE status = 'Cancelled' ${pCond}
+      ) t
+    `, kpiParams);
+
     const total_items = await safeValue(`
       SELECT 
         (SELECT COUNT(*) FROM risks WHERE 1=1 ${pCond}) +
         (SELECT COUNT(*) FROM issues WHERE 1=1 ${pCond}) +
         (SELECT COUNT(*) FROM actions WHERE 1=1 ${pCond}) +
         (SELECT COUNT(*) FROM dependencies WHERE 1=1 ${pCond}) +
-        (SELECT COUNT(*) FROM escalations WHERE 1=1 ${pCond}) +
-        ${includeCollections ? "(SELECT COUNT(*) FROM collections)" : "0"} AS total
+        (SELECT COUNT(*) FROM escalations WHERE 1=1 ${pCond}) AS total
     `, 'total', kpiParams);
 
-    // GLOBAL Priority Split (For Initial Donut)
+
     const prioritySplit = [];
     try {
       const res = await pool.query(`
@@ -109,7 +122,7 @@ export async function getDashboardMetrics(req, res) {
       });
     } catch (e) { console.error('Priority split error:', e); }
 
-    // MODULE-SPECIFIC Priority Counts (For Donut Interaction)
+
     const priority_by_module = {};
     const modulesToCheck = [
       { key: 'Risk', table: 'risks' },
@@ -141,7 +154,7 @@ export async function getDashboardMetrics(req, res) {
     }
 
 
-    // MONTHLY TREND (Use riskYear)
+
     const monthly_risk_trend = [];
     try {
       const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -179,22 +192,17 @@ export async function getDashboardMetrics(req, res) {
       res.rows.forEach(r => { available_years.push(r.year); });
     } catch (e) { console.error('Available years error:', e); }
 
-    // Module Status Logic
+
     const module_status = [];
     const mods = [
       { name: 'Risk', table: 'risks' },
       { name: 'Issue', table: 'issues' },
       { name: 'Dependency', table: 'dependencies' },
       { name: 'Action', table: 'actions' },
-      { name: 'Escalation', table: 'escalations' }, // Added Escalation
-      { name: 'Collection', table: 'collections' }
+      { name: 'Escalation', table: 'escalations' }
     ];
 
     for (const m of mods) {
-      if (m.name === 'Collection' && priorityParam) {
-        module_status.push({ module: m.name, Open: 0, "On Hold": 0, Resolved: 0, Cancelled: 0 });
-        continue;
-      }
 
       const modParams = priorityParam ? [priorityParam] : [];
       const modCond = priorityParam ? " AND priority = $1 " : "";
@@ -218,28 +226,92 @@ export async function getDashboardMetrics(req, res) {
       });
     }
 
-    // Latest Tables - REMOVED LIMIT 6
+
     const latestWhere = priorityParam ? " WHERE priority = $1 " : "";
     const latestParams = priorityParam ? [priorityParam] : [];
 
     const latest_risks = (await pool.query(`SELECT risk_id, risk_title, priority, status, account, identified_date, updated_at FROM risks ${latestWhere} ORDER BY updated_at DESC`, latestParams)).rows;
     const latest_issues = (await pool.query(`SELECT issue_id, issue_title, priority, status, account, reported_date as identified_date, updated_at FROM issues ${latestWhere} ORDER BY updated_at DESC`, latestParams)).rows;
     const latest_actions = (await pool.query(`SELECT action_id, action_title, priority, status, updated_at FROM actions ${latestWhere} ORDER BY updated_at DESC`, latestParams)).rows;
-
-    // Dependencies
     const latest_dependencies = (await pool.query(`SELECT dependency_id, dependency_title, priority, status, updated_at FROM dependencies ${latestWhere} ORDER BY updated_at DESC`, latestParams)).rows;
 
-    // Collections - ALWAYS FETCH (Task 5 requirement: Show regardless of priority)
-    const latest_collections = (await pool.query(`SELECT invoice_id, customer_name, outstanding_amount, status, days_overdue, account, updated_at FROM collections ORDER BY updated_at DESC`)).rows;
 
 
-    // ---------------------------------------------------------
-    // ACTION (ACCIDENT) STATUS & WEEKLY STATUS LOGIC
-    // ---------------------------------------------------------
+
+
+    let top_priority_items = [];
+    try {
+
+
+
+
+      const priorityLimit = 10;
+
+      const sql = `
+        SELECT * FROM (
+          SELECT 
+            'Risk' as type, 
+            risk_id as id, 
+            risk_title as title, 
+            project_description as project, 
+            priority, 
+            impact, 
+            risk_score,
+            updated_at
+          FROM risks 
+          WHERE (priority IN ('Critical', 'High') OR impact IN ('Major', 'Critical')) 
+            AND status NOT IN ('Resolved', 'Cancelled', 'Approved & Closed')
+
+          UNION ALL
+
+          SELECT 
+            'Issue' as type, 
+            issue_id as id, 
+            issue_title as title, 
+            project_description as project, 
+            priority, 
+            NULL as impact, 
+            NULL as risk_score,
+            updated_at
+          FROM issues 
+          WHERE priority IN ('Critical', 'High')
+            AND status NOT IN ('Resolved', 'Cancelled', 'Approved & Closed')
+
+          UNION ALL
+
+          SELECT 
+            'Escalation' as type, 
+            escalation_id as id, 
+            title as title, 
+            project_description as project, 
+            priority, 
+            impact, 
+            NULL as risk_score,
+            updated_at
+          FROM escalations 
+          WHERE priority IN ('Critical', 'High')
+            AND status NOT IN ('Resolved', 'Cancelled', 'Approved & Closed')
+        ) as combined
+        ORDER BY 
+          CASE priority WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 ELSE 3 END ASC,
+          updated_at DESC
+        LIMIT 20
+      `;
+
+      const res = await pool.query(sql);
+      top_priority_items = res.rows;
+    } catch (e) {
+      console.error("Top priority items error", e);
+    }
+
+
+
+
+
     const actionWeeksParams = priorityParam ? [priorityParam] : [];
     const actionWeeksWhere = priorityParam ? " AND priority = $1 " : "";
 
-    // Available Weeks (Start of week)
+
     const available_action_weeks = [];
     try {
       const res = await pool.query(`
@@ -249,7 +321,7 @@ export async function getDashboardMetrics(req, res) {
         ORDER BY week_start DESC
       `, actionWeeksParams);
       res.rows.forEach(r => {
-        // format as YYYY-MM-DD
+
         const d = new Date(r.week_start);
         const val = d.toISOString().split('T')[0];
         available_action_weeks.push({ value: val, label: `Week of ${val}` });
@@ -257,7 +329,7 @@ export async function getDashboardMetrics(req, res) {
     } catch (e) { console.error('Available action weeks error:', e); }
 
     let selectedWeek = req.query.week_start;
-    // Default to most recent week if none selected
+
     if (!selectedWeek && available_action_weeks.length > 0) {
       selectedWeek = available_action_weeks[0].value;
     }
@@ -291,7 +363,7 @@ export async function getDashboardMetrics(req, res) {
       }
     }
 
-    // Action Completion % (All time)
+
     let action_completion_percent = 0;
     try {
       const res = await pool.query(`
@@ -307,7 +379,7 @@ export async function getDashboardMetrics(req, res) {
     } catch (e) { }
 
 
-    // SPARKLINES / TRENDS
+
     const getTrend = async (table) => {
       try {
         const res = await pool.query(`
@@ -318,7 +390,7 @@ export async function getDashboardMetrics(req, res) {
              ORDER BY m ASC
            `, [selectedYear]);
 
-        // map to 12 months array [{value: 0}, {value: 5}, ...]
+
         const counts = [];
         for (let i = 1; i <= 12; i++) {
           const found = res.rows.find(r => r.m === i);
@@ -328,14 +400,13 @@ export async function getDashboardMetrics(req, res) {
       } catch { return Array(12).fill({ value: 0 }); }
     };
 
-    const trend_collections = await getTrend('collections');
     const trend_escalations = await getTrend('escalations');
 
-    // Trend Closed (Aggregated from all)
+
     let trend_closed = [];
     try {
-      // For closed trend, we might want to also allow splitting logic, but dashboard usually
-      // expects this to be global. We'll leave it as selectedYear (Dashboard year)
+
+
       const res = await pool.query(`
         SELECT EXTRACT(MONTH FROM updated_at)::INT as m, COUNT(*) as c
         FROM (
@@ -344,7 +415,6 @@ export async function getDashboardMetrics(req, res) {
           UNION ALL SELECT updated_at FROM actions WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled')
           UNION ALL SELECT updated_at FROM dependencies WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled')
           UNION ALL SELECT updated_at FROM escalations WHERE status IN ('Resolved', 'Approved & Closed', 'Cancelled')
-          UNION ALL SELECT updated_at FROM collections WHERE status IN ('Resolved', 'Approved & Closed', 'Paid', 'Written Off', 'Disputed')
         ) as t
         WHERE EXTRACT(YEAR FROM updated_at) = $1
         GROUP BY m
@@ -363,7 +433,7 @@ export async function getDashboardMetrics(req, res) {
       trend_closed = Array(12).fill({ value: 0 });
     }
 
-    // Trend Created (Aggregated from all - for Resolution Efficiency Matrix)
+
     let trend_created = [];
     try {
       const res = await pool.query(`
@@ -374,7 +444,6 @@ export async function getDashboardMetrics(req, res) {
           UNION ALL SELECT created_date FROM actions WHERE created_date IS NOT NULL
           UNION ALL SELECT reported_date as created_date FROM dependencies WHERE reported_date IS NOT NULL
           UNION ALL SELECT reported_date as created_date FROM escalations WHERE reported_date IS NOT NULL
-          UNION ALL SELECT invoice_date as created_date FROM collections WHERE invoice_date IS NOT NULL
         ) as t
         WHERE EXTRACT(YEAR FROM created_date) = $1
         GROUP BY m
@@ -396,15 +465,16 @@ export async function getDashboardMetrics(req, res) {
       total_open: total_open,
       total_on_hold: total_on_hold,
       resolved: resolved,
+      approved: approved,
+      cancelled: cancelled,
       total_items,
       priority_split: prioritySplit,
       priority_by_module,
       monthly_risk_trend,
       available_years,
       selected_year: selectedYear,
-      trend_collections,
       trend_closed,
-      trend_created, // [NEW]
+      trend_created,
       trend_escalations,
       action_completion_percent,
       weekly_action_status,
@@ -413,9 +483,11 @@ export async function getDashboardMetrics(req, res) {
       module_status,
       latest_risks,
       latest_issues,
-      latest_collections,
       latest_dependencies,
-      latest_actions
+      latest_issues,
+      latest_dependencies,
+      latest_actions,
+      top_priority_items
     });
 
   } catch (err) {

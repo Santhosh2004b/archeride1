@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/layouts/MainLayout.jsx 
+
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -9,8 +9,11 @@ import {
   TrendUp,
   CheckCircle,
   ThumbsUp,
-  FolderOpen,
-  Users,
+  UserCircle,
+  SignOut,
+  Bell,
+  UserPlus,
+  X
 } from "phosphor-react";
 
 import { useAuth } from "../context/AuthContext";
@@ -18,8 +21,9 @@ import {
   fetchAdminNotificationCount,
   fetchBmNotificationCount,
 } from "../api/notificationsApi";
-import logo from "../assets/arche-logo2.png"; // [TASK 7] Updated Logo
-import { exportToExcel } from "../utils/exportToExcel";
+import { approveBMApi, fetchApprovedBMsApi } from "../api/authApi";
+import logo from "../assets/arche-logo2.png";
+import { motion, AnimatePresence } from "framer-motion";
 
 const MODULE_LINKS = [
   { key: "dashboard", label: "Dashboard", icon: House },
@@ -29,11 +33,41 @@ const MODULE_LINKS = [
   { key: "escalations", label: "Escalation", icon: TrendUp },
   { key: "actions", label: "Action", icon: CheckCircle },
   { key: "appreciations", label: "Appreciation", icon: ThumbsUp },
-  { key: "collections", label: "Collection", icon: FolderOpen },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.25,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.8, rotateX: 90 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    rotateX: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+};
+
+const sidebarItemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.7, ease: "easeOut" },
+  },
+};
+
 function getTitle(pathname, search) {
-  if (pathname.startsWith("/monitoring")) return "Monitoring";
+  // Remove "Monitoring" terminology
+  // if (pathname.startsWith("/monitoring")) return "Monitoring"; // Legacy
+
   if (pathname.startsWith("/modules/")) {
     const key = pathname.split("/")[2] || "";
     const mod = MODULE_LINKS.find((m) => m.key === key);
@@ -45,19 +79,54 @@ function getTitle(pathname, search) {
   if (pathname.startsWith("/login")) return "Login";
   if (pathname === "/landing") return "Landing";
   if (pathname === "/dashboard") return "Dashboard";
-  if (pathname === "/bm/notifications") return "Notifications";
+  if (pathname === "/bm/notifications") return "Notification"; // Renamed
   if (pathname === "/monitoring/users") return "Users Management";
+  if (pathname === "/monitoring") return "Dashboard"; // Fallback for admin dashboard
+
+  // Specific monitoring paths mapped to simple names
+  if (pathname.startsWith("/monitoring/risks")) return "Risk";
+  if (pathname.startsWith("/monitoring/issues")) return "Issue";
+  if (pathname.startsWith("/monitoring/dependencies")) return "Dependency";
+  if (pathname.startsWith("/monitoring/actions")) return "Action";
+  if (pathname.startsWith("/monitoring/escalations")) return "Escalation";
+  if (pathname.startsWith("/monitoring/appreciations")) return "Appreciation";
+  if (pathname.startsWith("/monitoring/notifications")) return "Notification";
+
   return "App";
 }
 
 const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const now = new Date();
+  const { user, loginTime, logout } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [bmApprovalEmail, setBmApprovalEmail] = useState("");
+  const [approvalStatus, setApprovalStatus] = useState({ loading: false, error: "", success: "" });
+  const [showHistory, setShowHistory] = useState(false);
+  const [approvalHistory, setApprovalHistory] = useState([]);
+
+  useEffect(() => {
+    if (showHistory) {
+      fetchApprovedBMsApi().then(setApprovalHistory).catch(console.error);
+    }
+  }, [showHistory]);
+
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   const [notifCount, setNotifCount] = useState(0);
-  const [showToast, setShowToast] = useState(false);
+  const [showToast] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const title = getTitle(location.pathname, location.search);
@@ -80,10 +149,10 @@ const MainLayout = ({ children }) => {
       return;
     }
 
-    // Close mobile sidebar
+
     setSidebarOpen(false);
 
-    // ADMIN: monitoring (view)
+
     if (user.role === "ADMIN") {
       if (item.key === "dashboard") {
         navigate("/monitoring");
@@ -95,7 +164,7 @@ const MainLayout = ({ children }) => {
       return;
     }
 
-    // BM / PM: modules (edit)
+
     if (user.role === "BM" || user.role === "PM") {
       if (item.key === "dashboard") {
         navigate("/modules/risks?mode=view");
@@ -105,7 +174,7 @@ const MainLayout = ({ children }) => {
       return;
     }
 
-    // any other role
+
     navigate("/login");
   };
 
@@ -134,7 +203,25 @@ const MainLayout = ({ children }) => {
     }
   };
 
-  // load notification count
+
+  const handleApproveSubmit = async (e) => {
+    e.preventDefault();
+    setApprovalStatus({ loading: true, error: "", success: "" });
+    try {
+      await approveBMApi(bmApprovalEmail);
+      setApprovalStatus({ loading: false, error: "", success: `Approved ${bmApprovalEmail}` });
+      setBmApprovalEmail("");
+
+      setTimeout(() => {
+        setShowApprovalModal(false);
+        setApprovalStatus({ loading: false, error: "", success: "" });
+      }, 2000);
+    } catch (err) {
+      setApprovalStatus({ loading: false, error: err.message || "Failed", success: "" });
+    }
+  };
+
+
   useEffect(() => {
     let ignore = false;
 
@@ -165,14 +252,14 @@ const MainLayout = ({ children }) => {
   }, [user]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-slate-900 font-urbanist">
-      {/* header */}
+    <div className="min-h-screen flex flex-col bg-gray-50 text-slate-900 font-urbanist relative">
+      {/* Header */}
       <header className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-200 bg-white px-2 sm:px-6 py-2 sm:h-16 gap-2 sm:gap-0">
 
-        {/* Top Row on Mobile: Hamburger + Logo + Title */}
+        {/* Left Side: Logo & Title */}
         <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3">
           <div className="flex items-center gap-3">
-            {/* Hamburger button for mobile */}
+            {/* Mobile Menu Button */}
             <button
               type="button"
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -189,25 +276,32 @@ const MainLayout = ({ children }) => {
               alt="Arche.RIDE logo"
               className="h-6 sm:h-8 w-auto object-contain"
             />
-            <div className="flex flex-col">
-              <span className="font-marcellus text-lg sm:text-xl leading-tight font-bold text-gray-900">
-                ride.arche.global
+            <div className="flex flex-col" key={location.pathname}>
+              <span className="text-lg sm:text-xl leading-tight font-bold text-gray-900 pop-text">
+                {"RIDE+".split("").map((char, i) => (
+                  <span key={i} style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
               </span>
               <span className="text-[9px] sm:text-[11px] text-brandMuted uppercase tracking-[0.1em] sm:tracking-[0.2em]">
-                {title || "Delivery Monitoring"}
+                {title || "Delivery"}
               </span>
             </div>
           </div>
-
-          {/* Mobile Right Side: Notifications (if space needed, otherwise kept in second row or right side) */}
         </div>
 
-        {/* Second Row on Mobile / Right Side on Desktop */}
-        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3 sm:gap-6 px-1 sm:px-0">
+        {/* Right Side: Actions */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3 sm:gap-6 px-1 sm:px-0"
+        >
 
-          {/* View / Edit toggle ONLY for modules */}
+          {/* View/Edit Toggle for Modules */}
           {isModules && (
-            <div className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-gray-100 px-1 py-1">
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-1 sm:gap-2 rounded-full bg-gray-100 px-1 py-1">
               <button
                 type="button"
                 onClick={() => handleModeChange("view")}
@@ -228,35 +322,11 @@ const MainLayout = ({ children }) => {
               >
                 Edit
               </button>
-            </div>
+            </motion.div>
           )}
 
           <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm ml-auto sm:ml-0">
-            {(location.pathname.startsWith("/monitoring") || location.pathname.startsWith("/modules/")) && (
-              <button
-                type="button"
-                title="Export to Excel"
-                onClick={() => {
-                  const moduleKey = location.pathname.split("/").pop();
-                  const exportData = window.__EXPORT_DATA__?.[moduleKey];
-
-                  if (!exportData || !exportData.rows?.length) {
-                    alert(`No data available to export for ${moduleKey}`);
-                    return;
-                  }
-
-                  exportToExcel(exportData);
-
-                  // ✅ show toast
-                  setShowToast(true);
-                  setTimeout(() => setShowToast(false), 2000);
-                }}
-                className="rounded-full h-8 w-8 flex items-center justify-center border border-gray-300 text-gray-600 hover:bg-gray-100 relative"
-              >
-                📥
-
-              </button>
-            )}
+            {/* Export button REMOVED from navbar */}
 
             {showToast && (
               <div className="absolute right-40 top-20 z-50
@@ -267,38 +337,93 @@ const MainLayout = ({ children }) => {
               </div>
             )}
 
-            {/* Notification bell */}
+            {/* Notifications */}
             {user && (
-              <button
+              <motion.button
+                variants={itemVariants}
                 type="button"
                 onClick={goNotifications}
-                className="relative rounded-full h-8 w-8 flex items-center justify-center border border-gray-300 text-gray-600 hover:bg-gray-100"
-                title="Notifications"
+                className="relative rounded-full h-8 w-8 flex items-center justify-center border border-orange-200 text-orange-500 hover:bg-orange-50 transition-colors"
+                title="Notification"
+                style={{ color: "#f97316", borderColor: "#fed7aa" }}
               >
-                🔔
+                <Bell size={20} weight="duotone" />
                 {notifCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[16px] text-center">
                     {notifCount}
                   </span>
                 )}
-              </button>
+              </motion.button>
             )}
 
-            <div className="text-right hidden sm:block">
-              <div className="font-medium">
-                {user?.email || "admin@example.com"}
+            {/* NEW MEMBER (Replaced Approve BM) */}
+            {user && user.role === "ADMIN" && (
+              <motion.button
+                variants={itemVariants}
+                type="button"
+                onClick={() => setShowApprovalModal(true)}
+                className="rounded-full h-8 w-8 flex items-center justify-center border border-purple-200 text-purple-600 hover:bg-purple-50 transition-colors"
+                title="Add New Member"
+                style={{ color: "#9333ea", borderColor: "#e9d5ff" }}
+              >
+                <UserPlus size={20} weight="duotone" />
+              </motion.button>
+            )}
+
+            {/* User Profile */}
+            <motion.div variants={itemVariants} className="relative group">
+              <button
+                type="button"
+                className="rounded-full h-8 w-8 flex items-center justify-center border border-gray-300 text-brandDark hover:bg-gray-100 transition-colors"
+              >
+                <UserCircle size={20} weight="duotone" />
+              </button>
+
+              {/* Tooltip */}
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3">
+                <div className="text-xs font-bold text-gray-900 mb-1">Current User</div>
+                <div className="text-[11px] text-gray-600 break-words mb-2">{user?.email || "user@arche.global"}</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{user?.role}</div>
+
+                <div className="h-px bg-gray-100 my-2"></div>
+
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Session Started</div>
+                <div className="text-[11px] text-brandDark font-medium">
+                  {user && loginTime
+                    ? new Date(loginTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : "09:00 AM"}
+                </div>
               </div>
-              <div className="text-brandMuted text-[11px]">
-                {user?.role || "Admin User"}
-              </div>
-            </div>
+            </motion.div>
+
+            {/* Logout */}
+            <motion.button
+              variants={itemVariants}
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full h-8 w-8 flex items-center justify-center border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+              title="Logout"
+              style={{ color: "#ef4444", borderColor: "#fecaca" }}
+            >
+              <SignOut size={20} weight="duotone" />
+            </motion.button>
+
+            {/* Clock */}
+            <motion.div variants={itemVariants} className="flex flex-col items-end justify-center text-right ml-2 border-l border-gray-200 pl-4 h-8">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+              </span>
+              <span className="text-xs font-urbanist font-bold text-gray-600 tabular-nums leading-none">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </header >
 
-      {/* body */}
+      {/* Main Content Area */}
       <div className="flex flex-1 min-h-0 relative" >
-        {/* Mobile overlay */}
+        {/* Mobile Sidebar Backprop */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -306,7 +431,7 @@ const MainLayout = ({ children }) => {
           />
         )}
 
-        {/* sidebar */}
+        {/* Sidebar */}
         <aside className={`
       fixed lg:static
       top-0 left-0
@@ -317,7 +442,7 @@ const MainLayout = ({ children }) => {
       z-50 lg:z-auto
       overflow-y-auto
     `}>
-          {/* Close button for mobile */}
+          {/* Mobile Close Button */}
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
@@ -330,55 +455,164 @@ const MainLayout = ({ children }) => {
           </button>
 
           <nav>
-            <ul className="space-y-1">
+            <motion.ul
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-1"
+            >
               {(user && user.role === "ADMIN")
                 ? [...MODULE_LINKS].map((item) => {
                   const active = isActive(item.key);
                   const Icon = item.icon;
                   return (
-                    <li key={item.key}>
+                    <motion.li key={item.key} variants={sidebarItemVariants}>
                       <button
                         type="button"
                         onClick={() => handleNavClick(item)}
                         className={`w-full text-left px-4 py-2 rounded-r-full text-sm transition flex items-center gap-3 ${active
-                          ? "bg-orange-400 text-white font-semibold"
+                          ? "bg-black text-white font-semibold"
                           : "text-brandDark hover:bg-gray-100"
                           }`}
                       >
                         <Icon size={20} weight={active ? "fill" : "regular"} className="flex-shrink-0" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
                       </button>
-                    </li>
+                    </motion.li>
                   );
                 })
                 : MODULE_LINKS.filter((item) => item.key !== "dashboard").map((item) => {
                   const active = isActive(item.key);
                   const Icon = item.icon;
                   return (
-                    <li key={item.key}>
+                    <motion.li key={item.key} variants={sidebarItemVariants}>
                       <button
                         type="button"
                         onClick={() => handleNavClick(item)}
                         className={`w-full text-left px-4 py-2 rounded-r-full text-sm transition flex items-center gap-3 ${active
-                          ? "bg-orange-400 text-white font-semibold"
+                          ? "bg-black text-white font-semibold"
                           : "text-brandDark hover:bg-gray-100"
                           }`}
                       >
                         <Icon size={20} weight={active ? "fill" : "regular"} className="flex-shrink-0" />
                         {item.label}
                       </button>
-                    </li>
+                    </motion.li>
                   );
                 })}
-            </ul>
+            </motion.ul>
           </nav>
         </aside >
 
-        {/* content */}
+        {/* Content */}
         <main className="flex-1 min-h-0 overflow-auto px-2 sm:px-4 py-4" >
           {children}
         </main>
       </div >
+
+      {/* Approval Modal */}
+      <AnimatePresence>
+        {showApprovalModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowApprovalModal(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm z-10 font-urbanist"
+            >
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-black"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex flex-col items-center mb-6">
+                <div className="h-10 w-10 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3">
+                  <UserPlus size={24} weight="duotone" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">ADD NEW MEMBER</h3>
+                <p className="text-gray-500 text-xs text-center mt-1">
+                  Enter the email ID of the new member
+                </p>
+              </div>
+
+              {!showHistory ? (
+                <>
+                  <form onSubmit={handleApproveSubmit} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Mail</label>
+                      <input
+                        type="email"
+                        value={bmApprovalEmail}
+                        onChange={(e) => setBmApprovalEmail(e.target.value)}
+                        placeholder="bm@arche.global"
+                        className="w-full p-3 rounded border border-gray-200 text-sm focus:border-purple-600 focus:ring-1 focus:ring-purple-600 outline-none"
+                        required
+                      />
+                    </div>
+
+                    {approvalStatus.error && (
+                      <div className="text-red-500 text-xs bg-red-50 p-2 rounded border border-red-100">
+                        {approvalStatus.error}
+                      </div>
+                    )}
+                    {approvalStatus.success && (
+                      <div className="text-green-600 text-xs bg-green-50 p-2 rounded border border-green-100">
+                        {approvalStatus.success}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={approvalStatus.loading}
+                      className="w-full bg-purple-600 text-white py-3 rounded font-bold uppercase tracking-wider text-sm hover:bg-purple-700 transition shadow-md"
+                    >
+                      {approvalStatus.loading ? "Approving..." : "Approve Access"}
+                    </button>
+                  </form>
+                  <div className="mt-4 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowHistory(true)}
+                      className="text-xs text-purple-600 font-semibold hover:underline"
+                    >
+                      View Approval History
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-gray-800">Past Approvals</h4>
+                    <button onClick={() => setShowHistory(false)} className="text-xs text-gray-500 hover:text-purple-600">Back</button>
+                  </div>
+                  <div className="bg-gray-50 rounded border border-gray-100 max-h-48 overflow-y-auto p-2 space-y-2">
+                    {approvalHistory.length === 0 ? (
+                      <p className="text-xs text-center text-gray-400 py-2">No history found</p>
+                    ) : (
+                      approvalHistory.map((item, i) => (
+                        <div key={i} className="flex flex-col border-b border-gray-200 last:border-0 pb-2 last:pb-0">
+                          <span className="text-xs font-semibold text-gray-800">{item.email}</span>
+                          <span className="text-[10px] text-gray-500">{new Date(item.approvedAt).toLocaleDateString()} {new Date(item.approvedAt).toLocaleTimeString()}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div >
   );
 };

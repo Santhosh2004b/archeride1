@@ -1,4 +1,4 @@
-// sparkline — peak pulse highlight
+
 import React from "react";
 import {
     LineChart, Line, ResponsiveContainer, Tooltip, YAxis, XAxis,
@@ -26,13 +26,13 @@ const SparklineCard = ({ title, data = [], color }) => {
             <div style={{ width: "100%", height: 60 }}>
                 <ResponsiveContainer>
                     <LineChart data={data}>
-                        {/* Sparkline line component */}
+                        {}
                         <Line
                             type="monotone"
                             dataKey="value"
                             stroke={color}
                             strokeWidth={2}
-                            dot={false}                    // ⬅️ no dot objects here
+                            dot={false}                    
                             activeDot={({ cx, cy, payload }) =>
                                 payload.value === maxVal ? (
                                     <circle cx={cx} cy={cy} r={6} fill={color} />

@@ -1,4 +1,4 @@
-// Action Completion Horizontal Bar Chart (Last 7 Days)
+
 import React from "react";
 import {
   BarChart,

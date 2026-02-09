@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/pages/UsersMonitoringPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { fetchUsers, assignProjectsToUser } from "../api/usersApi";
 import { searchProjects } from "../api/projectsApi";

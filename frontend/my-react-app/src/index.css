@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
 
 :root {
   --status-risk: #ef4444;
@@ -11,10 +11,17 @@
   --status-dependency: #a855f7;
   --status-escalation: #ec4899;
   --status-appreciation: #10b981;
-  --status-collection: #3b82f6;
 
-  --font-small: "Urbanist", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-large: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-small: "Lato", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-large: "Lato", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  
+  --white: #efe;
+  --blackish: #23252f;
+  --black-light: #3d3b36;
+  --black-dark: #1c1c1c;
+  --beige-sand-light: #f9eedc;
+  --beige-sand-dark: #d6bb9a;
 }
 
 html,
@@ -43,7 +50,7 @@ h6 {
   @apply font-bold text-gray-900;
 }
 
-/* Keeping class name for compatibility, but using new font */
+
 .font-marcellus {
   font-family: var(--font-large);
 }
@@ -57,7 +64,7 @@ code {
     monospace;
 }
 
-/* === Hero text fade-in from left === */
+
 @keyframes fadeInLeftFast {
   0% {
     opacity: 0;
@@ -104,8 +111,8 @@ code {
   animation-delay: 0.45s;
 }
 
-/* === Login / Get started button animation === */
-/* start: black bg + white text, end: white bg + black text */
+
+
 @keyframes ctaSwapOnce {
   0% {
     background-color: #000;
@@ -120,7 +127,7 @@ code {
   100% {
     background-color: #ffffff;
     color: #111827;
-    /* gray-900 style */
+    
   }
 }
 
@@ -130,20 +137,20 @@ code {
   animation: ctaSwapOnce 1.2s ease-out forwards;
 }
 
-/* keep hover states nice after animation */
+
 .cta-animate:hover {
   background-color: #000;
   color: #ffffff;
 }
 
-/* === Years card: subtle fade-in === */
+
 .years-card {
   opacity: 0;
   animation: fadeInLeftSlow 1.2s ease-out forwards;
   animation-delay: 0.6s;
 }
 
-/* === Hero image fade in/out loop === */
+
 @keyframes heroImageFadeCycle {
   0% {
     opacity: 0;
@@ -171,10 +178,7 @@ code {
   animation: heroImageFadeCycle 6s ease-in-out forwards;
 }
 
-/* ===============================
-   WORKBOARD – ADMIN / BM / PM
-   Clean • Corporate • Excel-like
-================================ */
+
 
 .workboard-page {
   display: flex;
@@ -182,7 +186,7 @@ code {
   gap: 16px;
 }
 
-/* ---------- TABLE CONTAINER ---------- */
+
 .workboard-view {
   margin-top: 16px;
   padding: 16px 20px;
@@ -193,7 +197,7 @@ code {
   overflow: auto;
 }
 
-/* ---------- TABLE ---------- */
+
 .workboard-table {
   width: 100%;
   border-collapse: collapse;
@@ -227,41 +231,41 @@ code {
   background: #eef2ff;
 }
 
-/* ---------- STATUS COLORS (ADMIN MONITORING) ---------- */
-/* ===== ROW BACKGROUNDS (very mild, readable) ===== */
+
+
 
 .status-open {
   background: #eef4ff;
-  /* calm blue → new item */
+  
 }
 
 .status-inprogress {
   background: #fff6ed;
-  /* soft amber → active work */
+  
 }
 
 .status-onhold {
   background: #fffbe6;
-  /* pause / waiting */
+  
 }
 
 .status-resolved {
   background: #f1fdfa;
-  /* work done, not yet approved */
+  
 }
 
 .status-approved {
   background: #f2f4f8;
-  /* FINAL – archived, executive */
+  
 }
 
 .status-cancelled {
   background: #fef2f2;
-  /* stopped */
+  
 }
 
 
-/* ===== STATUS DOT BASE ===== */
+
 
 .status-dot {
   width: 8px;
@@ -269,43 +273,43 @@ code {
   border-radius: 50%;
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
-  /* subtle presence */
+  
 }
 
 
-/* ===== STATUS DOT COLORS (meaning-driven) ===== */
+
 
 .dot-open {
   background: #2563eb;
-  /* confident blue */
+  
 }
 
 .dot-inprogress {
   background: #d97706;
-  /* focused amber */
+  
 }
 
 .dot-onhold {
   background: #ca8a04;
-  /* caution */
+  
 }
 
 .dot-resolved {
   background: #0f766e;
-  /* calm teal – done */
+  
 }
 
 .dot-approved {
   background: #1f2937;
-  /* FINAL authority (dark slate) */
+  
 }
 
 .dot-cancelled {
   background: #dc2626;
-  /* terminated */
+  
 }
 
-/* ===== Monitoring Table Header ===== */
+
 
 .monitoring-table-header {
   display: flex;
@@ -320,7 +324,7 @@ code {
   color: #111827;
 }
 
-/* Status legend */
+
 .status-legend {
   display: flex;
   flex-wrap: wrap;
@@ -338,53 +342,47 @@ code {
 
 .monitoring-title {
   font-family: inherit;
-  /* ← key line */
+  
   font-weight: 600;
   font-size: 18px;
   letter-spacing: 0.02em;
   color: #111827;
 }
 
-/* ===============================
-   Monitoring Tables – Column Grid
-   Excel-style, clean & readable
-================================ */
-/* ===============================
-   Monitoring Tables – Excel Grid
-   Clear column separation
-================================ */
+
+
 
 .monitoring-table {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-/* HEADER CELLS */
+
 .monitoring-table thead th {
   border-right: 1px solid #d1d5db;
-  /* stronger than body */
+  
   border-bottom: 1.5px solid #cbd5e1;
   background: #f9fafb;
 }
 
-/* BODY CELLS */
+
 .monitoring-table tbody td {
   border-right: 1px solid #e2e8f0;
-  /* visible but soft */
+  
 }
 
-/* REMOVE LAST COLUMN BORDER */
+
 .monitoring-table th:last-child,
 .monitoring-table td:last-child {
   border-right: none;
 }
 
-/* OPTIONAL: row separator refinement */
+
 .monitoring-table tbody tr {
   box-shadow: inset 0 -1px 0 #e5e7eb;
 }
 
-/* Ceremony Layout Helpers */
+
 .ceremony-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -413,32 +411,32 @@ code {
   transition: color 1s ease;
 }
 
-/* --- MOBILE NAVBAR CLEANUP --- */
+
 @media (max-width: 640px) {
   header>div:first-child {
     padding-top: .25rem !important;
     padding-bottom: .25rem !important;
   }
 
-  /* logo & title inline */
+  
   header img[alt="Arche logo"] {
     height: 30px !important;
     margin-right: 6px;
   }
 
-  /* title spacing */
+  
   header .font-marcellus {
     font-size: 1rem !important;
     margin-top: -2px;
   }
 
-  /* delivery monitoring tiny + closer */
+  
   header .text-brandMuted {
     font-size: 9px !important;
     margin-top: -4px;
   }
 
-  /* notification bell icon tighter */
+  
   header button[onClick*="goNotifications"] {
     height: 30px !important;
     width: 30px !important;
@@ -446,7 +444,7 @@ code {
     border-color: #d1d5db !important;
   }
 
-  /* view/edit toggle centered & slimmer pills */
+  
   header .inline-flex {
     width: fit-content;
     margin-left: auto;
@@ -458,8 +456,41 @@ code {
     font-size: 11px !important;
   }
 
-  /* hamburger spacing */
+  
   header button:has(> :not(img)):first-child {
     margin-right: 6px !important;
+  }
+}
+
+
+.pop-text {
+  font-family: "Poppins", sans-serif;
+  font-size: inherit;
+  letter-spacing: 1px;
+  
+  font-weight: bold;
+  color: inherit;
+}
+
+.pop-text span {
+  display: inline-block;
+  animation: pop 0.4s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }

@@ -1,4 +1,4 @@
-// frontend/my-react-app/src/components/LayoutBuilder.jsx
+
 import React, { useState } from "react";
 import {
     DndContext,
@@ -26,7 +26,7 @@ import {
     Plus
 } from "phosphor-react";
 
-// --- Draggable Field Component (Visual Clone) ---
+
 function SortableField({ id, field, onEdit, isOverlay }) {
     const {
         attributes,
@@ -43,7 +43,7 @@ function SortableField({ id, field, onEdit, isOverlay }) {
         opacity: isDragging ? 0.4 : 1,
     };
 
-    // Mimic the actual form field appearance
+    
     return (
         <div
             ref={setNodeRef}
@@ -51,27 +51,29 @@ function SortableField({ id, field, onEdit, isOverlay }) {
             className={`
                 relative group p-4 border-2 rounded-xl transition-all
                 ${field.hidden ? 'border-dashed border-gray-300 bg-gray-50 opacity-60' : 'border-transparent hover:border-blue-200 bg-white hover:shadow-md'}
+                ${field.readOnly ? 'bg-gray-100' : ''} 
                 ${isOverlay ? 'shadow-xl border-blue-500 scale-105 z-50 cursor-grabbing' : ''}
             `}
         >
-            {/* Field Label & Required Mark */}
+            {}
             <div className="mb-2 flex items-center justify-between">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
                     {field.label} {field.required && <span className="text-red-500">*</span>}
                 </label>
 
-                {/* Visual Indicators */}
+                {}
                 <div className="flex gap-1">
+                    {field.readOnly && <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded">READ ONLY</span>}
                     {field.hidden && <EyeSlash size={14} className="text-gray-400" />}
                 </div>
             </div>
 
-            {/* Mock Input Input */}
-            <div className="h-10 w-full bg-gray-50 border border-gray-200 rounded px-3 flex items-center text-sm text-gray-400 pointer-events-none">
+            {}
+            <div className={`h-10 w-full border border-gray-200 rounded px-3 flex items-center text-sm text-gray-400 pointer-events-none ${field.readOnly ? 'bg-gray-100' : 'bg-gray-50'}`}>
                 {field.placeholder || "Input value..."}
             </div>
 
-            {/* --- HOVER CONTROLS --- */}
+            {}
             <div className={`
                 absolute top-2 right-2 flex items-center gap-1
                 opacity-0 group-hover:opacity-100 transition-opacity
@@ -97,7 +99,7 @@ function SortableField({ id, field, onEdit, isOverlay }) {
     );
 }
 
-// --- Property Editor Side Panel ---
+
 const PropertyEditor = ({ field, onChange, onClose }) => {
     if (!field) return null;
 
@@ -111,7 +113,7 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
             </div>
 
             <div className="space-y-6 flex-1 overflow-y-auto">
-                {/* Label */}
+                {}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Label</label>
                     <input
@@ -122,7 +124,7 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
                     />
                 </div>
 
-                {/* Key (Read Only) */}
+                {}
                 <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2">System Key</label>
                     <input
@@ -133,7 +135,7 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
                     />
                 </div>
 
-                {/* Placeholder */}
+                {}
                 <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Placeholder</label>
                     <input
@@ -144,7 +146,7 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
                     />
                 </div>
 
-                {/* Toggles */}
+                {}
                 <div className="space-y-3 pt-4 border-t">
                     <label className="flex items-center justify-between cursor-pointer group">
                         <span className="text-sm font-medium text-gray-700">Required Field</span>
@@ -167,7 +169,7 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
                     </label>
                 </div>
 
-                {/* Options Editor (for select/multiselect) */}
+                {}
                 {(field.type === 'select' || field.type === 'multiselect') && (
                     <div className="pt-4 border-t mt-4">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Field Options</label>
@@ -225,11 +227,11 @@ const PropertyEditor = ({ field, onChange, onClose }) => {
     );
 };
 
-// --- Main Builder Component ---
+
 const LayoutBuilder = ({ fields, onSave, onClose }) => {
     const [items, setItems] = useState(fields);
-    const [activeId, setActiveId] = useState(null); // For drag overlay
-    const [editingField, setEditingField] = useState(null); // For side panel
+    const [activeId, setActiveId] = useState(null); 
+    const [editingField, setEditingField] = useState(null); 
     const [saving, setSaving] = useState(false);
 
     const sensors = useSensors(
@@ -257,7 +259,7 @@ const LayoutBuilder = ({ fields, onSave, onClose }) => {
 
     const handleFieldChange = (updatedField) => {
         setItems(prev => prev.map(f => f.name === updatedField.name ? updatedField : f));
-        setEditingField(updatedField); // Keep editor in sync
+        setEditingField(updatedField); 
     };
 
     const handleSaveLayout = async () => {
@@ -268,7 +270,7 @@ const LayoutBuilder = ({ fields, onSave, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[100] bg-gray-100 flex flex-col">
-            {/* --- Header --- */}
+            {}
             <div className="bg-white border-b px-8 py-4 flex justify-between items-center shadow-sm z-10">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800 font-marcellus">Visual Form Editor</h2>
@@ -285,25 +287,26 @@ const LayoutBuilder = ({ fields, onSave, onClose }) => {
                         onClick={handleSaveLayout}
                         disabled={saving}
                         className="px-6 py-2 rounded-full bg-brandOrange text-white font-bold text-sm hover:bg-orange-600 shadow-md transition-all active:scale-95"
+                        style={{ color: "#000" }}
                     >
                         {saving ? "Saving..." : "Save Layout"}
                     </button>
                 </div>
             </div>
 
-            {/* --- Main Workspace --- */}
+            {}
             <div className="flex-1 flex overflow-hidden">
-                {/* Visual Canvas (Center) */}
+                {}
                 <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
                     <div className="max-w-5xl mx-auto bg-white min-h-[800px] shadow-2xl rounded-xl p-10 border border-gray-100">
-                        {/* Static Header Clone */}
+                        {}
                         <div className="flex justify-between items-center mb-8 border-b pb-4 opacity-50 pointer-events-none">
                             <h2 className="text-2xl font-marcellus font-medium text-gray-400">
                                 New Entry (Preview)
                             </h2>
                         </div>
 
-                        {/* Draggable Grid */}
+                        {}
                         <DndContext
                             sensors={sensors}
                             collisionDetection={closestCenter}
@@ -348,10 +351,10 @@ const LayoutBuilder = ({ fields, onSave, onClose }) => {
                             </DragOverlay>
                         </DndContext>
                     </div>
-                    <div className="h-20" /> {/* Spacer */}
+                    <div className="h-20" /> {}
                 </div>
 
-                {/* Property Panel (Right) */}
+                {}
                 {editingField && (
                     <PropertyEditor
                         field={editingField}

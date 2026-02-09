@@ -1,9 +1,9 @@
-// backend/controllers/metrics.controller.js
+
 import pool from "../db.js";
 
 export async function getSummaryMetrics(req, res) {
   try {
-    // total by status across all modules
+    
     const statusSql = `
       SELECT status, COUNT(*) AS c
       FROM (
@@ -39,7 +39,7 @@ export async function getSummaryMetrics(req, res) {
       totalItems,
     };
 
-    // items by module for donut + stacked
+    
     const byModuleSql = `
       SELECT 'Risk' as module, status, COUNT(*)::int AS count FROM risks GROUP BY status
       UNION ALL
@@ -53,7 +53,7 @@ export async function getSummaryMetrics(req, res) {
     `;
     const { rows: byModuleRows } = await pool.query(byModuleSql);
 
-    // aging buckets example (0–7, 8–30, 31+ days since created_at)
+    
     const agingSql = `
       SELECT bucket, COUNT(*)::int AS count
       FROM (
@@ -99,13 +99,13 @@ export async function getSummaryMetrics(req, res) {
 
 export async function getPrioritySplit(req, res) {
   try {
-    const { module } = req.query; // 'risk', 'issue', 'dependency', etc. or 'all'
+    const { module } = req.query; 
     const cleanModule = (module || "all").toLowerCase();
 
     let sql = "";
 
     if (cleanModule === "all") {
-      // Union all tables
+      
       sql = `
           SELECT priority, COUNT(*)::int as count 
           FROM (
@@ -128,7 +128,6 @@ export async function getPrioritySplit(req, res) {
         case "issue": table = "issues"; break;
         case "dependency": table = "dependencies"; break;
         case "escalation": table = "escalations"; break;
-        case "collections": table = "collections"; break;
         case "action": table = "actions"; break;
         default: return res.status(400).json({ success: false, message: "Invalid module" });
       }
@@ -142,7 +141,7 @@ export async function getPrioritySplit(req, res) {
 
     const { rows } = await pool.query(sql);
 
-    // Return ALL rows found (no filtering by strict list)
+    
     const result = rows.map(r => ({
       priority: r.priority || "Unassigned",
       count: Number(r.count)

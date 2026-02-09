@@ -1,6 +1,6 @@
 
 import express from "express";
-// backend/routes/metrics.routes.js
+
 import { Router } from "express";
 import { getSummaryMetrics, getPrioritySplit } from "../controllers/metrics.controller.js";
 import {
@@ -19,10 +19,6 @@ import {
 import { countAll as countDependencies } from "../models/dependencies.model.js";
 import { countAll as countEscalations } from "../models/escalations.model.js";
 import { countAll as countAppreciations } from "../models/appreciations.model.js";
-import {
-  countAll as countCollections,
-  countByStatus as countCollectionsByStatus,
-} from "../models/collections.model.js";
 
 const router = express.Router();
 
@@ -39,8 +35,6 @@ router.get("/summary", async (req, res) => {
       depsTotal,
       escTotal,
       appTotal,
-      collTotal,
-      collPending,
     ] = await Promise.all([
       countRisks(),
       countRisksByStatus("Open"),
@@ -52,8 +46,6 @@ router.get("/summary", async (req, res) => {
       countDependencies(),
       countEscalations(),
       countAppreciations(),
-      countCollections(),
-      countCollectionsByStatus("Pending"),
     ]);
 
     res.json({
@@ -63,7 +55,6 @@ router.get("/summary", async (req, res) => {
       dependencies: { total: depsTotal },
       escalations: { total: escTotal },
       appreciations: { total: appTotal },
-      collections: { total: collTotal, pending: collPending },
     });
   } catch (err) {
     console.error("Metrics error", err);

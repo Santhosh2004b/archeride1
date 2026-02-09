@@ -1,13 +1,13 @@
-// backend/controllers/layout.controller.js
+
 import pool from "../db.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 
-// GET /api/layout/:module
+
 export async function getLayout(req, res) {
     try {
         const { module } = req.params;
         const { rows } = await pool.query("SELECT config FROM layout_configs WHERE module = $1", [module]);
-        if (rows.length === 0) return sendSuccess(res, null); // Return null if no custom layout
+        if (rows.length === 0) return sendSuccess(res, null); 
         return sendSuccess(res, rows[0].config);
     } catch (err) {
         console.error("Get Layout Error:", err);
@@ -15,7 +15,7 @@ export async function getLayout(req, res) {
     }
 }
 
-// POST /api/layout/:module
+
 export async function saveLayout(req, res) {
     try {
         const { module } = req.params;

@@ -1,45 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { fetchAppreciations } from "../api/appreciationsApi";
-import { FiPlus } from "react-icons/fi";
-import { formatDisplayDate, formatDateOnly } from "../utils/dateFormat";
-import { filterConfig } from "../config/filterConfig";
+import { formatDateOnly } from "../utils/dateFormat";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 import LayoutBuilder from "../components/LayoutBuilder";
 import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
 import { appreciationsFormConfig } from "../config/formConfig";
-import { Pen } from "phosphor-react";
+import { Pen, DownloadSimple } from "phosphor-react";
+import TruncatedCell from "../components/TruncatedCell";
+import { exportToExcel } from "../utils/exportToExcel";
 
-// Helper for professional headers
-const formatHeader = (key) => {
-  const map = {
-    appreciation_id: "Appreciation ID",
-    manual_project_id: "Project ID",
-    project_description: "Project Description",
-    account: "Account",
-    received_date: "Received Date",
-    recorded_by: "Recorded By",
-    appreciation_type: "Appreciation Type",
-    shared_with_team: "Shared With Team",
-    created_at: "Created On",
-    updated_at: "Updated On"
-  };
-  if (map[key]) return map[key];
-  return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-};
 
 const MonitoringAppreciationsPage = () => {
-  // ... (state) ...
+
   const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
   const [layoutFields, setLayoutFields] = useState(appreciationsFormConfig?.fields || []);
 
-  const navigate = useNavigate();
+  // navigate removed
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [allRows, setAllRows] = useState([]); // Store unfiltered data
+  const [allRows, setAllRows] = useState([]);
+  const [showToast, setShowToast] = useState(false);
 
-  // ... (filters/export logic stays same) ...
+
   const [filters, setFilters] = useState({
     appreciation_type: "",
     shared_with: "",
@@ -50,10 +33,10 @@ const MonitoringAppreciationsPage = () => {
   useMonitoringExport("appreciations", rows);
   const cleanParams = (obj) => Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== "" && v !== null));
 
-  // ... (applyFiltersAndSearch stays same) ...
-  const applyFiltersAndSearch = (data) => {
+
+  const applyFiltersAndSearch = React.useCallback((data) => {
     let filtered = [...data];
-    // 1. Apply select filters
+
     const selectFilters = { ...filters };
     const pName = selectFilters.account?.trim().toLowerCase();
     delete selectFilters.account;
@@ -61,17 +44,17 @@ const MonitoringAppreciationsPage = () => {
     Object.entries(selectFilters).forEach(([key, value]) => {
       if (value) filtered = filtered.filter((row) => String(row[key] ?? "").toLowerCase() === String(value).toLowerCase());
     });
-    // 2. Account Filter
+
     if (pName) filtered = filtered.filter((row) => String(row.account ?? "").toLowerCase().includes(pName));
-    // 3. Global Search
+
     if (globalSearch.trim()) {
       const term = globalSearch.toLowerCase();
       filtered = filtered.filter((row) => Object.values(row).some((v) => v !== null && v !== undefined && String(v).toLowerCase().includes(term)));
     }
-    // Sort by latest updated
+
     filtered.sort((a, b) => new Date(b.last_updated || b.updated_at || b.created_at || 0) - new Date(a.last_updated || a.updated_at || a.created_at || 0));
     setRows(filtered);
-  };
+  }, [filters, globalSearch]);
 
   const loadData = async () => {
     try {
@@ -81,13 +64,13 @@ const MonitoringAppreciationsPage = () => {
       q.search = "";
       if (q.shared_with) { q.shared_with_team = q.shared_with; delete q.shared_with; }
 
-      let res = await fetchAppreciations(q);
-      const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-      setAllRows(list);
-      applyFiltersAndSearch(list);
+      const res = await fetchAppreciations();
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      setAllRows(data);
+      applyFiltersAndSearch(data);
     } catch (err) {
       console.error("Failed to load appreciations", err);
-      // alert("Failed to load appreciations"); 
+
       setAllRows([]);
       setRows([]);
     } finally {
@@ -106,8 +89,11 @@ const MonitoringAppreciationsPage = () => {
     }
   };
 
-  useEffect(() => { loadData(); loadLayout(); return () => { }; }, []);
-  useEffect(() => { if (allRows.length > 0) applyFiltersAndSearch(allRows); }, [filters, globalSearch]);
+  useEffect(() => {
+    loadData(); loadLayout(); return () => { };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => { if (allRows.length > 0) applyFiltersAndSearch(allRows); }, [filters, globalSearch, allRows, applyFiltersAndSearch]);
 
   const handleFilterChange = (e) => setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleApply = () => loadData();
@@ -117,12 +103,12 @@ const MonitoringAppreciationsPage = () => {
   };
   const clearGlobal = () => setGlobalSearch("");
 
-  // Column Construction & Reordering
+
   const getColumns = () => {
     if (!rows[0]) return [];
     const keys = Object.keys(rows[0]).filter(c => c !== "id" && c !== "project_id");
 
-    // Preferred Order: ID, Creator, Project ID, Desc, Account, Date...
+
     const preferred = ["appreciation_id", "recorded_by", "manual_project_id", "project_description", "account", "received_date"];
 
     return keys.sort((a, b) => {
@@ -139,14 +125,42 @@ const MonitoringAppreciationsPage = () => {
   const appreciationTypes = ["Email", "Call", "Meeting", "Formal Letter", "Survey Feedback", "Verbal"];
   const sharedWithOpts = ["Yes", "No"];
 
+  const formatHeader = (key) => {
+    if (key === "manual_project_id") return "Project ID";
+    return key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const handleExport = () => {
+    const exportData = window.__EXPORT_DATA__?.["appreciations"];
+
+    if (!exportData || !exportData.rows?.length) {
+      alert(`No data available to export for appreciations`);
+      return;
+    }
+
+    exportToExcel(exportData);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
     <motion.div
-      className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6"
+      className="min-h-[calc(100vh-80px)] flex flex-col gap-4 bg-gray-50 p-4 sm:p-6 relative"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* Animated Header */}
+      {/* Export Toast */}
+      {showToast && (
+        <div className="absolute top-4 right-1/2 translate-x-1/2 z-50
+                      rounded-md bg-green-600 px-3 py-1.5
+                      text-xs text-white shadow-lg
+                      animate-fade">
+          ✅ Downloaded successfully
+        </div>
+      )}
+
+      { }
       <motion.div
         className="flex items-center justify-between"
         initial={{ opacity: 0, x: -20 }}
@@ -154,23 +168,35 @@ const MonitoringAppreciationsPage = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <div>
-          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Appreciation</h1>
+          <h1 className="font-marcellus font-bold text-3xl sm:text-4xl text-gray-900 tracking-tight mb-1">Appreciations</h1>
           <p className="text-xs sm:text-sm text-gray-500 italic">Table — Latest Updates</p>
         </div>
 
-        {/* Customize Form Button */}
-        <button
-          onClick={() => setShowLayoutBuilder(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
-          title="Customize Form Layout"
-        >
-          <Pen size={18} weight="bold" />
-          Customize Form
-        </button>
+        { }
+        <div className="flex gap-2">
+          {rows.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExport}
+              className="rounded-full h-10 w-10 flex items-center justify-center border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+              title="Export to Excel"
+            >
+              <DownloadSimple size={20} weight="duotone" />
+            </button>
+          )}
+          <button
+            onClick={() => setShowLayoutBuilder(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 shadow-md transition-all active:scale-95"
+            title="Customize Form Layout"
+          >
+            <Pen size={18} weight="bold" />
+            Customize Form
+          </button>
+        </div>
 
       </motion.div>
 
-      {/* -------- FILTERS -------- */}
+      { }
       <motion.div
         className="w-full rounded-xl bg-white border border-gray-200 shadow-sm px-4 py-4 flex flex-col lg:flex-row gap-3 lg:items-end"
         initial={{ opacity: 0, y: 10 }}
@@ -224,7 +250,7 @@ const MonitoringAppreciationsPage = () => {
           </div>
         </div>
 
-        {/* -------- GLOBAL SEARCH -------- */}
+        { }
         <motion.div
           className="bg-white border rounded-xl shadow-sm px-4 py-3 flex items-center gap-3"
           initial={{ opacity: 0, y: 10 }}
@@ -250,7 +276,7 @@ const MonitoringAppreciationsPage = () => {
       </motion.div>
 
 
-      {/* -------- TABLE -------- */}
+      { }
       <motion.div
         className="flex-1 bg-white border rounded-xl shadow-sm overflow-hidden"
         initial={{ opacity: 0, y: 10 }}
@@ -277,10 +303,10 @@ const MonitoringAppreciationsPage = () => {
                   <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 w-12">{idx + 1}</td>
                     {columns.map(c => (
-                      <td key={c} className="px-4 py-3 whitespace-nowrap text-gray-700">
+                      <td key={c} className="px-4 py-3 min-w-[180px] align-top text-gray-700 leading-relaxed">
                         {c.toLowerCase().includes("date") || c.toLowerCase().includes("_at")
                           ? formatDateOnly(row[c])
-                          : (row[c] || "-")}
+                          : <TruncatedCell content={String(row[c] ?? "") || "-"} />}
                       </td>
                     ))}
                   </tr>
@@ -300,7 +326,7 @@ const MonitoringAppreciationsPage = () => {
       </motion.div>
 
 
-      {/* Layout Builder Modal */}
+      { }
       {showLayoutBuilder && (
         <LayoutBuilder
           fields={layoutFields}
@@ -317,4 +343,3 @@ const MonitoringAppreciationsPage = () => {
 };
 
 export default MonitoringAppreciationsPage;
-

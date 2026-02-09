@@ -1,4 +1,4 @@
-// backend/tools/hash-password.js
+
 import { hashPassword } from "../utils/password.utils.js";
 
 const run = async () => {

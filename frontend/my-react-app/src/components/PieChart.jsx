@@ -1,4 +1,4 @@
-// filepath: src/components/PieChart.jsx
+
 import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,11 +8,11 @@ const COLORS = ["#E63946", "#FB8500", "#FFCA3A", "#2A9D8F"];
 export default function RiskPie({ data = [] }) {
   const total = data.reduce((a, b) => a + Number(b.value), 0);
 
-  // 🔥 display values animate on hover
+  
   const [hoverIndex, setHoverIndex] = useState(null);
   const [displayVal, setDisplayVal] = useState(0);
 
-  // animate the hovered slice count
+  
   useEffect(() => {
     if (hoverIndex === null) return;
     let start = 0;
@@ -26,7 +26,7 @@ export default function RiskPie({ data = [] }) {
     requestAnimationFrame(step);
   }, [hoverIndex, data]);
 
-  // main decorated version (percent + label)
+  
   const decorated = data.map((d) => ({
     ...d,
     percent: total ? ((d.value / total) * 100).toFixed(1) : 0,
@@ -71,7 +71,7 @@ export default function RiskPie({ data = [] }) {
         </Pie>
       </PieChart>
 
-      {/* 🧠 Center information */}
+      {}
       <motion.div
         key={hoverIndex}
         style={{
@@ -103,7 +103,7 @@ export default function RiskPie({ data = [] }) {
         )}
       </motion.div>
 
-      {/* 📌 persistent labels beside donut */}
+      {}
       <div
         style={{
           position: "absolute",

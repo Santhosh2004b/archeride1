@@ -5,10 +5,10 @@ async function migrate() {
     try {
         await client.query('BEGIN');
 
-        // 1. Add user_code to users table
+        
         await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS user_code VARCHAR(20) UNIQUE');
 
-        // 2. Create user_entity_sequences table
+        
         await client.query(`
       CREATE TABLE IF NOT EXISTS user_entity_sequences (
         id SERIAL PRIMARY KEY,
@@ -19,7 +19,7 @@ async function migrate() {
       )
     `);
 
-        // 3. Initialize user_code for existing users
+        
         const { rows: users } = await client.query('SELECT id, role, name FROM users');
         const roleCounts = {};
 

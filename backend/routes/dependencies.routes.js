@@ -11,7 +11,7 @@ import {
 
 const router = Router();
 
-// 🔐 THIS IS THE FIX — DO NOT SKIP
+
 router.use(authMiddleware);
 
 router.get("/", listDependencies);

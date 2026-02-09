@@ -1,4 +1,4 @@
-// backend/controllers/notifications.controller.js
+
 import {
   listPendingRiskNotifications,
   listPendingIssueNotifications,
@@ -18,7 +18,7 @@ import {
 
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 
-// ADMIN – Risk approvals (with joins for richer data)
+
 export async function listRiskNotifications(req, res) {
   try {
     const items = await listPendingRiskNotifications();
@@ -29,7 +29,7 @@ export async function listRiskNotifications(req, res) {
   }
 }
 
-// ADMIN – generic lists for other modules
+
 export async function listIssueNotifications(req, res) {
   try {
     const items = await listPendingIssueNotifications();
@@ -72,7 +72,7 @@ export async function listActionNotifications(req, res) {
 
 
 
-// BM – notifications by module (?module=risk|issue|dependency|escalation)
+
 export async function listBmNotificationsByModule(req, res) {
   try {
     const email = req.user?.email;
@@ -114,7 +114,7 @@ export async function listBmNotificationsByModule(req, res) {
   }
 }
 
-// ADMIN bell count (RISK only)
+
 export async function getAdminNotificationCount(req, res) {
   try {
     const c = await countAdminPendingRiskNotifications();
@@ -125,7 +125,7 @@ export async function getAdminNotificationCount(req, res) {
   }
 }
 
-// BM bell count (RISK only for now)
+
 export async function getBmNotificationCount(req, res) {
   try {
     const email = req.user?.email;
