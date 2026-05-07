@@ -1,4 +1,3 @@
-
 import { buildIssueFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
 import { getAssignedProjects } from "../models/users.model.js";
 import {
@@ -6,6 +5,8 @@ import {
   findIssueById,
   createIssue as createIssueModel,
   updateIssue as updateIssueModel,
+  findIssuesByIds,
+  deleteMultipleIssues
 } from "../models/issues.model.js";
 import {
   createResolutionNotification,
@@ -48,8 +49,8 @@ export async function getIssue(req, res) {
     const issue = await findIssueById(id);
     if (!issue) return sendError(res, 404, "Issue not found");
 
-    
-    
+
+
     return sendSuccess(res, issue);
 
     return sendSuccess(res, issue);
@@ -76,7 +77,7 @@ export async function createIssueHandler(req, res) {
 
     const payload = { ...req.body };
     payload.reported_date = payload.reported_date || payload.identified_date || new Date();
-    
+
     if (payload.reported_date) {
       const d = new Date(payload.reported_date);
       payload.reported_date = d.toISOString().slice(0, 10);
@@ -91,19 +92,39 @@ export async function createIssueHandler(req, res) {
     delete payload.identified_date;
     delete payload.identified_by;
 
-    
+
     [
       "manual_project_id",
       "project_description",
       "account",
       "severity",
       "probability",
-      
+
     ].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
 
     const created = await createIssueModel(payload);
+
+    if (payload.status?.toLowerCase() === "resolved" && req.user?.email) {
+      await createResolutionNotification({
+        module: "issue",
+        itemId: created.id,
+        itemCode: created.issue_id,
+        statusBefore: "N/A (New Record)",
+        statusAfter: payload.status,
+        payload: {
+          account: created.account,
+          manual_project_id: created.manual_project_id,
+          priority: created.priority,
+          category: created.category,
+          issue_title: created.issue_title,
+          reported_date: created.reported_date,
+        },
+        bmUser: req.user.email,
+      });
+    }
+
     return sendSuccess(res, created, 201);
   } catch (err) {
     console.error("Error creating issue", err);
@@ -134,7 +155,7 @@ export async function updateIssueHandler(req, res) {
 
     const updated = await updateIssueModel(id, payload);
 
-    
+
     const normalize = (s) => s?.trim().toLowerCase();
     const becameResolved =
       normalize(oldStatus) !== "resolved" &&
@@ -187,3 +208,39 @@ export async function decideIssueResolution(req, res) {
     return sendError(res, 500, "Failed to process decision");
   }
 }
+
+export const deleteIssuesHandler = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, "No ids provided for deletion.");
+    }
+
+    if (req.user?.role === "ADMIN") {
+      return sendError(res, 403, "Admins are not allowed to delete issues.");
+    }
+
+    const records = await findIssuesByIds(ids);
+    if (!records.length) {
+      return sendError(res, 404, "None of the specified entries were found.");
+    }
+
+    if (req.user?.role !== "ADMIN") {
+      const today = new Date().toDateString();
+      for (const r of records) {
+        // Fallback checks for various date structures just in case
+        const dateRaw = r.created_at || r.identified_date || r.reported_date || r.received_date || Date.now();
+        const createdAt = new Date(dateRaw).toDateString();
+        if (createdAt !== today) {
+          return sendError(res, 403, "Deletion is restricted to same-day entries only.");
+        }
+      }
+    }
+
+    const deletedCount = await deleteMultipleIssues(ids);
+    return sendSuccess(res, { deleted: deletedCount }, 200, "Issues deleted successfully");
+  } catch (error) {
+    console.error("deleteIssuesHandler error:", error);
+    sendError(res, 500, "Internal Server Error");
+  }
+};

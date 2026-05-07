@@ -1,38 +1,29 @@
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import logo from "../assets/arche-logo.png";
 
 import img1 from "../assets/businessman-working-tablet-with-data-visualization.jpg";
 import img2 from "../assets/futuristic-business-meeting-with-digital-table-cityscape-view.jpg";
 import img3 from "../assets/team-working-together-project.jpg";
 
-import "../styles/LandingPage.css"; 
+import "../styles/LandingPage.css";
 
 const HERO_IMAGES = [img1, img2, img3];
 
 function LandingPage() {
-  const navigate = useNavigate();
   const [heroImageIndex, setHeroImageIndex] = useState(0);
 
-  
   useEffect(() => {
     const id = setInterval(
       () => setHeroImageIndex((prev) => (prev + 1) % HERO_IMAGES.length),
-      5000 
+      5000
     );
     return () => clearInterval(id);
   }, []);
 
   const activeHeroImage = HERO_IMAGES[heroImageIndex];
 
-  const handleGetStarted = (e) => {
-    e.preventDefault();
-    window.playCeremonyAudio?.();
-    navigate("/ceremony", { state: { playAudio: true } });
-  };
-
-  
   const heroAnimationClass =
     heroImageIndex % 2 === 0 ? "hero-image-zoom-in" : "hero-image-zoom-out";
 
@@ -75,17 +66,10 @@ function LandingPage() {
             <div className="flex gap-3">
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-urbanist font-semibold shadow-sm border border-brandDark cta-animate"
+                className="inline-flex items-center justify-center rounded-full w-56 py-3 text-sm font-urbanist font-semibold shadow-sm border border-brandDark cta-animate"
               >
                 Login
               </Link>
-              <a
-                href="#get-started"
-                onClick={handleGetStarted}
-                className="inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-urbanist border border-brandDark cta-animate"
-              >
-                Get started
-              </a>
             </div>
           </div>
         </section>

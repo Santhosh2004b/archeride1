@@ -6,6 +6,8 @@ import {
   findRiskById,
   createRisk,
   updateRisk,
+  findRisksByIds,
+  deleteMultipleRisks,
 } from "../models/risks.model.js";
 import { sendSuccess, sendError } from "../utils/response.utils.js";
 import { createResolutionNotification } from "../models/notifications.model.js";
@@ -63,16 +65,38 @@ export async function createRiskHandler(req, res) {
     }
 
 
-    const dateFields = [
-      "identified_date",
-      "target_mitigation_date",
-      "last_reviewed_date"
-    ];
+    const calculateRiskScore = (prob, imp) => {
+      const probMap = { "Rare": 1, "Possible": 2, "Likely (Regularly)": 3 };
+      const impactMap = { "Minor": 1, "Moderate": 2, "Major": 3 };
+      const p = probMap[prob];
+      const i = impactMap[imp];
+      if (!p || !i) return null;
+      const score = p * i;
+      let label = "";
+      if (score === 1 || score === 2) label = "Low";
+      else if (score === 3) label = "Medium";
+      else if (score === 4 || score === 6) label = "High";
+      else if (score === 9) label = "Critical";
+      return label ? `${score} - ${label}` : String(score);
+    };
+
     const payload = {
       ...req.body,
       created_by: req.user.id,
       identified_by: req.body.identified_by || req.user.email,
     };
+
+    const dateFields = [
+      "identified_date",
+      "target_mitigation_date",
+      "last_reviewed_date"
+    ];
+
+    if (payload.probability && payload.impact) {
+      const calculated = calculateRiskScore(payload.probability, payload.impact);
+      if (calculated) payload.risk_score = calculated;
+    }
+
     dateFields.forEach((field) => {
       if (payload[field]) {
         payload[field] = toYYYYMMDD(payload[field]);
@@ -98,6 +122,26 @@ export async function createRiskHandler(req, res) {
       if (payload[field] === undefined) payload[field] = null;
     });
     const created = await createRisk(payload);
+
+    if (payload.status?.toLowerCase() === "resolved" && req.user?.email) {
+      await createResolutionNotification({
+        module: "risk",
+        itemId: created.id,
+        itemCode: created.risk_id,
+        statusBefore: "N/A (New Record)",
+        statusAfter: payload.status,
+        payload: {
+          account: created.account,
+          manual_project_id: created.manual_project_id,
+          priority: created.priority,
+          category: created.category,
+          risk_title: created.risk_title,
+          identified_date: created.identified_date,
+        },
+        bmUser: req.user.email,
+      });
+    }
+
     return sendSuccess(res, created, 201);
   } catch (err) {
     console.error("Create risk error", err);
@@ -111,15 +155,34 @@ export async function createRiskHandler(req, res) {
 export async function updateRiskHandler(req, res) {
   try {
     const { id } = req.params;
-    const payload = req.body;
-
     const existing = await findRiskById(id);
     if (!existing) {
       return sendError(res, 404, "Risk not found");
     }
 
+    const calculateRiskScore = (prob, imp) => {
+      const probMap = { "Rare": 1, "Possible": 2, "Likely (Regularly)": 3 };
+      const impactMap = { "Minor": 1, "Moderate": 2, "Major": 3 };
+      const p = probMap[prob];
+      const i = impactMap[imp];
+      if (!p || !i) return null;
+      const score = p * i;
+      let label = "";
+      if (score === 1 || score === 2) label = "Low";
+      else if (score === 3) label = "Medium";
+      else if (score === 4 || score === 6) label = "High";
+      else if (score === 9) label = "Critical";
+      return label ? `${score} - ${label}` : String(score);
+    };
 
+    const payload = { ...req.body };
+    const prob = payload.probability || existing.probability;
+    const imp = payload.impact || existing.impact;
 
+    if (prob && imp) {
+      const calculated = calculateRiskScore(prob, imp);
+      if (calculated) payload.risk_score = calculated;
+    }
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
@@ -181,5 +244,46 @@ export async function decideRiskResolution(req, res) {
   } catch (err) {
     console.error("Risk decision failed", err);
     return sendError(res, 500, "Failed to process decision");
+  }
+}
+
+export async function deleteRisksHandler(req, res) {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, "No valid IDs provided for deletion");
+    }
+
+    const risks = await findRisksByIds(ids);
+    if (!risks || risks.length === 0) {
+      return sendError(res, 404, "No matching risks found to delete");
+    }
+
+    // Role-based deletion logic: PMs can only delete same-day records.
+    // If Admin needs to be totally prevented from deleting (as per task), we check if role is ADMIN and block completely.
+    if (req.user?.role === "ADMIN") {
+      return sendError(res, 403, "Admins are not allowed to delete risks. This action is restricted to PMs.");
+    }
+
+    // If not Admin, enforce same-day rule
+    if (req.user?.role !== "ADMIN") {
+      const today = new Date().toDateString();
+      for (const r of risks) {
+        const createdAt = new Date(r.created_at || r.identified_date).toDateString();
+        if (createdAt !== today) {
+          return sendError(
+            res, 
+            403, 
+            "Deletion is restricted to same-day entries only."
+          );
+        }
+      }
+    }
+
+    const count = await deleteMultipleRisks(ids);
+    return sendSuccess(res, { deleted: count }, 200, "Risks deleted successfully");
+  } catch (err) {
+    console.error("Error deleting risks", err);
+    return sendError(res, 500, "Failed to delete risks");
   }
 }

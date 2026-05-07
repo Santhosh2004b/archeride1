@@ -4,6 +4,7 @@ import {
   getRisk,
   createRiskHandler,
   updateRiskHandler,
+  deleteRisksHandler,
   decideRiskResolution,
 } from "../controllers/risks.controller.js";
 
@@ -13,6 +14,7 @@ router.get("/", listRisks);
 router.get("/:id", getRisk);
 router.post("/", createRiskHandler);
 router.put("/:id", updateRiskHandler);
+router.post("/delete-multiple", deleteRisksHandler);
 
 
 router.post("/decisions/:notificationId", decideRiskResolution);

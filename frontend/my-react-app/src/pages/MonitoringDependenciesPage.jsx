@@ -1,3 +1,4 @@
+import { useFilter } from '../context/FilterContext';
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -47,7 +48,8 @@ const MonitoringDependenciesPage = () => {
     search: "",
   });
   const [globalSearch, setGlobalSearch] = useState("");
-  const [allRows, setAllRows] = useState([]); // Store full data for client-side filtering
+  const [allRows, setAllRows] = useState([]);
+  const { selectedManager } = useFilter(); // Store full data for client-side filtering
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [showToast, setShowToast] = useState(false);
@@ -60,7 +62,7 @@ const MonitoringDependenciesPage = () => {
     try {
       // Build API params if server-side filtering is supported,
       // otherwise fetch all and filter client-side (preferred for smaller datasets)
-      const res = await fetchDependencies();
+      const res = await fetchDependencies({ manager: selectedManager });
       const data = Array.isArray(res) ? res : (res?.data || []);
       setAllRows(data);
       applyFiltersAndSearch(data);
@@ -398,3 +400,7 @@ const MonitoringDependenciesPage = () => {
 };
 
 export default MonitoringDependenciesPage;
+
+
+
+

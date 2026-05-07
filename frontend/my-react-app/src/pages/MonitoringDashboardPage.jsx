@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { fetchDashboardMetrics } from "../api/metricsApi";
+import { motion } from "framer-motion";
 
 import KpiCard from "../components/KpiCard";
 import GlobalPriorityDonut from "../components/GlobalPriorityDonut";
@@ -9,20 +9,15 @@ import DashboardTable from "../components/DashboardTable";
 import RevealRow from "../components/RevealRow";
 import TrendMetricCard from "../components/TrendMetricCard";
 import SystemAnalytics from "../components/SystemAnalytics";
-
+import ResponsibleActionsChart from "../components/ResponsibleActionsChart";
+import { useFilter } from "../context/FilterContext";
 
 const MonitoringDashboardPage = () => {
-
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
+  const { selectedManager } = useFilter();
 
   const [analyticsYear, setAnalyticsYear] = useState(new Date().getFullYear());
   const [analyticsTrendCreated, setAnalyticsTrendCreated] = useState([]);
   const [analyticsTrendClosed, setAnalyticsTrendClosed] = useState([]);
-
-
-  const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
-  const [selectedActionYear, setSelectedActionYear] = useState(new Date().getFullYear());
 
   const [kpis, setKpis] = useState(null);
   const [moduleStatus, setModuleStatus] = useState([]);
@@ -36,35 +31,20 @@ const MonitoringDashboardPage = () => {
     actions: []
   });
 
-
   const [selectedActionWeek, setSelectedActionWeek] = useState(null);
-  const [availableActionWeeks, setAvailableActionWeeks] = useState([]);
-  const [weeklyActionStatus, setWeeklyActionStatus] = useState(null);
-
-
-  const [selectedActionMonth, setSelectedActionMonth] = useState("");
-  const [availableActionMonths, setAvailableActionMonths] = useState([]);
-
-
   const [selectedPriority, setSelectedPriority] = useState(null);
-
-
-  const [selectedModule, setSelectedModule] = useState("Risk");
+  const [selectedModule, setSelectedModule] = useState("Action");
   const [priorityByModule, setPriorityByModule] = useState({});
-
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await fetchDashboardMetrics({
-          year: selectedYear,
-          risk_year: selectedRiskYear,
           week_start: selectedActionWeek,
-          priority: selectedPriority
+          priority: selectedPriority,
+          manager: selectedManager
         });
-
         const data = res?.data || res;
-
 
         setKpis({
           totalOpen: Number(data.total_open ?? 0),
@@ -74,25 +54,15 @@ const MonitoringDashboardPage = () => {
           totalItems: Number(data.total_items ?? 0),
           totalCancelled: Number(data.cancelled ?? 0),
           action_completion_percent: Number(data.action_completion_percent ?? 0),
-
           trend_closed: data.trend_closed || [],
           trend_escalations: data.trend_escalations || [],
-          prioritySplit: data.priority_split || []
+          prioritySplit: data.priority_split || [],
+          action_responsible_counts: data.action_responsible_counts || [],
+          action_responsible_details: data.action_responsible_details || []
         });
 
-
         setPriorityByModule(data.priority_by_module || {});
-
-
-        const trends = (data.monthly_risk_trend || []).map(t => ({
-          month: t.month,
-          count: Number(t.count)
-        }));
-        setTrendRisks(trends);
-
-
-        setWeeklyActionStatus(data.weekly_action_status || null);
-
+        setTrendRisks((data.monthly_risk_trend || []).map(t => ({ month: t.month, count: Number(t.count) })));
 
         setFeeds({
           risks: data.latest_risks || [],
@@ -101,137 +71,62 @@ const MonitoringDashboardPage = () => {
           actions: data.latest_actions || []
         });
 
-
         setModuleStatus(data.module_status || []);
-
-
-        const years = data.available_years || [];
-        setAvailableYears(years);
-
-
-        const weeks = data.available_action_weeks || [];
-        setAvailableActionWeeks(weeks);
-
-
-        const monthsSet = new Set();
-        const monthOptions = [];
-
-        weeks.forEach(w => {
-          const d = new Date(w.value);
-          if (!isNaN(d.getTime())) {
-            const mStr = d.toLocaleString('default', { month: 'short', year: 'numeric' });
-            const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-
-            if (!monthsSet.has(mKey)) {
-              monthsSet.add(mKey);
-              monthOptions.push({ value: mKey, label: mStr });
-            }
-          }
-        });
-        setAvailableActionMonths(monthOptions);
-
-
-
-        let currentWeek = selectedActionWeek;
-        let currentMonth = selectedActionMonth;
-
-        if (!currentWeek && data.selected_action_week) {
-          currentWeek = data.selected_action_week;
-        }
-
-        if (currentWeek) {
-          const d = new Date(currentWeek);
-          if (!isNaN(d.getTime())) {
-            const weekMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-
-            if (!currentMonth || currentMonth !== weekMonthKey) {
-              currentMonth = weekMonthKey;
-            }
-          }
-        }
-
-
-        if (currentWeek !== selectedActionWeek) setSelectedActionWeek(currentWeek);
-        if (currentMonth !== selectedActionMonth) setSelectedActionMonth(currentMonth);
-
-      } finally {
-
+        setAvailableYears(data.available_years || []);
+      } catch (err) {
+        console.error("Dashboard Load Error", err);
       }
     };
     load();
-  }, [selectedYear, selectedRiskYear, selectedActionWeek, selectedPriority, selectedActionMonth]);
-
+  }, [selectedActionWeek, selectedPriority, selectedManager]);
 
   useEffect(() => {
     const loadAnalyticsData = async () => {
       try {
-        const res = await fetchDashboardMetrics({ year: analyticsYear });
+        const res = await fetchDashboardMetrics({ year: analyticsYear, manager: selectedManager });
         const data = res?.data || res;
         setAnalyticsTrendCreated(data.trend_created || []);
         setAnalyticsTrendClosed(data.trend_closed || []);
       } catch (error) {
-        console.error("Failed to load analytics data", error);
+        console.error("Analytics Load Error", error);
       }
     };
     loadAnalyticsData();
-  }, [analyticsYear]);
+  }, [analyticsYear, selectedManager]);
 
-
-
-  const getPriorityCounts = () => {
-    if (!selectedModule || !priorityByModule[selectedModule]) return { Critical: 0, High: 0, Medium: 0, Low: 0 };
-    return priorityByModule[selectedModule];
-  };
-  const pCounts = getPriorityCounts();
+  const pCounts = selectedModule && priorityByModule[selectedModule] ? priorityByModule[selectedModule] : { Critical: 0, High: 0, Medium: 0, Low: 0 };
 
   if (!kpis) return <div className="flex h-screen items-center justify-center bg-white"><p className="text-lg font-urbanist animate-pulse">Loading dashboard...</p></div>;
 
   return (
-    <div
-      style={{
-        background: "#ffffff",
-        minHeight: "100vh",
-        padding: "28px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "32px",
-        fontFamily: "Lato"
-      }}
-    >
-      { }
-      <RevealRow delay={0.0}>
-        <section style={{ display: "flex", flexWrap: "wrap", gap: "24px" }}>
+    <div className="min-h-screen bg-gray-50/30 p-4 sm:p-8 flex flex-col gap-8 font-urbanist">
+      
+      {/* Top Row: KPIs and Donut Chart */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        
+        {/* Left Column: KPIs and Priority Breakdown */}
+        <div className="flex-[2] flex flex-col gap-6">
+          
+          {/* KPI Summary Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KpiCard title="Open" value={kpis.totalOpen} delay={0} icon="warning" />
+            <KpiCard title="Resolved" value={kpis.totalClosed} delay={0.1} icon="check" />
+            <KpiCard title="Approved" value={kpis.totalApproved} delay={0.2} icon="shield" />
+            <KpiCard title="Cancelled" value={kpis.totalCancelled} delay={0.3} icon="x" />
+          </div>
 
-          { }
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px", flex: "1 1 500px" }}>
-            { }
-            <div style={{ display: "flex", gap: "16px", justifyContent: "space-between", flexWrap: "wrap" }}>
-              <KpiCard title="Open" value={kpis.totalOpen} />
-              <KpiCard title="Resolved" value={kpis.totalClosed} />
-              <KpiCard title="Approved" value={kpis.totalApproved} />
-              <KpiCard title="Cancelled" value={kpis.totalCancelled} />
-            </div>
-
-            { }
-            <div style={{
-              background: "#fff", padding: "20px", borderRadius: 12,
-              boxShadow: "0 6px 16px rgba(0,0,0,0.08)", display: "flex", flexDirection: "column", gap: 16
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>Priority Breakdown</h3>
+          {/* Priority Breakdown Card */}
+          <RevealRow delay={0.4}>
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl flex flex-col gap-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-marcellus font-bold text-gray-900">Priority Breakdown</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Distribution by Module Type</p>
+                </div>
                 <select
                   value={selectedModule}
                   onChange={(e) => setSelectedModule(e.target.value)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #E5E7EB",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    outline: "none",
-                    cursor: "pointer",
-                    background: "#F9FAFB"
-                  }}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 outline-none cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all"
                 >
                   <option value="Action">Action</option>
                   <option value="Dependency">Dependency</option>
@@ -241,72 +136,65 @@ const MonitoringDashboardPage = () => {
                 </select>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
-                { }
-                <div style={{ background: "#FEF2F2", padding: 12, borderRadius: 8, border: "1px solid #FEE2E2", textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: "#991B1B", fontWeight: 700, textTransform: "uppercase" }}>Critical</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#DC2626", marginTop: 4 }}>{pCounts.Critical || 0}</div>
-                </div>
-                { }
-                <div style={{ background: "#FFF7ED", padding: 12, borderRadius: 8, border: "1px solid #FFEDD5", textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: "#9A3412", fontWeight: 700, textTransform: "uppercase" }}>High</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#EA580C", marginTop: 4 }}>{pCounts.High || 0}</div>
-                </div>
-                { }
-                <div style={{ background: "#FFFBEB", padding: 12, borderRadius: 8, border: "1px solid #FEF3C7", textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: "#92400E", fontWeight: 700, textTransform: "uppercase" }}>Medium</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#D97706", marginTop: 4 }}>{pCounts.Medium || 0}</div>
-                </div>
-                { }
-                <div style={{ background: "#ECFDF5", padding: 12, borderRadius: 8, border: "1px solid #D1FAE5", textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: "#065F46", fontWeight: 700, textTransform: "uppercase" }}>Low</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#059669", marginTop: 4 }}>{pCounts.Low || 0}</div>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "CRITICAL", count: pCounts.Critical, bg: "bg-red-50/50", text: "text-red-600", border: "border-red-100" },
+                  { label: "HIGH", count: pCounts.High, bg: "bg-orange-50/50", text: "text-orange-600", border: "border-orange-100" },
+                  { label: "MEDIUM", count: pCounts.Medium, bg: "bg-amber-50/50", text: "text-amber-600", border: "border-amber-100" },
+                  { label: "LOW", count: pCounts.Low, bg: "bg-emerald-50/50", text: "text-emerald-600", border: "border-emerald-100" }
+                ].map((p, idx) => (
+                  <motion.div 
+                    key={p.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + (idx * 0.05) }}
+                    className={`${p.bg} ${p.border} border p-4 rounded-2xl text-center shadow-sm hover:shadow-md transition-all cursor-default`}
+                  >
+                    <div className={`text-[10px] font-black uppercase tracking-widest ${p.text}`}>{p.label}</div>
+                    <div className={`text-2xl font-black mt-1 ${p.text}`}>{p.count}</div>
+                  </motion.div>
+                ))}
               </div>
             </div>
-          </div>
+          </RevealRow>
+        </div>
 
-          { }
-          <div style={{
-            background: "#fff", padding: 0, borderRadius: 12,
-            boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-            overflow: "hidden",
-            flex: "1 1 400px"
-          }}>
+        {/* Right Column: Global Priority Donut */}
+        <div className="flex-1 min-h-[450px]">
+          <RevealRow delay={0.2} className="h-full">
             <GlobalPriorityDonut
               onPrioritySelect={setSelectedPriority}
               selectedPriority={selectedPriority}
               data={kpis?.prioritySplit || []}
             />
-          </div>
-        </section>
+          </RevealRow>
+        </div>
+      </div>
+
+      {/* Second Section: Top Action Owners */}
+      <RevealRow delay={0.6}>
+        <ResponsibleActionsChart 
+          data={kpis?.action_responsible_counts || []} 
+          details={kpis?.action_responsible_details || []} 
+        />
       </RevealRow>
 
-      { }
-      <RevealRow delay={0.15}>
-        <section style={{
-          background: "#fff", padding: 24, borderRadius: 12,
-          boxShadow: "0 6px 16px rgba(0,0,0,0.08)", width: "100%"
-        }}>
-          <h3 style={{ marginBottom: 16, fontWeight: 700 }}>Status by Module</h3>
+      {/* Third Section: Module Stats and Trends */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl">
+          <h3 className="text-lg font-marcellus font-bold text-gray-900 mb-6 flex items-center gap-2">
+             Status by Module
+          </h3>
           <StackedColumnChart data={moduleStatus} />
-        </section>
-      </RevealRow>
+        </div>
+        <div className="flex flex-col gap-6">
+          <TrendMetricCard title="Issues Closed" data={kpis.trend_closed} color="#4F46E5" />
+          <TrendMetricCard title="Escalations" data={kpis.trend_escalations} color="#DC2626" />
+        </div>
+      </div>
 
-
-
-      { }
-      <RevealRow delay={0.45}>
-        <section style={{
-          display: "flex", gap: 16, width: '100%'
-        }}>
-          <TrendMetricCard title="Issues Closed" data={kpis.trend_closed} color="#457B9D" />
-          <TrendMetricCard title="Escalations" data={kpis.trend_escalations} color="#E63946" />
-        </section>
-      </RevealRow>
-
-      { }
-      <RevealRow delay={0.55}>
+      {/* Fourth Section: Analytics Matrix */}
+      <RevealRow delay={0.8}>
         <SystemAnalytics
           kpis={kpis}
           feeds={feeds}
@@ -320,33 +208,28 @@ const MonitoringDashboardPage = () => {
         />
       </RevealRow>
 
-      { }
-      <RevealRow delay={0.60}>
-        <section style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
-
-          <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Risks</h3>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              <DashboardTable
-                data={feeds.risks}
-                columns={["risk_id", "risk_title", "priority", "status", "account", "identified_date"]}
-              />
-            </div>
+      {/* Fifth Section: Tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl">
+          <h3 className="text-lg font-marcellus font-bold text-gray-900 mb-4">Latest Risks</h3>
+          <div className="max-h-[400px] overflow-auto">
+            <DashboardTable
+              data={feeds.risks}
+              columns={["risk_id", "risk_title", "priority", "status", "account", "identified_date"]}
+            />
           </div>
-
-
-          <div style={{ background: "#fff", padding: 20, borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" }}>
-            { }
-            <h3 style={{ marginBottom: 12, fontWeight: 700 }}>Latest Issues</h3>
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              <DashboardTable
-                data={feeds.issues}
-                columns={["issue_id", "issue_title", "priority", "status", "account", "identified_date"]}
-              />
-            </div>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl">
+          <h3 className="text-lg font-marcellus font-bold text-gray-900 mb-4">Latest Issues</h3>
+          <div className="max-h-[400px] overflow-auto">
+            <DashboardTable
+              data={feeds.issues}
+              columns={["issue_id", "issue_title", "priority", "status", "account", "identified_date"]}
+            />
           </div>
-        </section>
-      </RevealRow>
+        </div>
+      </div>
+
     </div>
   );
 };

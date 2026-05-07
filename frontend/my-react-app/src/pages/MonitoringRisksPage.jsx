@@ -1,3 +1,4 @@
+import { useFilter } from '../context/FilterContext';
 import React, { useEffect, useState } from "react";
 import { formatDateOnly } from "../utils/dateFormat";
 import { motion } from "framer-motion";
@@ -37,6 +38,7 @@ const MonitoringRisksPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]);
+  const { selectedManager } = useFilter();
 
 
   const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
@@ -108,7 +110,7 @@ const MonitoringRisksPage = () => {
     try {
       setLoading(true);
 
-      const res = await fetchRisks();
+      const res = await fetchRisks({ manager: selectedManager });
       const data = Array.isArray(res) ? res : (res?.data || []);
       setAllRows(data);
       applyFiltersAndSearch(data);
@@ -127,8 +129,7 @@ const MonitoringRisksPage = () => {
     try {
       const serverLayout = await getLayoutApi("risks");
       if (serverLayout && Array.isArray(serverLayout)) {
-        const filtered = serverLayout.filter(f => f.name?.toLowerCase() !== "comments");
-        setLayoutFields(filtered);
+        setLayoutFields(serverLayout);
       } else {
         setLayoutFields(risksFormConfig?.fields || []);
       }
@@ -143,7 +144,7 @@ const MonitoringRisksPage = () => {
     loadData();
     loadLayout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedManager]);
 
   useEffect(() => {
     if (allRows.length > 0) {
@@ -178,7 +179,7 @@ const MonitoringRisksPage = () => {
 
 
 
-  const columns = risksFormConfig?.fields || [];
+  const columns = layoutFields;
 
   const cfg = filterConfig.risks.fields;
 
@@ -411,3 +412,7 @@ const MonitoringRisksPage = () => {
 };
 
 export default MonitoringRisksPage;
+
+
+
+

@@ -11,7 +11,7 @@ export const risksFormConfig = {
     { name: "risk_title", label: "Risk Title", type: "text", required: true },
     { name: "risk_description", label: "Risk Description", type: "textarea", required: true },
     { name: "identified_date", label: "Identified Date", type: "date", required: true },
-    { name: "identified_by", label: "Identified By", type: "text", required: true },
+    { name: "identified_by", label: "Identified By", type: "manager-sub-person", required: true },
     { name: "created_by", label: "Created By", type: "text", required: false, readOnly: true },
     { name: "created_at", label: "Created At", type: "text", required: false, readOnly: true },
     { name: "updated_at", label: "Updated At", type: "text", required: false, readOnly: true },
@@ -38,7 +38,7 @@ export const risksFormConfig = {
       label: "Category",
       type: "select",
       required: true,
-      options: ["Schedule", "Scope", "Technical", "Resource", "Security", "Operational"],
+      options: ["Schedule", "Scope", "Technical", "Resource", "Security", "Operational", "Revenue Risk"],
     },
     {
       name: "probability",
@@ -78,7 +78,8 @@ export const issuesFormConfig = {
     { name: "issue_title", label: "Issue Title", type: "text", required: true },
     { name: "issue_description", label: "Issue Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
-    { name: "reported_by", label: "Reported By", type: "text", required: true },
+    { name: "reported_by", label: "Reported By", type: "manager-sub-person", required: true },
+
     {
       name: "status",
       label: "Status",
@@ -98,7 +99,7 @@ export const issuesFormConfig = {
       label: "Category",
       type: "select",
       required: true,
-      options: ["Technical", "Operational", "Resource", "Infrastructure", "Application", "Network", "Security", "Performance"],
+      options: ["Technical", "Operational", "Resource", "Infrastructure", "Application", "Network", "Security", "Performance", "Revenue Risk"],
     },
     { name: "impact_on_project", label: "Impact on Project", type: "textarea", required: true },
     { name: "affected_system", label: "Affected System/Service", type: "text", required: true },
@@ -114,24 +115,7 @@ export const issuesFormConfig = {
 export const actionsFormConfig = {
   fields: [
     { name: "action_id", label: "Action ID", type: "text", required: false, readOnly: true },
-    { name: "manual_project_id", label: "Project ID", type: "project-search", required: true },
-    { name: "account", label: "Account", type: "text", required: true, readOnly: true, placeholder: "Auto-generated" },
-    { name: "project_description", label: "Project Description", type: "textarea", required: true, readOnly: true, placeholder: "Auto-generated" },
-    { name: "action_title", label: "Action Title", type: "text", required: true },
-    { name: "action_description", label: "Action Description", type: "textarea", required: true },
-    { name: "created_date", label: "Created Date", type: "date", required: true },
-    { name: "created_by", label: "Created By", type: "text", required: true },
-    {
-      name: "status",
-      label: "Status",
-      type: "select",
-      required: true,
-      options: [
-        "Open",
-        "Resolved",
-        "Cancelled",
-      ],
-    },
+    { name: "action_item", label: "Action Item", type: "text", required: true },
     {
       name: "priority",
       label: "Priority",
@@ -139,27 +123,18 @@ export const actionsFormConfig = {
       required: true,
       options: ["Critical", "High", "Medium", "Low"],
     },
-    { name: "action_owner", label: "Action Owner", type: "text", required: true },
-    { name: "due_date", label: "Due Date", type: "date", required: true },
-    { name: "completion_date", label: "Completion Date", type: "date", required: false },
-    { name: "completion_percent", label: "Completion %", type: "text", required: false },
-
+    { name: "target_date", label: "Target Date", type: "date", required: true },
     {
-      name: "related_to_type",
-      label: "Related To Type (Risk/Issue)",
+      name: "status",
+      label: "Status",
       type: "select",
-      required: false,
-      options: ["Risk", "Issue"],
+      required: true,
+      options: ["Open", "In Progress", "Resolved", "On Hold", "Cancelled"],
     },
-    {
-      name: "related_to_id",
-      label: "Related To ID",
-      type: "text",
-      required: false,
-    },
-
-    { name: "dependencies", label: "Dependencies", type: "textarea", required: false },
-    { name: "last_updated", label: "Last Updated", type: "date", required: true },
+    { name: "responsible", label: "Responsible", type: "text", required: true },
+    { name: "support_required_from", label: "Support Required From", type: "text", required: false },
+    { name: "teams_involved", label: "Teams Involved", type: "text", required: false },
+    { name: "remarks", label: "Remarks", type: "textarea", required: false },
   ],
 };
 
@@ -172,7 +147,7 @@ export const dependenciesFormConfig = {
     { name: "dependency_title", label: "Dependency Title", type: "text", required: true },
     { name: "description", label: "Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
-    { name: "reported_by", label: "Reported By", type: "text", required: true },
+    { name: "reported_by", label: "Reported By", type: "manager-sub-person", required: true },
     {
       name: "status",
       label: "Status",
@@ -228,7 +203,7 @@ export const escalationsFormConfig = {
     { name: "title", label: "Title", type: "text", required: true },
     { name: "description", label: "Description", type: "textarea", required: true },
     { name: "reported_date", label: "Reported Date", type: "date", required: true },
-    { name: "reported_by", label: "Reported By", type: "text", required: true },
+    { name: "reported_by", label: "Reported By", type: "manager-sub-person", required: true },
     {
       name: "status",
       label: "Status",
@@ -261,6 +236,7 @@ export const escalationsFormConfig = {
         "Resource",
         "Budget",
         "Scope",
+        "Revenue Risk",
       ],
     },
     { name: "impact", label: "Impact", type: "textarea", required: true },
@@ -294,7 +270,7 @@ export const appreciationsFormConfig = {
     { name: "subject", label: "Subject", type: "text", required: true },
     { name: "details", label: "Details", type: "textarea", required: true },
     { name: "received_date", label: "Received Date", type: "date", required: true },
-    { name: "recorded_by", label: "Recorded By", type: "text", required: true },
+    { name: "recorded_by", label: "Recorded By", type: "manager-sub-person", required: true },
     { name: "customer_name", label: "Customer Name", type: "text", required: true },
     { name: "customer_contact", label: "Customer Contact", type: "text", required: false },
     {

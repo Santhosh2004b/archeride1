@@ -6,6 +6,8 @@ import {
   findEscalationById,
   createEscalation,
   updateEscalation,
+  findEscalationsByIds,
+  deleteMultipleEscalations
 } from "../models/escalations.model.js";
 
 import {
@@ -28,7 +30,6 @@ export async function listEscalations(req, res) {
     return sendError(res, 500, "Failed to list escalations");
   }
 }
-
 export async function getEscalation(req, res) {
   try {
     const row = await findEscalationById(req.params.id);
@@ -64,7 +65,7 @@ export async function createEscalationHandler(req, res) {
       created_by: req.user.id
     };
 
-    
+
     ["project_id", "project_description", "account"].forEach(f => {
       if (payload[f] === undefined) payload[f] = null;
     });
@@ -74,13 +75,33 @@ export async function createEscalationHandler(req, res) {
       req.user.id
     );
 
+    if (payload.status?.toLowerCase() === "resolved" && req.user?.email) {
+      await createResolutionNotification({
+        module: "escalation",
+        itemId: created.id,
+        itemCode: created.escalation_id,
+        statusBefore: "N/A (New Record)",
+        statusAfter: payload.status,
+        payload: {
+          title: created.title,
+          priority: created.priority,
+          category: created.category,
+          escalated_to: created.escalated_to,
+          project_id: created.manual_project_id || created.project_id,
+          account: created.account
+        },
+        bmUser: req.user.email,
+      });
+    }
+
+
     return sendSuccess(res, created, 201);
+
   } catch (err) {
     console.error(err);
     return sendError(res, 500, "Failed to create escalation");
   }
 }
-
 
 export async function updateEscalationHandler(req, res) {
   try {
@@ -90,7 +111,7 @@ export async function updateEscalationHandler(req, res) {
     const existing = await findEscalationById(id);
     if (!existing) return sendError(res, 404, "Escalation not found");
 
-    
+
 
     const oldStatus = existing.status;
     const newStatus = payload.status;
@@ -158,14 +179,14 @@ export async function resolveEscalation(req, res) {
   try {
     const { id } = req.params;
     const { status, resolution_details } = req.body;
-    const files = req.files; 
+    const files = req.files;
 
-    
+
     if (!files || files.length === 0) {
       return sendError(res, 400, "At least one document is required to resolve.");
     }
 
-    
+
     const existing = await findEscalationById(id);
     if (!existing) return sendError(res, 404, "Escalation not found");
 
@@ -178,7 +199,7 @@ export async function resolveEscalation(req, res) {
 
     const updated = await updateEscalation(id, payload);
 
-    
+
     const { createEscalationDocument } = await import("../models/escalations.model.js");
 
     for (const file of files) {
@@ -191,7 +212,7 @@ export async function resolveEscalation(req, res) {
       });
     }
 
-    
+
     await createResolutionNotification({
       module: "escalation",
       itemId: updated.id,
@@ -208,11 +229,44 @@ export async function resolveEscalation(req, res) {
       },
       bmUser: req.user.email,
     });
-
     return sendSuccess(res, { message: "Escalation resolved and documents submitted." });
-
   } catch (err) {
     console.error("Resolve escalation error:", err);
     return sendError(res, 500, "Failed to resolve escalation");
   }
 }
+
+export const deleteEscalationsHandler = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, "No ids provided for deletion.");
+    }
+
+    if (req.user?.role === "ADMIN") {
+      return sendError(res, 403, "Admins are not allowed to delete escalations.");
+    }
+
+    const records = await findEscalationsByIds(ids);
+    if (!records.length) {
+      return sendError(res, 404, "None of the specified entries were found.");
+    }
+
+    if (req.user?.role !== "ADMIN") {
+      const today = new Date().toDateString();
+      for (const r of records) {
+        const dateRaw = r.created_at || r.identified_date || r.reported_date || r.received_date || r.created_date || Date.now();
+        const createdAt = new Date(dateRaw).toDateString();
+        if (createdAt !== today) {
+          return sendError(res, 403, "Deletion is restricted to same-day entries only.");
+        }
+      }
+    }
+
+    const deletedCount = await deleteMultipleEscalations(ids);
+    res.json({ message: `Successfully deleted ${deletedCount} entries.` });
+  } catch (error) {
+    console.error("deleteEscalationsHandler error:", error);
+    sendError(res, 500, "Internal Server Error");
+  }
+};

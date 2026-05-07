@@ -13,10 +13,14 @@ import {
   SignOut,
   Bell,
   UserPlus,
-  X
+  X,
+  CaretDown,
+  Funnel
 } from "phosphor-react";
 
 import { useAuth } from "../context/AuthContext";
+import { useFilter } from "../context/FilterContext";
+import { fetchManagers } from "../api/managersApi";
 import {
   fetchAdminNotificationCount,
   fetchBmNotificationCount,
@@ -33,6 +37,7 @@ const MODULE_LINKS = [
   { key: "escalations", label: "Escalation", icon: TrendUp },
   { key: "actions", label: "Action", icon: CheckCircle },
   { key: "appreciations", label: "Appreciation", icon: ThumbsUp },
+  { key: "managers", label: "Managers", icon: UserCircle },
 ];
 
 const containerVariants = {
@@ -128,6 +133,24 @@ const MainLayout = ({ children }) => {
   const [notifCount, setNotifCount] = useState(0);
   const [showToast] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { selectedManager, setSelectedManager } = useFilter();
+  const [managers, setManagers] = useState([]);
+  const [showMgrDropdown, setShowMgrDropdown] = useState(false);
+  const mgrDropdownRef = React.useRef(null);
+
+  useEffect(() => {
+    fetchManagers().then(setManagers).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (mgrDropdownRef.current && !mgrDropdownRef.current.contains(event.target)) {
+        setShowMgrDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const title = getTitle(location.pathname, location.search);
 
@@ -325,6 +348,67 @@ const MainLayout = ({ children }) => {
             </motion.div>
           )}
 
+          {/* Manager Filter */}
+          {(user?.role === "ADMIN" || user?.role === "VP") && (
+            <motion.div variants={itemVariants} className="relative hidden sm:block" ref={mgrDropdownRef}>
+              <button
+                onClick={() => setShowMgrDropdown(!showMgrDropdown)}
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/50 rounded-full py-1.5 px-4 text-sm font-semibold text-indigo-900 hover:shadow-md hover:border-indigo-300 transition-all shadow-sm group backdrop-blur-sm"
+              >
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-inner group-hover:scale-110 transition-transform">
+                  <Funnel size={12} weight="bold" />
+                </div>
+                <span className="max-w-[120px] truncate tracking-tight">
+                  {selectedManager || "All Managers"}
+                </span>
+                <CaretDown size={14} className="text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+              </button>
+
+              <AnimatePresence>
+                {showMgrDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-full right-0 mt-3 w-64 bg-white/70 backdrop-blur-2xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/40 py-3 z-50 max-h-80 overflow-y-auto ring-1 ring-black/5"
+                  >
+                    <div className="px-4 py-2 text-[10px] font-black text-indigo-400/80 uppercase tracking-widest border-b border-indigo-100/30 mb-2">
+                      System Filter
+                    </div>
+                    
+                    <button
+                      onClick={() => { setSelectedManager(""); setShowMgrDropdown(false); }}
+                      className={`w-full flex items-center px-4 py-2.5 text-sm transition-all relative ${!selectedManager ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 font-bold border-l-2 border-indigo-500" : "text-gray-600 hover:bg-white/50 hover:text-indigo-900 font-medium"}`}
+                    >
+                      <div className="flex-1 text-left">All Managers</div>
+                      {!selectedManager && <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>}
+                    </button>
+                    
+                    <div className="px-4 py-3 mt-1 text-[10px] font-black text-indigo-400/80 uppercase tracking-widest">
+                      Individuals
+                    </div>
+
+                    {[...new Set(managers.map(m => m.name))].filter(m => m && m.toLowerCase() !== "global").map(m => {
+                      if (!m) return null;
+                      const isSelected = selectedManager === m;
+                      return (
+                        <button
+                          key={m}
+                          onClick={() => { setSelectedManager(m); setShowMgrDropdown(false); }}
+                          className={`w-full flex items-center px-4 py-2.5 text-sm transition-all relative ${isSelected ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 font-bold border-l-2 border-indigo-500" : "text-gray-600 hover:bg-white/50 hover:text-indigo-900 font-medium"}`}
+                        >
+                          <div className="flex-1 text-left">{m}</div>
+                          {isSelected && <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>}
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
           <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm ml-auto sm:ml-0">
             {/* Export button REMOVED from navbar */}
 
@@ -481,7 +565,7 @@ const MainLayout = ({ children }) => {
                     </motion.li>
                   );
                 })
-                : MODULE_LINKS.filter((item) => item.key !== "dashboard").map((item) => {
+                : MODULE_LINKS.filter((item) => item.key !== "dashboard" && item.key !== "managers").map((item) => {
                   const active = isActive(item.key);
                   const Icon = item.icon;
                   return (
@@ -505,8 +589,19 @@ const MainLayout = ({ children }) => {
         </aside >
 
         {/* Content */}
-        <main className="flex-1 min-h-0 overflow-auto px-2 sm:px-4 py-4" >
-          {children}
+        <main className="flex-1 min-h-0 overflow-auto px-2 sm:px-4 py-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedManager || "__all__"}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div >
 

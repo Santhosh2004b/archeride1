@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 
 
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = [
+    const allowedMimeTypes = [
         "application/pdf",
         "application/vnd.ms-excel",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -33,19 +33,24 @@ const fileFilter = (req, file, cb) => {
         "image/jpeg",
         "image/png",
         "image/jpg",
+        "application/vnd.ms-outlook",
+        "application/octet-stream",
     ];
 
-    if (allowedTypes.includes(file.mimetype)) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isAllowedExt = [".pdf", ".xlsx", ".xls", ".csv", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".msg"].includes(ext);
+
+    if (allowedMimeTypes.includes(file.mimetype) || (ext === ".msg" && file.mimetype === "application/octet-stream") || isAllowedExt) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Allowed: PDF, Excel, CSV, Word, Images (PNG/JPG)."), false);
+        cb(new Error("Invalid file type. Allowed: PDF, Excel, CSV, Word, Images (PNG/JPG), .msg."), false);
     }
 };
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 10 * 1024 * 1024 }, 
+    limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 export default upload;

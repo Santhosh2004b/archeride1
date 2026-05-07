@@ -1,3 +1,4 @@
+import { useFilter } from '../context/FilterContext';
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -47,6 +48,7 @@ const MonitoringEscalationsPage = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]);
+  const { selectedManager } = useFilter();
   const [showToast, setShowToast] = useState(false);
   useMonitoringExport("escalations", rows);
 
@@ -115,7 +117,7 @@ const MonitoringEscalationsPage = () => {
       const q = cleanParams(filters);
       q.search = "";
 
-      const res = await fetchEscalations();
+      const res = await fetchEscalations({ manager: selectedManager });
       const list = Array.isArray(res) ? res : (res?.data || []);
       setAllRows(list);
       applyFiltersAndSearch(list);
@@ -454,3 +456,7 @@ const MonitoringEscalationsPage = () => {
 };
 
 export default MonitoringEscalationsPage;
+
+
+
+

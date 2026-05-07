@@ -20,7 +20,6 @@ export async function getSummaryMetrics(req, res) {
       GROUP BY status;
     `;
     const { rows: statusRows } = await pool.query(statusSql);
-
     const totalOpen =
       Number(statusRows.find((r) => r.status === "Open")?.c || 0);
     const totalInProgress =

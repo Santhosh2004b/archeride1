@@ -1,9 +1,10 @@
-
 import {
   findAppreciations,
   findAppreciationById,
   createAppreciation,
   updateAppreciation,
+  findAppreciationsByIds,
+  deleteMultipleAppreciations,
 } from "../models/appreciations.model.js";
 
 import { buildAppreciationFilters, applyRoleRestrictions } from "../utils/filters.utils.js";
@@ -96,3 +97,38 @@ export async function updateAppreciationHandler(req, res) {
     return sendError(res, 500, `Failed to update appreciation: ${err.message}`);
   }
 }
+
+export const deleteAppreciationsHandler = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return sendError(res, 400, "No ids provided for deletion.");
+    }
+
+    if (req.user?.role === "ADMIN") {
+      return sendError(res, 403, "Admins are not allowed to delete appreciations.");
+    }
+
+    const records = await findAppreciationsByIds(ids);
+    if (!records.length) {
+      return sendError(res, 404, "None of the specified entries were found.");
+    }
+
+    if (req.user?.role !== "ADMIN") {
+      const today = new Date().toDateString();
+      for (const r of records) {
+        const dateRaw = r.created_at || r.identified_date || r.reported_date || r.received_date || r.created_date || Date.now();
+        const createdAt = new Date(dateRaw).toDateString();
+        if (createdAt !== today) {
+          return sendError(res, 403, "Deletion is restricted to same-day entries only.");
+        }
+      }
+    }
+
+    const deletedCount = await deleteMultipleAppreciations(ids);
+    res.json({ message: `Successfully deleted ${deletedCount} entries.` });
+  } catch (error) {
+    console.error("deleteAppreciationsHandler error:", error);
+    sendError(res, 500, "Internal Server Error");
+  }
+};

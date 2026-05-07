@@ -19,6 +19,7 @@ import feedRoutes from "./routes/feed.routes.js";
 import userRoutes from "./routes/users.routes.js";
 import layoutRoutes from "./routes/layout.routes.js";
 import utilsRoutes from "./routes/utils.routes.js";
+import managersRoutes from "./routes/managers.routes.js";
 
 config();
 
@@ -70,7 +71,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: ["https://ride.arche.global", "http://localhost:3000", "http://localhost:5173"],
+    origin: ["https://ride.arche.global", "http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
@@ -108,6 +109,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/layout", layoutRoutes);
 app.use("/api/utils", utilsRoutes);
+app.use("/api/managers", managersRoutes);
 
 
 app.use("/api/*", (req, res) => {

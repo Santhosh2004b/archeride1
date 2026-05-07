@@ -50,6 +50,9 @@ export async function findEscalations({ whereSql = "", params = [] } = {}) {
 
 
 export async function findEscalationById(id) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const whereClause = isUuid ? "e.id = $1" : "e.escalation_id = $1";
+
   const sql = `
     SELECT e.*, u.email as created_by,
       (
@@ -59,7 +62,7 @@ export async function findEscalationById(id) {
       ) as documents
     FROM escalations e
     LEFT JOIN users u ON e.created_by = u.id
-    WHERE e.id = $1
+    WHERE ${whereClause}
   `;
   const { rows } = await pool.query(sql, [id]);
   return rows[0];
@@ -227,4 +230,18 @@ export async function createEscalationDocument(data) {
   ];
   const { rows } = await pool.query(sql, params);
   return rows[0];
+}
+
+export async function findEscalationsByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const sql = `SELECT * FROM escalations WHERE id = ANY($1::uuid[])`;
+  const { rows } = await pool.query(sql, [ids]);
+  return rows;
+}
+
+export async function deleteMultipleEscalations(ids) {
+  if (!ids || ids.length === 0) return 0;
+  const sql = `DELETE FROM escalations WHERE id = ANY($1::uuid[]) RETURNING *`;
+  const { rowCount } = await pool.query(sql, [ids]);
+  return rowCount;
 }

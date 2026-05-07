@@ -44,10 +44,12 @@ export async function findRisks({ whereSql = "", params = [] } = {}) {
 
 
 export async function findRiskById(id) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const col = isUuid ? "r.id" : "r.risk_id";
   const sql = `
     SELECT r.*
     FROM risks r
-    WHERE r.id = $1
+    WHERE ${col} = $1
   `;
   const { rows } = await pool.query(sql, [id]);
   return rows[0];
@@ -183,7 +185,7 @@ export async function countAll() {
 
 export async function countByStatus(status) {
   const result = await pool.query(
-    "SELECT COUNT(*) AS c FROM risks WHERE status = $1",
+    "SELECT COUNT(*) AS c FROM risks WHERE status::text = $1::text",
     [status]
   );
   return Number(result.rows[0].c);
@@ -200,4 +202,18 @@ export async function updateRiskStatus(id, status) {
   `;
   const { rows } = await pool.query(sql, [status, id]);
   return rows[0];
+}
+
+export async function findRisksByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const sql = `SELECT * FROM risks WHERE id = ANY($1::uuid[])`;
+  const { rows } = await pool.query(sql, [ids]);
+  return rows;
+}
+
+export async function deleteMultipleRisks(ids) {
+  if (!ids || ids.length === 0) return 0;
+  const sql = `DELETE FROM risks WHERE id = ANY($1::uuid[]) RETURNING *`;
+  const { rowCount } = await pool.query(sql, [ids]);
+  return rowCount;
 }

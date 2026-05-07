@@ -3,15 +3,18 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { formatDateOnly } from "../utils/dateFormat";
 import useMonitoringExport from "../hooks/useMonitoringExport";
 import ProjectSearchInput from "../components/ProjectSearchInput";
+import ManagerSubPersonInput from "../components/ManagerSubPersonInput";
 
 import EscalationResolutionModal from "../components/EscalationResolutionModal";
 import LayoutBuilder from "../components/LayoutBuilder";
-import { getLayoutApi, saveLayoutApi } from "../api/layoutApi";
-import { SlidersHorizontal, DownloadSimple } from "phosphor-react";
+import { getLayoutApi, saveLayoutApi, deleteLayoutApi } from "../api/layoutApi";
+import { SlidersHorizontal, DownloadSimple, Trash } from "phosphor-react";
 import SuccessNotification from "../components/SuccessNotification";
 import TruncatedCell from "../components/TruncatedCell";
 import { exportToExcel } from "../utils/exportToExcel";
 import { fetchPreviewId } from "../api/utilsApi";
+import * as XLSX from "xlsx";
+import { bulkUploadActionsApi } from "../api/actionsApi";
 
 const toDateInputValue = (value) => {
   if (!value) return "";
@@ -33,7 +36,7 @@ const toYYYYMMDD = (date) => {
 
 const getStatusRowClass = (status) => {
   const s = String(status || "").toLowerCase();
-  if (s === "open" || s === "identified") return "status-resolved"; // Open -> Resolved (Status Normalization Rule 3)
+  if (s === "open" || s === "identified") return "status-open";
   if (s === "in progress") return "status-inprogress";
   if (s === "resolved" || s === "completed") return "status-resolved";
   if (s === "approved" || s === "approved & closed") return "status-approved";
@@ -49,6 +52,7 @@ const WorkboardPage = ({
   fetchItem,
   createItem,
   updateItem,
+  deleteItem,
   formConfig,
 }) => {
   const [rows, setRows] = useState([]);
@@ -68,6 +72,13 @@ const WorkboardPage = ({
   const [layoutFields, setLayoutFields] = useState([]);
   const [showLayoutBuilder, setShowLayoutBuilder] = useState(false);
   const [userRole, setUserRole] = useState("USER");
+
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showAddNotice, setShowAddNotice] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [globalAlert, setGlobalAlert] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("ARCHERIDE_AUTH");
@@ -92,11 +103,10 @@ const WorkboardPage = ({
       if (serverLayout && Array.isArray(serverLayout) && serverLayout.length > 0) {
 
         const mergedLayout = serverLayout
-          .filter(sField => sField.name?.toLowerCase() !== "comments") // Explicitly remove comments (case-insensitive)
+          .filter(sField => sField.name?.toLowerCase() !== "comments")
           .map(sField => {
             const cField = formConfig?.fields?.find(f => f.name === sField.name);
             if (cField) {
-              // Always sync critical properties from config to ensure code updates (like readOnly) are reflected
               return {
                 ...sField,
                 type: cField.type,
@@ -106,8 +116,9 @@ const WorkboardPage = ({
                 placeholder: cField.placeholder
               };
             }
-            return sField;
-          });
+            return null;
+          })
+          .filter(Boolean);
         setLayoutFields(mergedLayout);
       } else {
         setLayoutFields(formConfig?.fields || []);
@@ -170,6 +181,60 @@ const WorkboardPage = ({
     navigate(`${location.pathname}?mode=edit`);
   };
 
+  const handleNewClick = () => {
+    if (deleteItem && userRole !== "ADMIN") {
+      setShowAddNotice(true);
+    } else {
+      handleNew();
+    }
+  };
+
+  const proceedToNew = () => {
+    setShowAddNotice(false);
+    handleNew();
+  };
+
+  const handleDeleteClick = () => {
+    if (selectedIds.length > 0) {
+      setShowConfirmDelete(true);
+    } else {
+      setIsDeleteMode(!isDeleteMode);
+    }
+  };
+
+  const executeDelete = async () => {
+    setShowConfirmDelete(false);
+    if (selectedIds.length === 0) return;
+    try {
+      setIsDeleting(true);
+      await deleteItem({ ids: selectedIds });
+      setIsDeleteMode(false);
+      setSelectedIds([]);
+      await loadData();
+    } catch (err) {
+      console.error("Delete failed", err);
+      // Use structured messages based on status code
+      if (err.status === 403) {
+        setGlobalAlert({
+          title: "Restriction Notice",
+          message: "Deletion is restricted. Only records created on the current day can be deleted."
+        });
+      } else if (err.status === 404) {
+        setGlobalAlert({
+          title: "System Error",
+          message: "The requested delete endpoint could not be found or the records do not exist. Please contact support."
+        });
+      } else {
+        setGlobalAlert({
+          title: "Deletion Failed",
+          message: err.message || "An unexpected error occurred while deleting entries."
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -201,14 +266,14 @@ const WorkboardPage = ({
 
           } catch (autoCreateErr) {
             console.error("Auto-create failed during resolution", autoCreateErr);
-            alert(`Could not proceed with resolution: ${autoCreateErr.message}`);
+            setGlobalAlert(`Could not proceed with resolution: ${autoCreateErr.message}`);
             setSaving(false);
             return;
           }
         }
 
 
-        alert("For Escalations, you MUST upload proof of resolution. Please upload documents in the popup window.");
+        setGlobalAlert("For Escalations, you MUST upload proof of resolution. Please upload documents in the popup window.");
         setResolutionId(currentId);
         setShowResolutionModal(true);
         setSaving(false);
@@ -241,7 +306,10 @@ const WorkboardPage = ({
       console.error("Save error:", err);
 
       const errMsg = err.message || "Failed to save record. Please check inputs.";
-      alert(errMsg);
+      setGlobalAlert({
+        title: "Save Failed",
+        message: errMsg
+      });
     } finally {
       setSaving(false);
     }
@@ -320,6 +388,14 @@ const WorkboardPage = ({
       "Major": 3
     };
 
+    const getRiskScoreLabel = (score) => {
+      if (score === 1 || score === 2) return "Low";
+      if (score === 3) return "Medium";
+      if (score === 4 || score === 6) return "High";
+      if (score === 9) return "Critical";
+      return "";
+    };
+
     const pVal = formData.probability;
     const iVal = formData.impact;
 
@@ -327,10 +403,13 @@ const WorkboardPage = ({
       const pScore = probMap[pVal] || 0;
       const iScore = impactMap[iVal] || 0;
       if (pScore > 0 && iScore > 0) {
-        const score = pScore * iScore;
+        const scoreNum = pScore * iScore;
+        const label = getRiskScoreLabel(scoreNum);
+        const scoreDisplay = label ? `${scoreNum} - ${label}` : String(scoreNum);
+
         setFormData(prev => {
-          if (prev.risk_score === score) return prev;
-          return { ...prev, risk_score: score };
+          if (prev.risk_score === scoreDisplay) return prev;
+          return { ...prev, risk_score: scoreDisplay };
         });
       }
     }
@@ -370,7 +449,7 @@ const WorkboardPage = ({
 
 
 
-    const creatorKeys = ["created_by", "reported_by", "recorded_by", "raised_by"];
+    const creatorKeys = ["created_by", "reported_by", "recorded_by", "raised_by", "identified_by"];
 
     return keys.sort((a, b) => {
 
@@ -401,7 +480,7 @@ const WorkboardPage = ({
     const exportData = window.__EXPORT_DATA__?.[moduleKey];
 
     if (!exportData || !exportData.rows?.length) {
-      alert(`No data available to export for ${moduleKey}`);
+      setGlobalAlert(`No data available to export for ${moduleKey}`);
       return;
     }
 
@@ -431,13 +510,6 @@ const WorkboardPage = ({
           { }
 
           { }
-          {rows.length === 0 && !loading && mode === "view" && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-gray-500 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 inline-block animate-pulse">
-              <span className="text-blue-600">ℹ️</span>
-              <span>To begin, click <span className="font-bold text-gray-800">ADD NEW</span> to create your first entry.</span>
-            </div>
-          )}
-
           {rows.length > 0 && (
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mt-3">
               {rows.length} Data entries have been filled
@@ -458,12 +530,140 @@ const WorkboardPage = ({
             </button>
           )}
 
+          {deleteItem && userRole !== "ADMIN" && mode === "view" && rows.length > 0 && (
+            <>
+              {isDeleteMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteMode(false);
+                    setSelectedIds([]);
+                  }}
+                  className="rounded h-10 px-4 flex items-center gap-1.5 border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 font-semibold text-sm transition-colors shadow-sm"
+                  title="Cancel deletion"
+                >
+                  ✕ Cancel
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                className={`rounded flex items-center justify-center transition-colors shadow-sm h-10 ${isDeleteMode
+                    ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 gap-2 font-semibold text-sm"
+                    : "w-10 border border-gray-200 text-gray-500 hover:bg-gray-100 bg-white"
+                  }`}
+                title="Delete Mode"
+              >
+                <Trash size={20} weight={isDeleteMode ? "fill" : "duotone"} />
+                {isDeleteMode && selectedIds.length > 0 && <span>Delete ({selectedIds.length})</span>}
+              </button>
+            </>
+          )}
+
+          {moduleKey === "actions" && (
+            <label className="cursor-pointer rounded flex items-center justify-center border border-brandDark text-brandDark hover:bg-gray-50 transition-colors bg-white shadow-sm text-xs font-bold gap-2 px-4 h-10 w-auto">
+              <input type="file" accept=".xlsx, .xls" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+
+                setLoading(true);
+                try {
+                  const data = await file.arrayBuffer();
+                  const workbook = XLSX.read(data);
+                  const sheetName = workbook.SheetNames[0];
+                  const worksheet = workbook.Sheets[sheetName];
+                  const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                  
+                  if (json.length === 0) {
+                    throw new Error("Excel file is empty");
+                  }
+                  if (json.length > 40) {
+                    throw new Error("Maximum of 40 records allowed per upload.");
+                  }
+
+                  const getVal = (row, keys) => {
+                    for (const k of Object.keys(row)) {
+                      if (keys.map(x => x.toLowerCase().trim()).includes(k.toLowerCase().trim())) {
+                        return row[k];
+                      }
+                    }
+                    return "";
+                  };
+
+                  const parseExcelDate = (val) => {
+                    if (!val) return null;
+                    let str = String(val).trim();
+                    if (str.toUpperCase() === "NA" || str.toUpperCase() === "TBD") return null;
+                    
+                    if (str.includes('\n')) str = str.split('\n')[0].trim();
+                    if (str.includes(',')) str = str.split(',')[0].trim();
+
+                    const numVal = Number(str);
+                    if (!isNaN(numVal) && typeof numVal === 'number' && numVal > 10000) {
+                      const date = new Date(Math.round((numVal - 25569) * 86400 * 1000));
+                      return date.toISOString().split('T')[0];
+                    }
+
+                    const parts = str.split(/[-/]/);
+                    if (parts.length === 3) {
+                       let [d, m, y] = parts;
+                       if (y.length === 2) y = "20" + y;
+                       if (d.length === 4) return `${d}-${m.padStart(2, '0')}-${y.padStart(2, '0')}`;
+                       return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                    }
+                    return null;
+                  };
+
+                  const actions = json.map(row => ({
+                    action_id: getVal(row, ["action_id", "Action ID"]),
+                    action_item: getVal(row, ["action_item", "Action Item", "Action item"]),
+                    priority: getVal(row, ["priority", "Priority"]) || "Medium",
+                    target_date: parseExcelDate(getVal(row, ["target_date", "Target Date", "Target date"])),
+                    status: getVal(row, ["status", "Status"]) || "Open",
+                    responsible: getVal(row, ["responsible", "Responsible", "Responsib"]),
+                    support_required_from: getVal(row, ["support_required_from", "Support Required From", "Support required from", "Support re"]),
+                    teams_involved: getVal(row, ["teams_involved", "Teams Involved", "Teams involved", "Teams Inv"]),
+                    remarks: getVal(row, ["remarks", "Remarks"])
+                  }));
+
+                  await bulkUploadActionsApi(actions);
+                  alert("Bulk upload successful!");
+                  loadData();
+                } catch (err) {
+                  console.error("Bulk upload error:", err);
+                  alert(err.message || "Failed to process bulk upload");
+                } finally {
+                  setLoading(false);
+                  e.target.value = "";
+                }
+              }} />
+              BULK UPLOAD
+            </label>
+          )}
+
+          {(userRole === "ADMIN" || userRole === "BM" || userRole === "PM") && mode === "view" && (
+            <button
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to reset the layout to default? This will clear all custom column ordering and visibility.")) {
+                  try {
+                    await deleteLayoutApi(moduleKey);
+                    window.location.reload();
+                  } catch (error) {
+                    alert("Failed to reset layout. Please try again.");
+                  }
+                }
+              }}
+              className="px-4 py-2.5 border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 text-xs font-bold uppercase tracking-widest rounded transition-all shadow-sm flex items-center gap-2"
+            >
+              Reset Layout
+            </button>
+          )}
           <button
-            onClick={handleNew}
+            onClick={handleNewClick}
             className="px-8 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded hover:bg-gray-800 transition-all shadow-sm hover:shadow-md transform active:scale-95 flex items-center gap-2"
           >
             <span>ADD NEW</span>
-
           </button>
         </div>
       </header>
@@ -477,6 +677,7 @@ const WorkboardPage = ({
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50 border-b">
+                    {isDeleteMode && <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase w-10">Select</th>}
                     <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Actions</th>
                     {columns.map(col => (
                       <th key={col} className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">
@@ -490,6 +691,19 @@ const WorkboardPage = ({
                     const rowId = row.id || row.issue_id || row.risk_id || row.action_id || row.dependency_id || row.escalation_id || row.appreciation_id;
                     return (
                       <tr key={rowId} className={`${getStatusRowClass(row.status || row.current_status)} border-b hover:bg-opacity-80 transition-colors text-sm`}>
+                        {isDeleteMode && (
+                          <td className="px-6 py-3 align-top">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 cursor-pointer mt-2"
+                              checked={selectedIds.includes(rowId)}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedIds([...selectedIds, rowId]);
+                                else setSelectedIds(selectedIds.filter(id => id !== rowId));
+                              }}
+                            />
+                          </td>
+                        )}
                         <td className="px-6 py-3 font-medium">
                           <button
                             onClick={() => navigate(`${location.pathname}?mode=edit&id=${rowId}`)}
@@ -536,7 +750,7 @@ const WorkboardPage = ({
                   })}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={columns.length + 1} className="p-10 text-center text-gray-500">
+                      <td colSpan={columns.length + (isDeleteMode ? 2 : 1)} className="p-10 text-center text-gray-500">
                         No records found.
                       </td>
                     </tr>
@@ -555,15 +769,34 @@ const WorkboardPage = ({
               {title} Details
             </h2>
             <div className="flex items-center gap-4">
-              {userRole === "ADMIN" && (
+            {(userRole === "ADMIN" || userRole === "BM" || userRole === "PM") && (
+              <>
                 <button
-                  onClick={() => setShowLayoutBuilder(true)}
+                  onClick={async () => {
+                    if (window.confirm("Are you sure you want to reset the layout to default? This will clear all custom column ordering and visibility.")) {
+                      try {
+                        await deleteLayoutApi(moduleKey);
+                        window.location.reload();
+                      } catch (error) {
+                        alert("Failed to reset layout. Please try again.");
+                      }
+                    }
+                  }}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors"
                 >
-                  <SlidersHorizontal size={14} />
-                  ADMIN: Layout
+                  Reset Layout
                 </button>
-              )}
+                {userRole === "ADMIN" && (
+                  <button
+                    onClick={() => setShowLayoutBuilder(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+                  >
+                    <SlidersHorizontal size={14} />
+                    ADMIN: Layout
+                  </button>
+                )}
+              </>
+            )}
               <button
                 onClick={() => navigate(`${location.pathname}?mode=view`)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -688,6 +921,13 @@ const WorkboardPage = ({
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
+                    ) : field.type === "manager-sub-person" ? (
+                      <ManagerSubPersonInput
+                        value={value}
+                        onChange={(val) => setFormData(prev => ({ ...prev, [field.name]: val }))}
+                        required={field.required}
+                        readOnly={field.readOnly}
+                      />
                     ) : (
                       <input
                         type={field.type === "date" ? "date" : "text"}
@@ -759,6 +999,91 @@ const WorkboardPage = ({
           />
         )
       }
+      {showAddNotice && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center transform scale-100 transition-all">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-50 border border-blue-100 mb-4 shadow-inner">
+              <span className="text-blue-600 text-xl font-bold font-serif">i</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2 font-marcellus">Important Notice</h3>
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              Entries can be added or edited anytime, but <strong>deletion is strictly limited</strong> to the same day of creation. Please ensure your data entry is precise and accurate.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowAddNotice(false)}
+                className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={proceedToNew}
+                className="px-6 py-2.5 rounded-lg bg-black text-white font-semibold text-sm hover:bg-gray-800 shadow-md transition-all"
+              >
+                Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmDelete && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-fade-in transition-all">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center transform scale-100 animate-slide-up transition-all">
+            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-5 shadow-inner">
+              <Trash size={28} weight="duotone" className="text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3 tracking-tight">Confirm Deletion</h3>
+            <p className="text-sm text-gray-600 mb-8 leading-relaxed">
+              Are you sure you want to permanently delete the <strong className="text-gray-900">{selectedIds.length} select {selectedIds.length === 1 ? 'entry' : 'entries'}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirmDelete(false);
+                  setSelectedIds([]);
+                  setIsDeleteMode(false);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 focus:ring-2 focus:ring-gray-200 outline-none transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeDelete}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 shadow-md hover:shadow-lg focus:ring-2 focus:ring-red-500 focus:ring-offset-1 outline-none transition-all"
+              >
+                Delete ({selectedIds.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {globalAlert && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-fade-in transition-all">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center transform scale-100 animate-slide-up transition-all">
+            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-blue-50 mb-5 shadow-inner border border-blue-100">
+              <span className="text-blue-500 text-2xl font-bold font-serif">i</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3 tracking-tight">{globalAlert.title || "System Notice"}</h3>
+            <p className="text-sm text-gray-600 mb-8 leading-relaxed">
+              {globalAlert.message || globalAlert}
+            </p>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setGlobalAlert(null)}
+                className="w-full px-4 py-2.5 rounded-lg bg-black text-white font-semibold text-sm hover:bg-gray-800 shadow-md transition-all outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div >
   );
 };

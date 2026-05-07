@@ -44,10 +44,12 @@ export async function findDependencies({ whereSql = "", params = [] } = {}) {
 
 
 export async function findDependencyById(id) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const col = isUuid ? "d.id" : "d.dependency_id";
   const sql = `
     SELECT d.*
     FROM dependencies d
-    WHERE d.id = $1
+    WHERE ${col} = $1
   `;
   const { rows } = await pool.query(sql, [id]);
   return rows[0];
@@ -176,3 +178,18 @@ export async function countAll() {
   const result = await pool.query("SELECT COUNT(*) AS c FROM dependencies");
   return Number(result.rows[0].c);
 }
+
+export async function findDependenciesByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const sql = `SELECT * FROM dependencies WHERE id = ANY($1::uuid[])`;
+  const { rows } = await pool.query(sql, [ids]);
+  return rows;
+}
+
+export async function deleteMultipleDependencies(ids) {
+  if (!ids || ids.length === 0) return 0;
+  const sql = `DELETE FROM dependencies WHERE id = ANY($1::uuid[]) RETURNING *`;
+  const { rowCount } = await pool.query(sql, [ids]);
+  return rowCount;
+}
+

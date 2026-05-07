@@ -383,34 +383,6 @@ code {
 }
 
 
-.ceremony-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  align-items: center;
-}
-
-.bullet-square {
-  list-style-type: none;
-}
-
-.bullet-square li::before {
-  content: "▪";
-  color: #fff;
-  display: inline-block;
-  width: 1.5em;
-  margin-left: -1.5em;
-}
-
-.text-muted-p3 {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.text-bright-p3 {
-  color: #fff;
-  transition: color 1s ease;
-}
-
 
 @media (max-width: 640px) {
   header>div:first-child {

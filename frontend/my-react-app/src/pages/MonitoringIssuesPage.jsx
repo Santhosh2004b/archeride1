@@ -1,3 +1,4 @@
+import { useFilter } from '../context/FilterContext';
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchIssues } from "../api/issuesApi";
@@ -66,6 +67,7 @@ const MonitoringIssuesPage = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [allRows, setAllRows] = useState([]);
+  const { selectedManager } = useFilter();
   useMonitoringExport("issues", rows);
   const [showToast, setShowToast] = useState(false);
 
@@ -134,7 +136,7 @@ const MonitoringIssuesPage = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetchIssues();
+      const res = await fetchIssues({ manager: selectedManager });
       const list = Array.isArray(res) ? res : (res?.data || []);
       setAllRows(list);
       applyFiltersAndSearch(list);
@@ -415,3 +417,7 @@ const MonitoringIssuesPage = () => {
 };
 
 export default MonitoringIssuesPage;
+
+
+
+

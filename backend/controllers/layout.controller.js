@@ -36,3 +36,13 @@ export async function saveLayout(req, res) {
         return sendError(res, 500, "Failed to save layout");
     }
 }
+export async function deleteLayout(req, res) {
+    try {
+        const { module } = req.params;
+        await pool.query("DELETE FROM layout_configs WHERE module = $1", [module]);
+        return sendSuccess(res, { message: "Layout reset successfully" });
+    } catch (err) {
+        console.error("Delete Layout Error:", err);
+        return sendError(res, 500, "Failed to reset layout");
+    }
+}

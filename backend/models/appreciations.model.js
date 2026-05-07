@@ -40,6 +40,7 @@ export async function findAppreciations({ whereSql = "", params = [] } = {}) {
 
 
 export async function findAppreciationById(id) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
   const sql = `
     SELECT
       a.id,
@@ -67,7 +68,7 @@ export async function findAppreciationById(id) {
       a.created_at,
       a.updated_at
     FROM appreciations a
-    WHERE a.id = $1
+    WHERE ${isUuid ? "a.id" : "a.appreciation_id"} = $1
   `;
   const { rows } = await pool.query(sql, [id]);
   return rows[0];
@@ -206,4 +207,18 @@ export async function countAll() {
     "SELECT COUNT(*) AS c FROM appreciations"
   );
   return Number(rows[0].c);
+}
+
+export async function findAppreciationsByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const sql = `SELECT * FROM appreciations WHERE id = ANY($1::uuid[])`;
+  const { rows } = await pool.query(sql, [ids]);
+  return rows;
+}
+
+export async function deleteMultipleAppreciations(ids) {
+  if (!ids || ids.length === 0) return 0;
+  const sql = `DELETE FROM appreciations WHERE id = ANY($1::uuid[]) RETURNING *`;
+  const { rowCount } = await pool.query(sql, [ids]);
+  return rowCount;
 }

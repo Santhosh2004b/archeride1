@@ -57,3 +57,15 @@ export async function updateRiskApi(id, payload) {
   });
   return handleResponse(res);
 }
+
+export async function deleteRisksApi(payload) {
+  const res = await fetch(`${BASE_URL}/risks/delete-multiple`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse(res);
+}

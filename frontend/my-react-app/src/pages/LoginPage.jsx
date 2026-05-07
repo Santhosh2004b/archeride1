@@ -48,7 +48,6 @@ function LoginPage() {
     "Business opportunities are like buses, there's always another one coming.",
     "Success usually comes to those who are too busy to be looking for it.",
     "Don't sit down and wait for the opportunities to come. Get up and make them.",
-    "The way to get started is to quit talking and begin doing.",
     "There's no shortage of remarkable ideas, what's missing is the will to execute them.",
     "Far and away the best prize that life offers is the chance to work hard at work worth doing.",
     "If you really look closely, most overnight successes took a long time.",
@@ -81,7 +80,6 @@ function LoginPage() {
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % QUOTES.length);
     }, 5000);
-    if (window.stopCeremonyAudio) window.stopCeremonyAudio();
     return () => clearInterval(interval);
   }, [QUOTES.length]);
 

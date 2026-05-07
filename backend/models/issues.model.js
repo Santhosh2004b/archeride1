@@ -43,10 +43,12 @@ export async function findIssues({ whereSql = "", params = [] } = {}) {
 
 
 export async function findIssueById(id) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const col = isUuid ? "i.id" : "i.issue_id";
   const sql = `
     SELECT i.*
     FROM issues i
-    WHERE i.id = $1
+    WHERE ${col} = $1
   `;
   const { rows } = await pool.query(sql, [id]);
   return rows[0];
@@ -179,8 +181,22 @@ export async function countAll() {
 
 export async function countByStatus(status) {
   const result = await pool.query(
-    "SELECT COUNT(*) AS c FROM issues WHERE status = $1",
+    "SELECT COUNT(*) AS c FROM issues WHERE status::text = $1::text",
     [status]
   );
   return Number(result.rows[0].c);
+}
+
+export async function findIssuesByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const sql = `SELECT * FROM issues WHERE id = ANY($1::uuid[])`;
+  const { rows } = await pool.query(sql, [ids]);
+  return rows;
+}
+
+export async function deleteMultipleIssues(ids) {
+  if (!ids || ids.length === 0) return 0;
+  const sql = `DELETE FROM issues WHERE id = ANY($1::uuid[]) RETURNING *`;
+  const { rowCount } = await pool.query(sql, [ids]);
+  return rowCount;
 }

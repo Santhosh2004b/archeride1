@@ -27,38 +27,24 @@ import MonitoringNotificationsPage from "./pages/MonitoringNotificationsPage";
 import UsersMonitoringPage from "./pages/UsersMonitoringPage";
 import { AuthProvider } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
-import CeremonyLaunchPage from "./pages/CeremonyLaunchPage";
-import CeremonyRibbonPage from "./pages/CeremonyRibbonPage";
-import FinalCeremonyPage from "./pages/FinalCeremonyPage";
+import { FilterProvider } from "./context/FilterContext";
+import ManagersAdminPage from "./pages/ManagersAdminPage";
+import GuidePage from "./pages/GuidePage";
+
+
 
 function App() {
-  const audioRef = React.useRef(null);
-
-  React.useEffect(() => {
-    window.playCeremonyAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.play().catch(e => console.error("Audio error", e));
-      }
-    };
-    window.stopCeremonyAudio = () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    };
-  }, []);
 
   return (
     <AuthProvider>
-      <audio ref={audioRef} src="/assets/Awards_Ceremony_Grand_Opening.mp3" preload="auto" />
+      <FilterProvider>
+
       <Router>
         <Routes>
           {}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/landing" element={<LandingPage />} />
-          <Route path="/ceremony" element={<CeremonyLaunchPage />} />
-          <Route path="/ceremony/ribbon" element={<CeremonyRibbonPage />} />
-          <Route path="/ceremony/final" element={<FinalCeremonyPage />} />
+
 
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/actions" element={<ActionsPage />} />
@@ -167,12 +153,32 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/monitoring/managers"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <MainLayout>
+                  <ManagersAdminPage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/guide"
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <GuidePage />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {}
           <Route
             path="/modules/:moduleKey"
             element={
-              <ProtectedRoute allowedRoles={["BM", "PM"]}>
+              <ProtectedRoute allowedRoles={["BM", "PM", "ADMIN"]}>
                 <MainLayout>
                   <ModuleRoute />
                 </MainLayout>
@@ -196,6 +202,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
+      </FilterProvider>
     </AuthProvider>
   );
 }
